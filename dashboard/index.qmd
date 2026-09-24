@@ -1,0 +1,157 @@
+---
+title: "Texas 2026 U.S. Senate forecast"
+format:
+  dashboard:
+    orientation: rows
+    scrolling: true
+---
+
+```{r}
+#| include: false
+library(dplyr)
+library(readr)
+library(plotly)
+library(leaflet)
+library(DT)
+
+pub <- function(f) here::here("data", "published", f)
+read_pub <- function(f) if (file.exists(pub(f))) read_csv(pub(f), show_col_types = FALSE) else NULL
+missing_note <- function(f) htmltools::p(sprintf("Not yet published: data/published/%s", f))
+fmt_share <- function(x) sprintf("%.1f%%", 100 * x)
+
+headline <- read_pub("headline.csv")
+track    <- read_pub("kalman_track.csv")
+ledger   <- read_pub("poll_ledger.csv")
+gates    <- read_pub("gates.csv")
+regional <- read_pub("regional_projections.csv")
+
+comp <- function(name) if (is.null(headline)) NULL else filter(headline, component == name)
+combined     <- comp("combined")
+fundamentals <- comp("fundamentals")
+
+ungated <- if (is.null(gates)) NULL else filter(gates, status == "UNGATED")
+ungated_for <- function(q) {
+  if (is.null(ungated) || !nrow(ungated)) return(NULL)
+  hits <- filter(ungated, affects == q)
+  if (!nrow(hits)) NULL else paste("UNGATED:", paste(hits$gate, collapse = ", "))
+}
+```
+
+## Headline {height="20%"}
+
+```{r}
+#| content: valuebox
+#| title: "Talarico two-party share, combined estimate"
+list(
+  value = if (is.null(combined)) "not published" else
+    sprintf("%s ± %s", fmt_share(combined$mean), fmt_share(combined$sd)),
+  color = "light"
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "P(Talarico two-party share > 50%)"
+list(
+  value = if (is.null(combined)) "not published" else fmt_share(combined$p_talarico_win),
+  color = "light"
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Polling-bias sd, two-party share"
+list(
+  value = if (is.null(combined)) "not published" else fmt_share(combined$bias_sd),
+  color = "light"
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Model run date"
+list(
+  value = if (is.null(headline)) "not published" else format(max(headline$run_date)),
+  color = "light"
+)
+```
+
+## Gate notes {height="8%"}
+
+```{r}
+notes <- Filter(Negate(is.null), lapply(c("combined", "poll", "fundamentals"), function(q) {
+  n <- ungated_for(q)
+  if (is.null(n)) NULL else sprintf("%s estimate: %s", q, sub("^UNGATED: ", "", n))
+}))
+if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
+  htmltools::p("All gates affecting the headline components passed.") else
+  htmltools::p(htmltools::strong("UNGATED "), paste(notes, collapse = "; "))
+```
+
+## Track and map {height="50%"}
+
+```{r}
+#| title: "Daily Kalman poll track, Talarico two-party share"
+if (is.null(track)) missing_note("kalman_track.csv") else {
+  track <- track |>
+    select(-any_of("win_prob")) |>
+    mutate(lo = mean - 1.96 * se, hi = mean + 1.96 * se)
+  p <- plot_ly(track, x = ~date) |>
+    add_ribbons(ymin = ~lo, ymax = ~hi, name = "Poll track 95% band",
+                fillcolor = "rgba(31,119,180,0.2)", line = list(width = 0)) |>
+    add_lines(y = ~mean, name = "Poll track mean", line = list(color = "rgb(31,119,180)"))
+  if (!is.null(fundamentals) && nrow(fundamentals)) {
+    fb <- tibble(date = range(track$date),
+                 lo = fundamentals$mean - 1.96 * fundamentals$sd,
+                 hi = fundamentals$mean + 1.96 * fundamentals$sd)
+    p <- p |> add_ribbons(data = fb, x = ~date, ymin = ~lo, ymax = ~hi,
+                          name = "Fundamentals prior 95% band",
+                          fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
+  }
+  p |> layout(
+    yaxis = list(title = "Talarico two-party share", tickformat = ".0%"),
+    xaxis = list(title = ""),
+    shapes = list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0.5, y1 = 0.5,
+                       line = list(dash = "dot", color = "grey")))
+  )
+}
+```
+
+```{r}
+#| title: "Regional projections, Talarico two-party share"
+geo_path <- pub("regions.geojson")
+if (is.null(regional)) missing_note("regional_projections.csv") else
+if (!file.exists(geo_path)) missing_note("regions.geojson") else {
+  regions <- sf::st_read(geo_path, quiet = TRUE) |> select(region_id)
+  map_df <- left_join(regions, regional, by = "region_id")
+  stopifnot(!any(grepl("\\.(x|y)$", names(map_df))))
+  lab_name <- if ("region_label" %in% names(map_df)) map_df$region_label else map_df$region_id
+  labels <- sprintf("<strong>%s</strong><br/>Talarico two-party share: %s ± %s",
+                    lab_name, fmt_share(map_df$mean), fmt_share(map_df$sd)) |>
+    lapply(htmltools::HTML)
+  pal <- colorNumeric("RdBu", domain = map_df$mean)
+  leaflet(sf::st_transform(map_df, 4326)) |>
+    addProviderTiles(providers$CartoDB.Positron) |>
+    addPolygons(fillColor = ~pal(mean), fillOpacity = 0.75, weight = 0.6, color = "white",
+                label = labels,
+                highlightOptions = highlightOptions(weight = 2, color = "#333", bringToFront = TRUE)) |>
+    addLegend(pal = pal, values = ~mean, title = "Talarico two-party share",
+              labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x))
+}
+```
+
+## Tables {height="40%"}
+
+```{r}
+#| title: "Poll ledger (polls used by the model)"
+if (is.null(ledger)) missing_note("poll_ledger.csv") else
+  datatable(ledger, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+```
+
+```{r}
+#| title: "Gates"
+if (is.null(gates)) missing_note("gates.csv") else
+  datatable(gates, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE)) |>
+    formatStyle("status", fontWeight = styleEqual("UNGATED", "bold"),
+                backgroundColor = styleEqual("UNGATED", "#fde2c4"))
+```

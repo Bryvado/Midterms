@@ -1,0 +1,16 @@
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.Renviron
+.DS_Store
+/.quarto/
+dashboard/.quarto/
+dashboard/_site/
+dashboard/*_files/
+dashboard/index.html
+*_cache/
+renv/library/
+renv/staging/
+data/cache/
