@@ -59,14 +59,16 @@ if (is.null(ledger)) missing_note("poll_ledger.csv") else {
                     weight = "Relative weight", source = "Source")
   shown <- intersect(names(ledger_names), names(ledger))
   ledger <- ledger[, c(shown, setdiff(names(ledger), shown))]
-  pct_cols <- which(names(ledger) %in% c("talarico_2p", "weight"))
+  pct_cols <- names(ledger) %in% c("talarico_2p", "weight")
+  cells <- lapply(seq_len(nrow(ledger)), function(i) htmltools::tags$tr(lapply(seq_along(ledger), function(j) {
+    v <- ledger[[j]][i]
+    htmltools::tags$td(if (pct_cols[j]) fmt_share(v) else as.character(v))
+  })))
   htmltools::tags$details(
     htmltools::tags$summary(sprintf("Poll ledger (%d polls)", nrow(ledger))),
-    datatable(ledger, rownames = FALSE,
-              colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
-              options = list(pageLength = 10, scrollX = TRUE)) |>
-      formatPercentage(pct_cols, digits = 1)
-  )
+    htmltools::tags$table(class = "table table-sm",
+      htmltools::tags$thead(htmltools::tags$tr(lapply(unname(c(ledger_names[shown], setdiff(names(ledger), shown))), htmltools::tags$th))),
+      htmltools::tags$tbody(cells)))
 }
 })
 checks_ui <- local({
@@ -306,5 +308,6 @@ shift_tbl <- if (is.null(shifts)) missing_note("uniform_shift.csv") else {
             htmltools::tags$thead(htmltools::tags$tr(lapply(hdr, htmltools::tags$th))),
             htmltools::tags$tbody(rows)))
 }
-htmltools::tagList(meth, shift_tbl, ledger_ui, checks_ui)
+foot <- as.character(htmltools::div(style = "font-size: 0.85em; color: #555;", meth, shift_tbl, ledger_ui, checks_ui))
+knitr::asis_output(paste0("\n```{=html}\n", foot, "\n```\n"))
 ```
