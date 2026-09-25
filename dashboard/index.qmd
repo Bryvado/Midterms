@@ -39,7 +39,7 @@ ungated_for <- function(qs) {
 }
 ```
 
-## Headline {height="20%"}
+## Headline {height="14%"}
 
 ```{r}
 #| content: valuebox
@@ -78,7 +78,7 @@ list(
 )
 ```
 
-## Gate notes {height="8%"}
+## Gate notes {height="6%"}
 
 ```{r}
 notes <- Filter(Negate(is.null), lapply(c("combined", "poll", "fundamentals"), function(q) {
@@ -90,43 +90,7 @@ if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
   htmltools::p(htmltools::strong("UNGATED "), paste(notes, collapse = "; "))
 ```
 
-## Track and map {height="55%"}
-
-```{r}
-#| title: "Daily Kalman poll track, Talarico two-party share"
-if (is.null(track)) missing_note("kalman_track.csv") else {
-  track <- track |>
-    select(-any_of("win_prob")) |>
-    arrange(date) |>
-    mutate(lo = mean - 1.96 * se, hi = mean + 1.96 * se)
-  obs <- filter(track, !projected)
-  proj <- filter(track, projected | date == max(obs$date))
-  blue <- "31,119,180"
-  p <- plot_ly(x = ~date) |>
-    add_ribbons(data = obs, ymin = ~lo, ymax = ~hi, name = "Observed 95% band",
-                fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0)) |>
-    add_ribbons(data = proj, ymin = ~lo, ymax = ~hi, name = "Projected 95% band",
-                fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0)) |>
-    add_lines(data = obs, y = ~mean, name = "Observed mean",
-              line = list(color = sprintf("rgb(%s)", blue))) |>
-    add_lines(data = proj, y = ~mean, name = "Projected mean (after last poll)",
-              line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
-  if (!is.null(fundamentals) && nrow(fundamentals)) {
-    fb <- tibble(date = range(track$date),
-                 lo = fundamentals$mean - 1.96 * fundamentals$sd,
-                 hi = fundamentals$mean + 1.96 * fundamentals$sd)
-    p <- p |> add_ribbons(data = fb, ymin = ~lo, ymax = ~hi,
-                          name = "Fundamentals prior 95% band",
-                          fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
-  }
-  p |> layout(
-    yaxis = list(title = "Talarico two-party share", tickformat = ".0%"),
-    xaxis = list(title = ""),
-    shapes = list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0.5, y1 = 0.5,
-                       line = list(dash = "dot", color = "grey")))
-  )
-}
-```
+## Map {height="60%"}
 
 ```{r}
 #| title: "Precinct (VTD) projections, Talarico two-party share"
@@ -158,10 +122,63 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
 }
 ```
 
-## Tables {height="40%"}
+## Track {height="28%"}
 
 ```{r}
-#| title: "Poll ledger (polls used by the model)"
+#| title: "Daily Kalman poll track and polls used, Talarico two-party share (expand for full view)"
+if (is.null(track)) missing_note("kalman_track.csv") else {
+  track <- track |>
+    select(-any_of("win_prob")) |>
+    arrange(date) |>
+    mutate(lo = mean - 1.96 * se, hi = mean + 1.96 * se)
+  obs <- filter(track, !projected)
+  proj <- filter(track, projected | date == max(obs$date))
+  blue <- "31,119,180"
+  p <- plot_ly(x = ~date) |>
+    add_ribbons(data = obs, ymin = ~lo, ymax = ~hi, name = "Observed 95% band",
+                fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0),
+                hoverinfo = "skip") |>
+    add_ribbons(data = proj, ymin = ~lo, ymax = ~hi, name = "Projected 95% band",
+                fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0),
+                hoverinfo = "skip") |>
+    add_lines(data = obs, y = ~mean, name = "Observed mean",
+              line = list(color = sprintf("rgb(%s)", blue))) |>
+    add_lines(data = proj, y = ~mean, name = "Projected mean (after last poll)",
+              line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
+  if (!is.null(fundamentals) && nrow(fundamentals)) {
+    fb <- tibble(date = range(track$date),
+                 lo = fundamentals$mean - 1.96 * fundamentals$sd,
+                 hi = fundamentals$mean + 1.96 * fundamentals$sd)
+    p <- p |> add_ribbons(data = fb, ymin = ~lo, ymax = ~hi,
+                          name = "Fundamentals prior 95% band", hoverinfo = "skip",
+                          fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
+  }
+  if (!is.null(ledger)) {
+    polls <- ledger |>
+      mutate(hover = sprintf(
+        "<b>%s</b><br>Field end: %s<br>n = %s<br>Talarico %s, Paxton %s, other %s%s<br>Talarico two-party share: %s<br>Relative weight: %s<br>Source: %s",
+        pollster, end_date, n, talarico, paxton, other,
+        ifelse(brown_named, " (Brown named)", ""), fmt_share(talarico_2p),
+        fmt_share(weight), source))
+    p <- p |> add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls used",
+                          text = ~hover, hoverinfo = "text",
+                          marker = list(color = "rgba(40,40,40,0.7)",
+                                        size = ~pmax(5, 40 * sqrt(weight))))
+  }
+  p |> layout(
+    yaxis = list(title = "Talarico two-party share", tickformat = ".0%"),
+    xaxis = list(title = "", rangeslider = list(visible = TRUE)),
+    legend = list(orientation = "h"),
+    shapes = list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0.5, y1 = 0.5,
+                       line = list(dash = "dot", color = "grey")))
+  )
+}
+```
+
+## Bottom {height="12%"}
+
+```{r}
+#| title: "Poll ledger"
 if (is.null(ledger)) missing_note("poll_ledger.csv") else {
   ledger_names <- c(pollster = "Pollster", end_date = "End date", n = "n",
                     talarico = "Talarico", paxton = "Paxton", other = "Other",
@@ -170,17 +187,28 @@ if (is.null(ledger)) missing_note("poll_ledger.csv") else {
   shown <- intersect(names(ledger_names), names(ledger))
   ledger <- ledger[, c(shown, setdiff(names(ledger), shown))]
   pct_cols <- which(names(ledger) %in% c("talarico_2p", "weight"))
-  datatable(ledger, rownames = FALSE,
-            colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
-            options = list(pageLength = 10, scrollX = TRUE)) |>
-    formatPercentage(pct_cols, digits = 1)
+  htmltools::tags$details(
+    htmltools::tags$summary(sprintf("Show all %d polls used by the model", nrow(ledger))),
+    datatable(ledger, rownames = FALSE,
+              colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
+              options = list(pageLength = 10, scrollX = TRUE)) |>
+      formatPercentage(pct_cols, digits = 1)
+  )
 }
 ```
 
 ```{r}
-#| title: "Gates"
-if (is.null(gates)) missing_note("gates.csv") else
-  datatable(gates, rownames = FALSE, options = list(pageLength = 15, scrollX = TRUE)) |>
-    formatStyle("status", fontWeight = styleEqual("UNGATED", "bold"),
-                backgroundColor = styleEqual("UNGATED", "#fde2c4"))
+#| title: "Methodology notes: model gates"
+if (is.null(gates)) missing_note("gates.csv") else {
+  items <- lapply(seq_len(nrow(gates)), function(i) {
+    g <- gates[i, ]
+    status <- if (g$status == "UNGATED") htmltools::strong("UNGATED") else g$status
+    htmltools::tags$li(htmltools::tags$code(g$gate), " (", g$affects, "): ", status,
+                       if (!is.na(g$detail)) paste0(". ", g$detail))
+  })
+  htmltools::tags$details(
+    htmltools::tags$summary(sprintf("%d gates, %d UNGATED", nrow(gates), sum(gates$status == "UNGATED"))),
+    htmltools::tags$ul(items)
+  )
+}
 ```
