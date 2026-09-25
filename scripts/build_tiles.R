@@ -18,7 +18,9 @@ unmatched_proj <- anti_join(proj, st_drop_geometry(regions), by = "region_id")
 unmatched_feat <- anti_join(st_drop_geometry(regions), proj, by = "region_id")
 dup_ids <- sum(duplicated(proj$region_id)) + sum(duplicated(regions$region_id))
 
-joined <- inner_join(regions, proj, by = "region_id")
+joined <- inner_join(regions, proj, by = "region_id") |>
+  select(-any_of("profile")) |>
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
 collisions <- grep("\\.(x|y)$", names(joined), value = TRUE)
 
 gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0

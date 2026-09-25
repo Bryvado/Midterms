@@ -125,8 +125,9 @@ site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
 map_gate <- ungated_for(c("regional", "vtd_model"))
 if (!file.exists(pub("regions.geojson"))) missing_note("regions.geojson") else
 if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
-  share_breaks <- c(0.2, 0.35, 0.5, 0.65, 0.8)
-  share_cols <- c("#b2182b", "#ef8a62", "#f7f7f7", "#67a9cf", "#2166ac")
+  share_breaks <- c(0.2, 0.35, 0.4999, 0.5, 0.65, 0.8)
+  share_cols <- c("#b2182b", "#ef8a62", "#fbd5c6", "#cfe3f1", "#67a9cf", "#2166ac")
+  share_labels <- c("20%", "35%", "<50%", "50%", "65%", "80%")
   shift_breaks <- c(-0.15, -0.075, 0, 0.075, 0.15)
   shift_cols <- c("#d7301f", "#fc8d59", "#f7f7f7", "#91bfdb", "#4575b4")
   na_col <- "#bdbdbd"
@@ -177,7 +178,7 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
       tooltip = L$tip, hover_options = list(fill_opacity = 1))
   }
   m <- m |>
-    add_legend("Talarico two-party share", values = sprintf("%d%%", 100 * share_breaks),
+    add_legend("Talarico two-party share", values = share_labels,
                colors = share_cols, type = "continuous") |>
     add_legend("Shift vs baseline, Democratic two-party points (grey: no baseline)",
                values = sprintf("%+g", 100 * shift_breaks), colors = shift_cols,
