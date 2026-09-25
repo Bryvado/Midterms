@@ -147,7 +147,8 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
   if (!is.null(base_info)) for (i in seq_len(nrow(base_info))) {
     b <- base_info$baseline[i]
     layers[[length(layers) + 1]] <- list(
-      id = paste0("shift_", b), label = paste("Shift vs", base_info$display[i]),
+      id = paste0("shift_", b), label = paste0("Shift vs ", sub(" \\(.*$", "", base_info$label[i]),
+                                  if (base_info$model_internal[i]) " (model)" else ""),
       col = paste0("shift_", b), breaks = shift_breaks, cols = shift_cols,
       tip = concat(title,
         "<br>Shift vs ", base_info$display[i], ": ",
@@ -158,7 +159,7 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
   }
   for (sc in c("talarico_p95", "paxton_p95")) {
     col <- paste0("scen_", sc, "_2p")
-    lab <- if (sc == "talarico_p95") "Talarico 95th-percentile scenario" else "Paxton 95th-percentile scenario"
+    lab <- if (sc == "talarico_p95") "Talarico 95th pct." else "Paxton 95th pct."
     layers[[length(layers) + 1]] <- list(
       id = col, label = lab, col = col, breaks = share_breaks, cols = share_cols,
       tip = concat(title, "<br>", lab, ", Talarico two-party share: ", pct(col),
@@ -178,15 +179,15 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
       tooltip = L$tip, hover_options = list(fill_opacity = 1))
   }
   m <- m |>
-    add_legend("Talarico two-party share", values = share_labels,
+    add_legend("Talarico two-party share", values = share_labels, position = "bottom-left", width = "260px",
                colors = share_cols, type = "continuous") |>
-    add_legend("Shift vs baseline, Democratic two-party points (grey: no baseline)",
+    add_legend("Shift, two-party pts (grey: no baseline)", width = "260px",
                values = sprintf("%+g", 100 * shift_breaks), colors = shift_cols,
                type = "continuous", add = TRUE, position = "bottom-right") |>
     add_layers_control(position = "top-left",
                        layers = setNames(lapply(layers, `[[`, "id"),
                                          vapply(layers, `[[`, "", "label")))
-  if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(htmltools::strong(map_gate)), m)
+  if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(style = "font-size: 0.8em; margin: 0 0 4px;", htmltools::strong(map_gate)), m)
 }
 ```
 
