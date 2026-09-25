@@ -1,13 +1,13 @@
 gate,status,affects,detail,script,run_at
-headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-25T00:35:44Z
-headline_p_consistent,PASS,publish,"mean 0.5081, P 0.704",08_publish.R,2026-09-25T00:35:44Z
-track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-25T00:35:44Z
-track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-25T00:35:44Z
-ledger_count,PASS,publish,38 ledger rows vs 38 pooled,08_publish.R,2026-09-25T00:35:44Z
-ledger_repools_to_obs,PASS,publish,"34/34 dates matched, max diff 1.11e-16",08_publish.R,2026-09-25T00:35:44Z
-vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-25T00:35:44Z
-vtd_saved_after_combined,PASS,publish,06 2026-09-23 22:57:54.081754 vs 05 2026-09-23 22:36:42.884292,08_publish.R,2026-09-25T00:35:44Z
-vtd_draws_center,PASS,publish,draw mean gap 4.48e-05,08_publish.R,2026-09-25T00:35:44Z
-vtd_ids_unique,PASS,publish,9134 VTDs,08_publish.R,2026-09-25T00:35:44Z
-vtd_geometry_match,PASS,publish,tx_2022_gen_tx_vtd.shp,08_publish.R,2026-09-25T00:35:44Z
-geojson_size,PASS,publish,"12.9 MB, 9134 features",08_publish.R,2026-09-25T00:35:44Z
+headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-25T00:41:27Z
+headline_p_consistent,PASS,publish,"mean 0.5081, P 0.704",08_publish.R,2026-09-25T00:41:27Z
+track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-25T00:41:27Z
+track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-25T00:41:27Z
+ledger_count,PASS,publish,38 ledger rows vs 38 pooled,08_publish.R,2026-09-25T00:41:27Z
+ledger_repools_to_obs,PASS,publish,"34/34 dates matched, max diff 1.11e-16",08_publish.R,2026-09-25T00:41:27Z
+vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-25T00:41:27Z
+vtd_saved_after_combined,PASS,publish,06 2026-09-23 22:57:54.081754 vs 05 2026-09-23 22:36:42.884292,08_publish.R,2026-09-25T00:41:27Z
+vtd_draws_center,PASS,publish,draw mean gap 4.48e-05,08_publish.R,2026-09-25T00:41:27Z
+vtd_ids_unique,PASS,publish,9134 VTDs,08_publish.R,2026-09-25T00:41:27Z
+vtd_geometry_match,PASS,publish,tx_2022_gen_tx_vtd.shp,08_publish.R,2026-09-25T00:41:27Z
+geojson_size,PASS,publish,"7.7 MB, 9134 features",08_publish.R,2026-09-25T00:41:27Z
