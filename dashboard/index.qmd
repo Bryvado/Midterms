@@ -160,7 +160,7 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
         pollster, end_date, n, talarico, paxton, other,
         ifelse(brown_named, " (Brown named)", ""), fmt_share(talarico_2p),
         fmt_share(weight), source))
-    p <- p |> add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls used",
+    p <- p |> plotly::add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls used",
                           text = ~hover, hoverinfo = "text",
                           marker = list(color = "rgba(40,40,40,0.7)",
                                         size = ~pmax(5, 40 * sqrt(weight))))
