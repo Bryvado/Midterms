@@ -1,3 +1,4 @@
+here::i_am("scripts/build_tiles.R")
 library(dplyr)
 library(readr)
 library(sf)

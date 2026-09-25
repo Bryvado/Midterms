@@ -8,6 +8,7 @@ format:
 
 ```{r}
 #| include: false
+here::i_am("dashboard/index.qmd")
 library(dplyr)
 library(readr)
 library(plotly)
