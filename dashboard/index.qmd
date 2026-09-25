@@ -26,6 +26,15 @@ headline <- read_pub("headline.csv")
 track    <- read_pub("kalman_track.csv")
 ledger   <- read_pub("poll_ledger.csv")
 gates    <- read_pub("gates.csv")
+shifts   <- read_pub("uniform_shift.csv")
+scen     <- read_pub("scenarios.csv")
+
+default_base <- "sen24"
+base_info <- if (is.null(shifts)) NULL else shifts |>
+  distinct(baseline, label, model_internal, baseline_2p) |>
+  mutate(display = ifelse(model_internal, paste0(label, " (model's internal baseline)"), label),
+         ord = ifelse(baseline == default_base, 0L, 1L)) |>
+  arrange(ord, desc(baseline))
 
 comp <- function(name) if (is.null(headline)) NULL else filter(headline, component == name)
 combined     <- comp("combined")
@@ -78,6 +87,24 @@ list(
 )
 ```
 
+```{r}
+#| content: valuebox
+#| title: "Talarico 95th-percentile outcome"
+s <- if (is.null(scen)) NULL else filter(scen, scenario == "talarico_p95")
+list(value = if (is.null(s) || !nrow(s)) "not published" else
+       sprintf("Talarico two-party share %s", fmt_share(s$talarico_2p)),
+     color = "light")
+```
+
+```{r}
+#| content: valuebox
+#| title: "Paxton 95th-percentile outcome"
+s <- if (is.null(scen)) NULL else filter(scen, scenario == "paxton_p95")
+list(value = if (is.null(s) || !nrow(s)) "not published" else
+       sprintf("Paxton two-party share %s", fmt_share(1 - s$talarico_2p)),
+     color = "light")
+```
+
 ## Gate notes {height="6%"}
 
 ```{r}
@@ -93,65 +120,113 @@ if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
 ## Map {height="60%"}
 
 ```{r}
-#| title: "Precinct (VTD) projections, Talarico two-party share"
+#| title: "Precinct (VTD) map, Talarico two-party share (layer menu, top left: turn on one layer at a time)"
 site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
 map_gate <- ungated_for(c("regional", "vtd_model"))
 if (!file.exists(pub("regions.geojson"))) missing_note("regions.geojson") else
 if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
-  breaks <- c(0.2, 0.35, 0.5, 0.65, 0.8)
-  cols <- c("#b2182b", "#ef8a62", "#f7f7f7", "#67a9cf", "#2166ac")
+  share_breaks <- c(0.2, 0.35, 0.5, 0.65, 0.8)
+  share_cols <- c("#b2182b", "#ef8a62", "#f7f7f7", "#67a9cf", "#2166ac")
+  shift_breaks <- c(-0.15, -0.075, 0, 0.075, 0.15)
+  shift_cols <- c("#d7301f", "#fc8d59", "#f7f7f7", "#91bfdb", "#4575b4")
+  na_col <- "#bdbdbd"
   pct <- function(col) number_format(get_column(col), style = "percent", maximum_fraction_digits = 1)
+  pts <- function(col) concat(number_format(list("*", 100, get_column(col)),
+                                            maximum_fraction_digits = 1, minimum_fraction_digits = 1), " pts")
+  or_missing <- function(col, expr) list("case", list("has", col), expr, "no baseline for this precinct")
+  with_na <- function(col, expr) list("case", list("has", col), expr, na_col)
+  title <- concat("<strong>", get_column("region_label"), "</strong>")
+
+  layers <- list(list(id = "share", label = "Projected share", col = "mean",
+                      breaks = share_breaks, cols = share_cols,
+                      tip = concat(title,
+                        "<br>Talarico two-party share: ", pct("mean"),
+                        "<br>90% interval: ", pct("q05"), " to ", pct("q95"),
+                        "<br>P(Talarico two-party share > 50%): ", pct("p_talarico"))))
+  if (!is.null(base_info)) for (i in seq_len(nrow(base_info))) {
+    b <- base_info$baseline[i]
+    layers[[length(layers) + 1]] <- list(
+      id = paste0("shift_", b), label = paste("Shift vs", base_info$display[i]),
+      col = paste0("shift_", b), breaks = shift_breaks, cols = shift_cols,
+      tip = concat(title,
+        "<br>Shift vs ", base_info$display[i], ": ",
+        or_missing(paste0("shift_", b), pts(paste0("shift_", b))),
+        "<br>Baseline Democratic two-party share: ",
+        or_missing(paste0("base_", b), pct(paste0("base_", b))),
+        "<br>Projected Talarico two-party share: ", pct("mean")))
+  }
+  for (sc in c("talarico_p95", "paxton_p95")) {
+    col <- paste0("scen_", sc, "_2p")
+    lab <- if (sc == "talarico_p95") "Talarico 95th-percentile scenario" else "Paxton 95th-percentile scenario"
+    layers[[length(layers) + 1]] <- list(
+      id = col, label = lab, col = col, breaks = share_breaks, cols = share_cols,
+      tip = concat(title, "<br>", lab, ", Talarico two-party share: ", pct(col),
+                   "<br>Projected (all draws): ", pct("mean")))
+  }
+
   m <- maplibre(style = carto_style("positron"), bounds = c(-106.65, 25.84, -93.51, 36.5)) |>
     add_pmtiles_source(id = "regions", url = paste0(site_url, "/regions.pmtiles"),
-                       promote_id = "region_id") |>
-    add_fill_layer(
-      id = "regions-fill", source = "regions", source_layer = "regions",
-      fill_color = interpolate(column = "mean", values = breaks, stops = cols),
+                       promote_id = "region_id")
+  for (k in seq_along(layers)) {
+    L <- layers[[k]]
+    m <- m |> add_fill_layer(
+      id = L$id, source = "regions", source_layer = "regions",
+      fill_color = with_na(L$col, interpolate(column = L$col, values = L$breaks, stops = L$cols)),
       fill_opacity = 0.8, fill_outline_color = "rgba(0,0,0,0)",
-      tooltip = concat(
-        "<strong>", get_column("region_label"), "</strong>",
-        "<br>Talarico two-party share: ", pct("mean"),
-        "<br>90% interval: ", pct("q05"), " to ", pct("q95"),
-        "<br>P(Talarico two-party share > 50%): ", pct("p_talarico")
-      ),
-      hover_options = list(fill_opacity = 1)
-    ) |>
-    add_legend("Talarico two-party share", values = sprintf("%d%%", 100 * breaks),
-               colors = cols, type = "continuous")
+      visibility = if (k == 1) "visible" else "none",
+      tooltip = L$tip, hover_options = list(fill_opacity = 1))
+  }
+  m <- m |>
+    add_legend("Talarico two-party share", values = sprintf("%d%%", 100 * share_breaks),
+               colors = share_cols, type = "continuous") |>
+    add_legend("Shift vs baseline, Democratic two-party points (grey: no baseline)",
+               values = sprintf("%+g", 100 * shift_breaks), colors = shift_cols,
+               type = "continuous", add = TRUE, position = "bottom-right") |>
+    add_layers_control(position = "top-left",
+                       layers = setNames(lapply(layers, `[[`, "id"),
+                                         vapply(layers, `[[`, "", "label")))
   if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(htmltools::strong(map_gate)), m)
 }
 ```
 
-## Track {height="28%"}
+## Track and shift {height="32%"}
 
 ```{r}
-#| title: "Daily Kalman poll track and polls used, Talarico two-party share (expand for full view)"
+#| title: "Daily Kalman poll track and polls used (menu: switch to shift vs a baseline; expand for full view)"
 if (is.null(track)) missing_note("kalman_track.csv") else {
   track <- track |>
     select(-any_of("win_prob")) |>
-    arrange(date) |>
-    mutate(lo = mean - 1.96 * se, hi = mean + 1.96 * se)
-  obs <- filter(track, !projected)
-  proj <- filter(track, projected | date == max(obs$date))
+    arrange(date)
+  last_obs <- max(track$date[!track$projected])
   blue <- "31,119,180"
-  p <- plot_ly(x = ~date) |>
-    add_ribbons(data = obs, ymin = ~lo, ymax = ~hi, name = "Observed 95% band",
-                fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0),
-                hoverinfo = "skip") |>
-    add_ribbons(data = proj, ymin = ~lo, ymax = ~hi, name = "Projected 95% band",
-                fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0),
-                hoverinfo = "skip") |>
-    add_lines(data = obs, y = ~mean, name = "Observed mean",
-              line = list(color = sprintf("rgb(%s)", blue))) |>
-    add_lines(data = proj, y = ~mean, name = "Projected mean (after last poll)",
-              line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
+  add_series <- function(p, y, name_prefix, visible) {
+    d <- track |> mutate(val = .data[[y]], lo = val - 1.96 * se, hi = val + 1.96 * se)
+    obs <- filter(d, !projected)
+    proj <- filter(d, projected | date == last_obs)
+    p |>
+      add_ribbons(data = obs, x = ~date, ymin = ~lo, ymax = ~hi, visible = visible,
+                  name = paste(name_prefix, "observed 95% band"), hoverinfo = "skip",
+                  fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0)) |>
+      add_ribbons(data = proj, x = ~date, ymin = ~lo, ymax = ~hi, visible = visible,
+                  name = paste(name_prefix, "projected 95% band"), hoverinfo = "skip",
+                  fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0)) |>
+      add_lines(data = obs, x = ~date, y = ~val, visible = visible,
+                name = paste(name_prefix, "observed mean"),
+                line = list(color = sprintf("rgb(%s)", blue))) |>
+      add_lines(data = proj, x = ~date, y = ~val, visible = visible,
+                name = paste(name_prefix, "projected mean (after last poll)"),
+                line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
+  }
+  p <- plot_ly() |> add_series("mean", "Share:", TRUE)
+  groups <- rep("share", 4)
   if (!is.null(fundamentals) && nrow(fundamentals)) {
     fb <- tibble(date = range(track$date),
                  lo = fundamentals$mean - 1.96 * fundamentals$sd,
                  hi = fundamentals$mean + 1.96 * fundamentals$sd)
-    p <- p |> add_ribbons(data = fb, ymin = ~lo, ymax = ~hi,
+    p <- p |> add_ribbons(data = fb, x = ~date, ymin = ~lo, ymax = ~hi,
                           name = "Fundamentals prior 95% band", hoverinfo = "skip",
                           fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
+    groups <- c(groups, "share")
   }
   if (!is.null(ledger)) {
     polls <- ledger |>
@@ -161,17 +236,74 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
         ifelse(brown_named, " (Brown named)", ""), fmt_share(talarico_2p),
         fmt_share(weight), source))
     p <- p |> plotly::add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls used",
-                          text = ~hover, hoverinfo = "text",
-                          marker = list(color = "rgba(40,40,40,0.7)",
-                                        size = ~pmax(5, 40 * sqrt(weight))))
+                                  text = ~hover, hoverinfo = "text",
+                                  marker = list(color = "rgba(40,40,40,0.7)",
+                                                size = ~pmax(5, 40 * sqrt(weight))))
+    groups <- c(groups, "share")
   }
+  shift_bases <- if (is.null(base_info)) character() else
+    intersect(base_info$baseline, sub("^shift_", "", grep("^shift_", names(track), value = TRUE)))
+  for (b in shift_bases) {
+    p <- p |> add_series(paste0("shift_", b), "Shift:", FALSE)
+    groups <- c(groups, rep(b, 4))
+  }
+  share_axis <- list(title = "Talarico two-party share", tickformat = ".0%")
+  line50 <- list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0.5, y1 = 0.5,
+                      line = list(dash = "dot", color = "grey")))
+  line0 <- list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0, y1 = 0,
+                     line = list(dash = "dot", color = "grey")))
+  buttons <- c(
+    list(list(method = "update", label = "Talarico two-party share",
+              args = list(list(visible = groups == "share"),
+                          list(yaxis = share_axis, shapes = line50)))),
+    lapply(shift_bases, function(b) {
+      lab <- base_info$display[base_info$baseline == b]
+      list(method = "update", label = paste("Shift vs", lab),
+           args = list(list(visible = groups == b),
+                       list(yaxis = list(title = paste("Shift vs", lab, "(two-party points)"),
+                                         tickformat = "+.1%"),
+                            shapes = line0)))
+    }))
   p |> layout(
-    yaxis = list(title = "Talarico two-party share", tickformat = ".0%"),
+    yaxis = share_axis, shapes = line50,
     xaxis = list(title = "", rangeslider = list(visible = TRUE)),
     legend = list(orientation = "h"),
-    shapes = list(list(type = "line", xref = "paper", x0 = 0, x1 = 1, y0 = 0.5, y1 = 0.5,
-                       line = list(dash = "dot", color = "grey")))
+    updatemenus = list(list(buttons = buttons, x = 0, y = 1.15, xanchor = "left"))
   )
+}
+```
+
+```{r}
+#| title: "Uniform statewide shift from each baseline, Democratic two-party points (90% interval)"
+if (is.null(shifts)) missing_note("uniform_shift.csv") else {
+  d <- shifts |>
+    left_join(select(base_info, baseline, display, ord), by = "baseline") |>
+    mutate(ylab = sprintf("%s: baseline %s", display, fmt_share(baseline_2p)),
+           ylab = factor(ylab, levels = rev(unique(ylab[order(ord, desc(baseline))]))),
+           hover = sprintf("<b>%s</b><br>%s component<br>Shift %+.1f pts (90%%: %+.1f to %+.1f)<br>Baseline %s, estimate %s<br>Interval from %s",
+                           display, component, 100 * shift_mean, 100 * shift_q05, 100 * shift_q95,
+                           fmt_share(baseline_2p), fmt_share(mean), interval_src))
+  stopifnot(!any(grepl("\\.(x|y)$", names(d))))
+  style <- tibble(component = c("combined", "poll", "fundamentals"),
+                  color = c("rgb(31,119,180)", "rgba(80,80,80,0.5)", "rgba(150,150,150,0.5)"),
+                  size = c(11, 7, 7))
+  p <- plot_ly()
+  for (i in seq_len(nrow(style))) {
+    di <- filter(d, component == style$component[i])
+    if (!nrow(di)) next
+    p <- p |> plotly::add_markers(
+      data = di, x = ~shift_mean, y = ~ylab, text = ~hover, hoverinfo = "text",
+      name = paste(tools::toTitleCase(style$component[i]),
+                   if (style$component[i] == "combined") "(headline)" else ""),
+      marker = list(color = style$color[i], size = style$size[i]),
+      error_x = list(type = "data", symmetric = FALSE, color = style$color[i],
+                     array = di$shift_q95 - di$shift_mean,
+                     arrayminus = di$shift_mean - di$shift_q05))
+  }
+  p |> layout(
+    xaxis = list(title = "Shift toward Talarico, two-party points", tickformat = "+.0%", zeroline = TRUE),
+    yaxis = list(title = ""),
+    legend = list(orientation = "h"))
 }
 ```
 
