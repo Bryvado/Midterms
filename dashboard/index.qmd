@@ -276,11 +276,11 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
 }
 ```
 
-## Notes {height="10%"}
+## Footnotes {height="15%"}
 
 ```{r}
-#| title: "Notes, data and model checks"
-details <- function(summary, ...) htmltools::tags$details(htmltools::tags$summary(summary), ...)
+#| title: "Footnotes"
+details <- function(summary, ...) htmltools::tags$details(style = "font-size: 0.85em; color: #555;", htmltools::tags$summary(summary), ...)
 meth <- details("Methodology",
   htmltools::tags$ul(
     htmltools::tags$li("Shares are Talarico's two-party share, D/(D+R); Brown is excluded."),
@@ -293,12 +293,17 @@ shift_tbl <- if (is.null(shifts)) missing_note("uniform_shift.csv") else {
   d <- shifts |>
     filter(component == "combined") |>
     left_join(select(base_info, baseline, display, ord), by = "baseline") |>
-    arrange(ord, desc(baseline)) |>
-    transmute(Baseline = display, `Baseline share` = fmt_share(baseline_2p),
-              `Shift (pts)` = sprintf("%+.1f", 100 * shift_mean),
-              `90% interval` = sprintf("%+.1f to %+.1f", 100 * shift_q05, 100 * shift_q95))
+    arrange(ord, desc(baseline))
   stopifnot(!any(grepl("\\.(x|y)$", names(d))))
-  details("Statewide shift from past races", knitr::kable(d, format = "html") |> htmltools::HTML())
+  hdr <- c("Baseline", "Baseline share", "Shift (pts)", "90% interval")
+  rows <- lapply(seq_len(nrow(d)), function(i) htmltools::tags$tr(
+    htmltools::tags$td(d$display[i]), htmltools::tags$td(fmt_share(d$baseline_2p[i])),
+    htmltools::tags$td(sprintf("%+.1f", 100 * d$shift_mean[i])),
+    htmltools::tags$td(sprintf("%+.1f to %+.1f", 100 * d$shift_q05[i], 100 * d$shift_q95[i]))))
+  details("Statewide shift from past races",
+          htmltools::tags$table(class = "table table-sm",
+            htmltools::tags$thead(htmltools::tags$tr(lapply(hdr, htmltools::tags$th))),
+            htmltools::tags$tbody(rows)))
 }
 htmltools::tagList(meth, shift_tbl, ledger_ui, checks_ui)
 ```
