@@ -14,3 +14,4 @@ dashboard/index.html
 renv/library/
 renv/staging/
 data/cache/
+*.pmtiles

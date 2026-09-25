@@ -11,11 +11,13 @@ format:
 library(dplyr)
 library(readr)
 library(plotly)
-library(leaflet)
+library(mapgl)
 library(DT)
 
-pub <- function(f) here::here("data", "published", f)
-read_pub <- function(f) if (file.exists(pub(f))) read_csv(pub(f), show_col_types = FALSE) else NULL
+pub_dir <- here::here("data", "published")
+if (!dir.exists(pub_dir)) stop("data/published not found at ", pub_dir, "; check the here() root")
+pub <- function(f) file.path(pub_dir, f)
+read_pub <- function(f, ...) if (file.exists(pub(f))) read_csv(pub(f), show_col_types = FALSE, ...) else NULL
 missing_note <- function(f) htmltools::p(sprintf("Not yet published: data/published/%s", f))
 fmt_share <- function(x) sprintf("%.1f%%", 100 * x)
 
@@ -23,17 +25,16 @@ headline <- read_pub("headline.csv")
 track    <- read_pub("kalman_track.csv")
 ledger   <- read_pub("poll_ledger.csv")
 gates    <- read_pub("gates.csv")
-regional <- read_pub("regional_projections.csv")
 
 comp <- function(name) if (is.null(headline)) NULL else filter(headline, component == name)
 combined     <- comp("combined")
 fundamentals <- comp("fundamentals")
 
 ungated <- if (is.null(gates)) NULL else filter(gates, status == "UNGATED")
-ungated_for <- function(q) {
-  if (is.null(ungated) || !nrow(ungated)) return(NULL)
-  hits <- filter(ungated, affects == q)
-  if (!nrow(hits)) NULL else paste("UNGATED:", paste(hits$gate, collapse = ", "))
+ungated_for <- function(qs) {
+  if (is.null(ungated)) return(NULL)
+  hits <- filter(ungated, affects %in% qs)
+  if (!nrow(hits)) NULL else sprintf("UNGATED: %s", paste(hits$gate, collapse = ", "))
 }
 ```
 
@@ -88,23 +89,32 @@ if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
   htmltools::p(htmltools::strong("UNGATED "), paste(notes, collapse = "; "))
 ```
 
-## Track and map {height="50%"}
+## Track and map {height="55%"}
 
 ```{r}
 #| title: "Daily Kalman poll track, Talarico two-party share"
 if (is.null(track)) missing_note("kalman_track.csv") else {
   track <- track |>
     select(-any_of("win_prob")) |>
+    arrange(date) |>
     mutate(lo = mean - 1.96 * se, hi = mean + 1.96 * se)
-  p <- plot_ly(track, x = ~date) |>
-    add_ribbons(ymin = ~lo, ymax = ~hi, name = "Poll track 95% band",
-                fillcolor = "rgba(31,119,180,0.2)", line = list(width = 0)) |>
-    add_lines(y = ~mean, name = "Poll track mean", line = list(color = "rgb(31,119,180)"))
+  obs <- filter(track, !projected)
+  proj <- filter(track, projected | date == max(obs$date))
+  blue <- "31,119,180"
+  p <- plot_ly(x = ~date) |>
+    add_ribbons(data = obs, ymin = ~lo, ymax = ~hi, name = "Observed 95% band",
+                fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0)) |>
+    add_ribbons(data = proj, ymin = ~lo, ymax = ~hi, name = "Projected 95% band",
+                fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0)) |>
+    add_lines(data = obs, y = ~mean, name = "Observed mean",
+              line = list(color = sprintf("rgb(%s)", blue))) |>
+    add_lines(data = proj, y = ~mean, name = "Projected mean (after last poll)",
+              line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
   if (!is.null(fundamentals) && nrow(fundamentals)) {
     fb <- tibble(date = range(track$date),
                  lo = fundamentals$mean - 1.96 * fundamentals$sd,
                  hi = fundamentals$mean + 1.96 * fundamentals$sd)
-    p <- p |> add_ribbons(data = fb, x = ~date, ymin = ~lo, ymax = ~hi,
+    p <- p |> add_ribbons(data = fb, ymin = ~lo, ymax = ~hi,
                           name = "Fundamentals prior 95% band",
                           fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
   }
@@ -118,25 +128,32 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
 ```
 
 ```{r}
-#| title: "Regional projections, Talarico two-party share"
-geo_path <- pub("regions.geojson")
-if (is.null(regional)) missing_note("regional_projections.csv") else
-if (!file.exists(geo_path)) missing_note("regions.geojson") else {
-  regions <- sf::st_read(geo_path, quiet = TRUE) |> select(region_id)
-  map_df <- left_join(regions, regional, by = "region_id")
-  stopifnot(!any(grepl("\\.(x|y)$", names(map_df))))
-  lab_name <- if ("region_label" %in% names(map_df)) map_df$region_label else map_df$region_id
-  labels <- sprintf("<strong>%s</strong><br/>Talarico two-party share: %s ± %s",
-                    lab_name, fmt_share(map_df$mean), fmt_share(map_df$sd)) |>
-    lapply(htmltools::HTML)
-  pal <- colorNumeric("RdBu", domain = map_df$mean)
-  leaflet(sf::st_transform(map_df, 4326)) |>
-    addProviderTiles(providers$CartoDB.Positron) |>
-    addPolygons(fillColor = ~pal(mean), fillOpacity = 0.75, weight = 0.6, color = "white",
-                label = labels,
-                highlightOptions = highlightOptions(weight = 2, color = "#333", bringToFront = TRUE)) |>
-    addLegend(pal = pal, values = ~mean, title = "Talarico two-party share",
-              labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x))
+#| title: "Precinct (VTD) projections, Talarico two-party share"
+site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
+map_gate <- ungated_for(c("regional", "vtd_model"))
+if (!file.exists(pub("regions.geojson"))) missing_note("regions.geojson") else
+if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
+  breaks <- c(0.2, 0.35, 0.5, 0.65, 0.8)
+  cols <- c("#b2182b", "#ef8a62", "#f7f7f7", "#67a9cf", "#2166ac")
+  pct <- function(col) number_format(get_column(col), style = "percent", maximum_fraction_digits = 1)
+  m <- maplibre(style = carto_style("positron"), bounds = c(-106.65, 25.84, -93.51, 36.5)) |>
+    add_pmtiles_source(id = "regions", url = paste0(site_url, "/regions.pmtiles"),
+                       promote_id = "region_id") |>
+    add_fill_layer(
+      id = "regions-fill", source = "regions", source_layer = "regions",
+      fill_color = interpolate(column = "mean", values = breaks, stops = cols),
+      fill_opacity = 0.8, fill_outline_color = "rgba(0,0,0,0)",
+      tooltip = concat(
+        "<strong>", get_column("region_label"), "</strong>",
+        "<br>Talarico two-party share: ", pct("mean"),
+        "<br>90% interval: ", pct("q05"), " to ", pct("q95"),
+        "<br>P(Talarico two-party share > 50%): ", pct("p_talarico")
+      ),
+      hover_options = list(fill_opacity = 1)
+    ) |>
+    add_legend("Talarico two-party share", values = sprintf("%d%%", 100 * breaks),
+               colors = cols, type = "continuous")
+  if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(htmltools::strong(map_gate)), m)
 }
 ```
 
@@ -144,14 +161,25 @@ if (!file.exists(geo_path)) missing_note("regions.geojson") else {
 
 ```{r}
 #| title: "Poll ledger (polls used by the model)"
-if (is.null(ledger)) missing_note("poll_ledger.csv") else
-  datatable(ledger, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+if (is.null(ledger)) missing_note("poll_ledger.csv") else {
+  ledger_names <- c(pollster = "Pollster", end_date = "End date", n = "n",
+                    talarico = "Talarico", paxton = "Paxton", other = "Other",
+                    brown_named = "Brown named", talarico_2p = "Talarico two-party share",
+                    weight = "Relative weight", source = "Source")
+  shown <- intersect(names(ledger_names), names(ledger))
+  ledger <- ledger[, c(shown, setdiff(names(ledger), shown))]
+  pct_cols <- which(names(ledger) %in% c("talarico_2p", "weight"))
+  datatable(ledger, rownames = FALSE,
+            colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
+            options = list(pageLength = 10, scrollX = TRUE)) |>
+    formatPercentage(pct_cols, digits = 1)
+}
 ```
 
 ```{r}
 #| title: "Gates"
 if (is.null(gates)) missing_note("gates.csv") else
-  datatable(gates, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE)) |>
+  datatable(gates, rownames = FALSE, options = list(pageLength = 15, scrollX = TRUE)) |>
     formatStyle("status", fontWeight = styleEqual("UNGATED", "bold"),
                 backgroundColor = styleEqual("UNGATED", "#fde2c4"))
 ```
