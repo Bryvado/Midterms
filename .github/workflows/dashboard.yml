@@ -60,10 +60,29 @@ jobs:
         if: hashFiles('data/published/regions.geojson') != ''
         run: |
           Rscript scripts/build_tiles.R "$RUNNER_TEMP/regions_joined.geojson"
-          tippecanoe -o dashboard/_site/regions.pmtiles -l regions \
-            --detect-shared-borders --no-tiny-polygon-reduction \
-            -zg --maximum-tile-bytes=1500000 --force \
-            "$RUNNER_TEMP/regions_joined.geojson"
+          tile() {
+            tippecanoe -o dashboard/_site/regions.pmtiles -l regions \
+              --detect-shared-borders -zg --force "$@" \
+              "$RUNNER_TEMP/regions_joined.geojson"
+          }
+          if ! tile; then
+            echo "::warning::tile over 500 KB; retrying with --no-tile-size-limit"
+            tile --no-tile-size-limit
+          fi
+      - name: Report largest tile per zoom
+        if: hashFiles('data/published/regions.geojson') != ''
+        run: |
+          pip install --quiet pmtiles
+          python3 - <<'PY'
+          from pmtiles.reader import Reader, MmapSource, all_tiles
+          sizes = {}
+          with open("dashboard/_site/regions.pmtiles", "rb") as f:
+              for (z, x, y), data in all_tiles(MmapSource(f)):
+                  if len(data) > sizes.get(z, (0,))[0]:
+                      sizes[z] = (len(data), f"{z}/{x}/{y}")
+          for z in sorted(sizes):
+              print(f"zoom {z:2d}: largest tile {sizes[z][1]} {sizes[z][0] / 1024:.0f} KB")
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dashboard/_site
