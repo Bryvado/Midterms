@@ -62,7 +62,7 @@ jobs:
           Rscript scripts/build_tiles.R "$RUNNER_TEMP/regions_joined.geojson"
           tippecanoe -o dashboard/_site/regions.pmtiles -l regions \
             --detect-shared-borders --no-tiny-polygon-reduction \
-            -zg --force \
+            -zg --maximum-tile-bytes=1500000 --force \
             "$RUNNER_TEMP/regions_joined.geojson"
       - uses: actions/upload-pages-artifact@v3
         with:
