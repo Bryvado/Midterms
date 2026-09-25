@@ -52,7 +52,7 @@ ungated_for <- function(qs) {
 
 ```{r}
 #| content: valuebox
-#| title: "Talarico two-party share, combined estimate"
+#| title: "Talarico two-party share"
 list(
   value = if (is.null(combined)) "not published" else
     sprintf("%s ± %s", fmt_share(combined$mean), fmt_share(combined$sd)),
@@ -62,7 +62,7 @@ list(
 
 ```{r}
 #| content: valuebox
-#| title: "P(Talarico two-party share > 50%)"
+#| title: "Talarico win probability"
 list(
   value = if (is.null(combined)) "not published" else fmt_share(combined$p_talarico_win),
   color = "light"
@@ -71,7 +71,7 @@ list(
 
 ```{r}
 #| content: valuebox
-#| title: "Polling-bias sd, two-party share"
+#| title: "Polling-bias sd"
 list(
   value = if (is.null(combined)) "not published" else fmt_share(combined$bias_sd),
   color = "light"
@@ -80,7 +80,7 @@ list(
 
 ```{r}
 #| content: valuebox
-#| title: "Model run date"
+#| title: "Run date"
 list(
   value = if (is.null(headline)) "not published" else format(max(headline$run_date)),
   color = "light"
@@ -89,7 +89,7 @@ list(
 
 ```{r}
 #| content: valuebox
-#| title: "Talarico 95th-percentile outcome"
+#| title: "Talarico best case (95th pct.)"
 s <- if (is.null(scen)) NULL else filter(scen, scenario == "talarico_p95")
 list(value = if (is.null(s) || !nrow(s)) "not published" else
        sprintf("Talarico two-party share %s", fmt_share(s$talarico_2p)),
@@ -98,7 +98,7 @@ list(value = if (is.null(s) || !nrow(s)) "not published" else
 
 ```{r}
 #| content: valuebox
-#| title: "Paxton 95th-percentile outcome"
+#| title: "Paxton best case (95th pct.)"
 s <- if (is.null(scen)) NULL else filter(scen, scenario == "paxton_p95")
 list(value = if (is.null(s) || !nrow(s)) "not published" else
        sprintf("Paxton two-party share %s", fmt_share(1 - s$talarico_2p)),
@@ -120,7 +120,7 @@ if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
 ## Map {height="60%"}
 
 ```{r}
-#| title: "Precinct (VTD) map, Talarico two-party share (layer menu, top left: turn on one layer at a time)"
+#| title: "Precinct projections"
 site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
 map_gate <- ungated_for(c("regional", "vtd_model"))
 if (!file.exists(pub("regions.geojson"))) missing_note("regions.geojson") else
@@ -193,7 +193,7 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
 ## Track and shift {height="32%"}
 
 ```{r}
-#| title: "Daily Kalman poll track and polls used (menu: switch to shift vs a baseline; expand for full view)"
+#| title: "Polling average"
 if (is.null(track)) missing_note("kalman_track.csv") else {
   track <- track |>
     select(-any_of("win_prob")) |>
@@ -206,16 +206,17 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
     proj <- filter(d, projected | date == last_obs)
     p |>
       add_ribbons(data = obs, x = ~date, ymin = ~lo, ymax = ~hi, visible = visible,
-                  name = paste(name_prefix, "observed 95% band"), hoverinfo = "skip",
+                  name = "95% band", legendgroup = paste0(y, "band"),
+                  hoverinfo = "skip",
                   fillcolor = sprintf("rgba(%s,0.25)", blue), line = list(width = 0)) |>
       add_ribbons(data = proj, x = ~date, ymin = ~lo, ymax = ~hi, visible = visible,
-                  name = paste(name_prefix, "projected 95% band"), hoverinfo = "skip",
+                  name = "95% band", legendgroup = paste0(y, "band"), showlegend = FALSE, hoverinfo = "skip",
                   fillcolor = sprintf("rgba(%s,0.10)", blue), line = list(width = 0)) |>
       add_lines(data = obs, x = ~date, y = ~val, visible = visible,
-                name = paste(name_prefix, "observed mean"),
+                name = "Average", legendgroup = paste0(y, "avg"),
                 line = list(color = sprintf("rgb(%s)", blue))) |>
       add_lines(data = proj, x = ~date, y = ~val, visible = visible,
-                name = paste(name_prefix, "projected mean (after last poll)"),
+                name = "Projected", legendgroup = paste0(y, "proj"),
                 line = list(color = sprintf("rgb(%s)", blue), dash = "dash"))
   }
   p <- plot_ly() |> add_series("mean", "Share:", TRUE)
@@ -225,7 +226,7 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
                  lo = fundamentals$mean - 1.96 * fundamentals$sd,
                  hi = fundamentals$mean + 1.96 * fundamentals$sd)
     p <- p |> add_ribbons(data = fb, x = ~date, ymin = ~lo, ymax = ~hi,
-                          name = "Fundamentals prior 95% band", hoverinfo = "skip",
+                          name = "Fundamentals prior", hoverinfo = "skip",
                           fillcolor = "rgba(127,127,127,0.2)", line = list(width = 0))
     groups <- c(groups, "share")
   }
@@ -236,7 +237,7 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
         pollster, end_date, n, talarico, paxton, other,
         ifelse(brown_named, " (Brown named)", ""), fmt_share(talarico_2p),
         fmt_share(weight), source))
-    p <- p |> plotly::add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls used",
+    p <- p |> plotly::add_markers(data = polls, x = ~end_date, y = ~talarico_2p, name = "Polls",
                                   text = ~hover, hoverinfo = "text",
                                   marker = list(color = "rgba(40,40,40,0.7)",
                                                 size = ~pmax(5, 40 * sqrt(weight))))
@@ -267,7 +268,12 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
     }))
   p |> layout(
     yaxis = share_axis, shapes = line50,
-    xaxis = list(title = "", rangeslider = list(visible = TRUE)),
+    xaxis = list(title = ""),
+    annotations = list(list(
+      text = "Average is a Kalman filter over the polls shown; dashed segment projects past the last poll.",
+      xref = "paper", yref = "paper", x = 0, y = -0.12, xanchor = "left", yanchor = "top",
+      showarrow = FALSE, font = list(size = 10, color = "grey"))),
+    margin = list(b = 50),
     legend = list(orientation = "h"),
     updatemenus = list(list(buttons = buttons, x = 0, y = 1.15, xanchor = "left"))
   )
@@ -275,7 +281,7 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
 ```
 
 ```{r}
-#| title: "Uniform statewide shift from each baseline, Democratic two-party points (90% interval)"
+#| title: "Statewide shift from past races"
 if (is.null(shifts)) missing_note("uniform_shift.csv") else {
   d <- shifts |>
     left_join(select(base_info, baseline, display, ord), by = "baseline") |>
@@ -331,7 +337,7 @@ if (is.null(ledger)) missing_note("poll_ledger.csv") else {
 ```
 
 ```{r}
-#| title: "Methodology notes: model gates"
+#| title: "Model checks"
 if (is.null(gates)) missing_note("gates.csv") else {
   items <- lapply(seq_len(nrow(gates)), function(i) {
     g <- gates[i, ]
