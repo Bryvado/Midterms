@@ -48,15 +48,53 @@ ungated_for <- function(qs) {
 }
 ```
 
-## Headline {height="14%"}
+
+```{r}
+#| include: false
+ledger_ui <- local({
+if (is.null(ledger)) missing_note("poll_ledger.csv") else {
+  ledger_names <- c(pollster = "Pollster", end_date = "End date", n = "n",
+                    talarico = "Talarico", paxton = "Paxton", other = "Other",
+                    brown_named = "Brown named", talarico_2p = "Talarico two-party share",
+                    weight = "Relative weight", source = "Source")
+  shown <- intersect(names(ledger_names), names(ledger))
+  ledger <- ledger[, c(shown, setdiff(names(ledger), shown))]
+  pct_cols <- which(names(ledger) %in% c("talarico_2p", "weight"))
+  htmltools::tags$details(
+    htmltools::tags$summary(sprintf("Poll ledger (%d polls)", nrow(ledger))),
+    datatable(ledger, rownames = FALSE,
+              colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
+              options = list(pageLength = 10, scrollX = TRUE)) |>
+      formatPercentage(pct_cols, digits = 1)
+  )
+}
+})
+checks_ui <- local({
+if (is.null(gates)) missing_note("gates.csv") else {
+  items <- lapply(seq_len(nrow(gates)), function(i) {
+    g <- gates[i, ]
+    status <- if (g$status == "UNGATED") htmltools::strong("UNGATED") else g$status
+    htmltools::tags$li(htmltools::tags$code(g$gate), " (", g$affects, "): ", status,
+                       if (!is.na(g$detail)) paste0(". ", g$detail))
+  })
+  htmltools::tags$details(
+    htmltools::tags$summary(sprintf("Model checks (%d gates, %d UNGATED)", nrow(gates), sum(gates$status == "UNGATED"))),
+    htmltools::tags$ul(items)
+  )
+}
+})
+```
+
+## Headline {height="12%"}
 
 ```{r}
 #| content: valuebox
 #| title: "Talarico two-party share"
 list(
   value = if (is.null(combined)) "not published" else
-    sprintf("%s ± %s", fmt_share(combined$mean), fmt_share(combined$sd)),
-  color = "light"
+    paste0(sprintf("%s ± %s", fmt_share(combined$mean), fmt_share(combined$sd)),
+           if (!is.null(ungated_for("combined"))) paste0(" (", ungated_for("combined"), ")") else ""),
+  color = if (is.null(ungated_for("combined"))) "light" else "warning"
 )
 ```
 
@@ -65,59 +103,21 @@ list(
 #| title: "Talarico win probability"
 list(
   value = if (is.null(combined)) "not published" else fmt_share(combined$p_talarico_win),
-  color = "light"
+  color = if (is.null(ungated_for("combined"))) "light" else "warning"
 )
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "Polling-bias sd"
-list(
-  value = if (is.null(combined)) "not published" else fmt_share(combined$bias_sd),
-  color = "light"
-)
-```
-
-```{r}
-#| content: valuebox
-#| title: "Run date"
-list(
-  value = if (is.null(headline)) "not published" else format(max(headline$run_date)),
-  color = "light"
-)
-```
-
-```{r}
-#| content: valuebox
-#| title: "Talarico best case (95th pct.)"
-s <- if (is.null(scen)) NULL else filter(scen, scenario == "talarico_p95")
-list(value = if (is.null(s) || !nrow(s)) "not published" else
-       sprintf("Talarico two-party share %s", fmt_share(s$talarico_2p)),
+#| title: "Range, Paxton best case to Talarico best case (5th–95th pct.)"
+lo <- if (is.null(scen)) NULL else filter(scen, scenario == "paxton_p95")$talarico_2p
+hi <- if (is.null(scen)) NULL else filter(scen, scenario == "talarico_p95")$talarico_2p
+list(value = if (!length(lo) || !length(hi)) "not published" else
+       sprintf("%s to %s", fmt_share(lo), fmt_share(hi)),
      color = "light")
 ```
 
-```{r}
-#| content: valuebox
-#| title: "Paxton best case (95th pct.)"
-s <- if (is.null(scen)) NULL else filter(scen, scenario == "paxton_p95")
-list(value = if (is.null(s) || !nrow(s)) "not published" else
-       sprintf("Paxton two-party share %s", fmt_share(1 - s$talarico_2p)),
-     color = "light")
-```
-
-## Gate notes {height="6%"}
-
-```{r}
-notes <- Filter(Negate(is.null), lapply(c("combined", "poll", "fundamentals"), function(q) {
-  n <- ungated_for(q)
-  if (is.null(n)) NULL else sprintf("%s estimate: %s", q, sub("^UNGATED: ", "", n))
-}))
-if (is.null(gates)) missing_note("gates.csv") else if (!length(notes))
-  htmltools::p("All gates affecting the headline components passed.") else
-  htmltools::p(htmltools::strong("UNGATED "), paste(notes, collapse = "; "))
-```
-
-## Map {height="60%"}
+## Map {height="55%"}
 
 ```{r}
 #| title: "Precinct projections"
@@ -190,7 +190,8 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
 }
 ```
 
-## Track and shift {height="32%"}
+
+## Polling average {height="28%"}
 
 ```{r}
 #| title: "Polling average"
@@ -269,85 +270,35 @@ if (is.null(track)) missing_note("kalman_track.csv") else {
   p |> layout(
     yaxis = share_axis, shapes = line50,
     xaxis = list(title = ""),
-    annotations = list(list(
-      text = "Average is a Kalman filter over the polls shown; dashed segment projects past the last poll.",
-      xref = "paper", yref = "paper", x = 0, y = -0.12, xanchor = "left", yanchor = "top",
-      showarrow = FALSE, font = list(size = 10, color = "grey"))),
-    margin = list(b = 50),
-    legend = list(orientation = "h"),
+    legend = list(orientation = "h", x = 1, xanchor = "right", y = 1.15),
     updatemenus = list(list(buttons = buttons, x = 0, y = 1.15, xanchor = "left"))
   )
 }
 ```
 
+## Notes {height="10%"}
+
 ```{r}
-#| title: "Statewide shift from past races"
-if (is.null(shifts)) missing_note("uniform_shift.csv") else {
+#| title: "Notes, data and model checks"
+details <- function(summary, ...) htmltools::tags$details(htmltools::tags$summary(summary), ...)
+meth <- details("Methodology",
+  htmltools::tags$ul(
+    htmltools::tags$li("Shares are Talarico's two-party share, D/(D+R); Brown is excluded."),
+    htmltools::tags$li("Headline: election-day poll average, precision-weighted against a fundamentals prior, with polling-bias variance added to the poll term",
+      if (!is.null(combined)) sprintf(" (bias sd %s).", fmt_share(combined$bias_sd)) else "."),
+    htmltools::tags$li("Polling average: Kalman filter over the polls shown; the dashed segment projects past the last poll."),
+    htmltools::tags$li("Best cases are the 5th and 95th percentiles of the combined estimate; their map layers use the joint simulation draws nearest each percentile."),
+    htmltools::tags$li("Run date: ", if (is.null(headline)) "not published" else format(max(headline$run_date)), ".")))
+shift_tbl <- if (is.null(shifts)) missing_note("uniform_shift.csv") else {
   d <- shifts |>
+    filter(component == "combined") |>
     left_join(select(base_info, baseline, display, ord), by = "baseline") |>
-    mutate(ylab = sprintf("%s: baseline %s", display, fmt_share(baseline_2p)),
-           ylab = factor(ylab, levels = rev(unique(ylab[order(ord, desc(baseline))]))),
-           hover = sprintf("<b>%s</b><br>%s component<br>Shift %+.1f pts (90%%: %+.1f to %+.1f)<br>Baseline %s, estimate %s<br>Interval from %s",
-                           display, component, 100 * shift_mean, 100 * shift_q05, 100 * shift_q95,
-                           fmt_share(baseline_2p), fmt_share(mean), interval_src))
+    arrange(ord, desc(baseline)) |>
+    transmute(Baseline = display, `Baseline share` = fmt_share(baseline_2p),
+              `Shift (pts)` = sprintf("%+.1f", 100 * shift_mean),
+              `90% interval` = sprintf("%+.1f to %+.1f", 100 * shift_q05, 100 * shift_q95))
   stopifnot(!any(grepl("\\.(x|y)$", names(d))))
-  style <- tibble(component = c("combined", "poll", "fundamentals"),
-                  color = c("rgb(31,119,180)", "rgba(80,80,80,0.5)", "rgba(150,150,150,0.5)"),
-                  size = c(11, 7, 7))
-  p <- plot_ly()
-  for (i in seq_len(nrow(style))) {
-    di <- filter(d, component == style$component[i])
-    if (!nrow(di)) next
-    p <- p |> plotly::add_markers(
-      data = di, x = ~shift_mean, y = ~ylab, text = ~hover, hoverinfo = "text",
-      name = paste(tools::toTitleCase(style$component[i]),
-                   if (style$component[i] == "combined") "(headline)" else ""),
-      marker = list(color = style$color[i], size = style$size[i]),
-      error_x = list(type = "data", symmetric = FALSE, color = style$color[i],
-                     array = di$shift_q95 - di$shift_mean,
-                     arrayminus = di$shift_mean - di$shift_q05))
-  }
-  p |> layout(
-    xaxis = list(title = "Shift toward Talarico, two-party points", tickformat = "+.0%", zeroline = TRUE),
-    yaxis = list(title = ""),
-    legend = list(orientation = "h"))
+  details("Statewide shift from past races", knitr::kable(d, format = "html") |> htmltools::HTML())
 }
-```
-
-## Bottom {height="12%"}
-
-```{r}
-#| title: "Poll ledger"
-if (is.null(ledger)) missing_note("poll_ledger.csv") else {
-  ledger_names <- c(pollster = "Pollster", end_date = "End date", n = "n",
-                    talarico = "Talarico", paxton = "Paxton", other = "Other",
-                    brown_named = "Brown named", talarico_2p = "Talarico two-party share",
-                    weight = "Relative weight", source = "Source")
-  shown <- intersect(names(ledger_names), names(ledger))
-  ledger <- ledger[, c(shown, setdiff(names(ledger), shown))]
-  pct_cols <- which(names(ledger) %in% c("talarico_2p", "weight"))
-  htmltools::tags$details(
-    htmltools::tags$summary(sprintf("Show all %d polls used by the model", nrow(ledger))),
-    datatable(ledger, rownames = FALSE,
-              colnames = unname(c(ledger_names[shown], setdiff(names(ledger), shown))),
-              options = list(pageLength = 10, scrollX = TRUE)) |>
-      formatPercentage(pct_cols, digits = 1)
-  )
-}
-```
-
-```{r}
-#| title: "Model checks"
-if (is.null(gates)) missing_note("gates.csv") else {
-  items <- lapply(seq_len(nrow(gates)), function(i) {
-    g <- gates[i, ]
-    status <- if (g$status == "UNGATED") htmltools::strong("UNGATED") else g$status
-    htmltools::tags$li(htmltools::tags$code(g$gate), " (", g$affects, "): ", status,
-                       if (!is.na(g$detail)) paste0(". ", g$detail))
-  })
-  htmltools::tags$details(
-    htmltools::tags$summary(sprintf("%d gates, %d UNGATED", nrow(gates), sum(gates$status == "UNGATED"))),
-    htmltools::tags$ul(items)
-  )
-}
+htmltools::tagList(meth, shift_tbl, ledger_ui, checks_ui)
 ```
