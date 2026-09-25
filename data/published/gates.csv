@@ -1,34 +1,34 @@
 gate,status,affects,detail,script,run_at
-headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-25T04:28:10Z
-headline_p_consistent,PASS,publish,"mean 0.5081, P 0.704",08_publish.R,2026-09-25T04:28:10Z
-track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-25T04:28:10Z
-track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-25T04:28:10Z
-ledger_count,PASS,publish,38 ledger rows vs 38 pooled,08_publish.R,2026-09-25T04:28:10Z
-ledger_repools_to_obs,PASS,publish,"34/34 dates matched, max diff 1.11e-16",08_publish.R,2026-09-25T04:28:10Z
-vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-25T04:28:10Z
-vtd_saved_after_combined,PASS,publish,06 2026-09-23 22:57:54.081754 vs 05 2026-09-23 22:36:42.884292,08_publish.R,2026-09-25T04:28:10Z
-vtd_draws_center,PASS,publish,draw mean gap 4.48e-05,08_publish.R,2026-09-25T04:28:10Z
-vtd_ids_unique,PASS,publish,9134 VTDs,08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-25T04:28:10Z
-baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_pres16,UNGATED,regional,9117/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_sen18,UNGATED,regional,9122/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_gov18,UNGATED,regional,9122/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_pres20,UNGATED,regional,9127/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_sen20,UNGATED,regional,9127/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_gov22,UNGATED,regional,9126/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_pres24,PASS,regional,9134/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-baseline_coverage_sen24,PASS,regional,9134/9134 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T04:28:10Z
-pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-09-25T04:28:10Z
-vtd_draws_aligned,PASS,publish,10000 draws x 9134 VTDs,08_publish.R,2026-09-25T04:28:10Z
-vtd_draws_after_forecast,PASS,publish,07 2026-09-23 23:44:20.025921 vs 06 2026-09-23 22:57:54.081754,08_publish.R,2026-09-25T04:28:10Z
-scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5334, VTD draws aggregate 0.5334, window gap 0.0016",08_publish.R,2026-09-25T04:28:10Z
-scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4830, VTD draws aggregate 0.4830, window gap 0.0015",08_publish.R,2026-09-25T04:28:10Z
-vtd_geometry_match,PASS,publish,tx_2022_gen_tx_vtd.shp,08_publish.R,2026-09-25T04:28:10Z
-geojson_size,PASS,publish,"12.8 MB, 9134 features",08_publish.R,2026-09-25T04:28:10Z
+headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-25T22:27:16Z
+headline_p_consistent,PASS,publish,"mean 0.5096, P 0.733",08_publish.R,2026-09-25T22:27:16Z
+track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-25T22:27:16Z
+track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-25T22:27:16Z
+ledger_count,PASS,publish,38 ledger rows vs 38 pooled,08_publish.R,2026-09-25T22:27:16Z
+ledger_repools_to_obs,PASS,publish,"34/34 dates matched, max diff 1.11e-16",08_publish.R,2026-09-25T22:27:16Z
+vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-25T22:27:16Z
+vtd_saved_after_combined,PASS,publish,06 2026-09-25 17:29:29.649726 vs 05 2026-09-25 17:03:10.652208,08_publish.R,2026-09-25T22:27:16Z
+vtd_draws_center,PASS,publish,draw mean gap 4.51e-05,08_publish.R,2026-09-25T22:27:16Z
+vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-25T22:27:16Z
+baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-25T22:27:16Z
+pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-09-25T22:27:16Z
+vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-09-25T22:27:16Z
+vtd_draws_after_forecast,PASS,publish,07 2026-09-25 18:11:12.850109 vs 06 2026-09-25 17:29:29.649726,08_publish.R,2026-09-25T22:27:16Z
+scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5350, VTD draws aggregate 0.5350, window gap 0.0016",08_publish.R,2026-09-25T22:27:16Z
+scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4842, VTD draws aggregate 0.4843, window gap 0.0015",08_publish.R,2026-09-25T22:27:16Z
+vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-09-25T22:27:16Z
+geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-09-25T22:27:16Z
