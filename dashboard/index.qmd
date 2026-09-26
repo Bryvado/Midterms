@@ -119,13 +119,12 @@ list(value = if (!length(lo) || !length(hi)) "not published" else
      color = "light")
 ```
 
-## Map {height="55%"}
-
 ```{r}
-#| title: "Precinct projections"
+#| include: false
 site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
 map_gate <- ungated_for(c("regional", "vtd_model"))
-if (!file.exists(pub("regions.geojson"))) missing_note("regions.geojson") else
+make_map <- function(geo, tiles, unit) {
+if (!file.exists(pub(geo))) missing_note(geo) else
 if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
   share_breaks <- c(0.2, 0.35, 0.4999, 0.5, 0.65, 0.8)
   share_cols <- c("#b2182b", "#ef8a62", "#fbd5c6", "#cfe3f1", "#67a9cf", "#2166ac")
@@ -136,7 +135,7 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
   pct <- function(col) number_format(get_column(col), style = "percent", maximum_fraction_digits = 1)
   pts <- function(col) concat(number_format(list("*", 100, get_column(col)),
                                             maximum_fraction_digits = 1, minimum_fraction_digits = 1), " pts")
-  or_missing <- function(col, expr) list("case", list("has", col), expr, "no baseline for this precinct")
+  or_missing <- function(col, expr) list("case", list("has", col), expr, paste("no baseline for this", unit))
   with_na <- function(col, expr) list("case", list("has", col), expr, na_col)
   title <- concat("<strong>", get_column("region_label"), "</strong>")
 
@@ -169,7 +168,7 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
   }
 
   m <- maplibre(style = carto_style("positron"), bounds = c(-106.65, 25.84, -93.51, 36.5)) |>
-    add_pmtiles_source(id = "regions", url = paste0(site_url, "/regions.pmtiles"),
+    add_pmtiles_source(id = "regions", url = paste0(site_url, "/", tiles, ".pmtiles"),
                        promote_id = "region_id")
   for (k in seq_along(layers)) {
     L <- layers[[k]]
@@ -191,6 +190,19 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
                                          vapply(layers, `[[`, "", "label")))
   if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(style = "font-size: 0.8em; margin: 0 0 4px;", htmltools::strong(map_gate)), m)
 }
+}
+```
+
+## Map {.tabset height="55%"}
+
+```{r}
+#| title: "Precinct"
+make_map("regions.geojson", "regions", "precinct")
+```
+
+```{r}
+#| title: "County"
+make_map("counties.geojson", "counties", "county")
 ```
 
 

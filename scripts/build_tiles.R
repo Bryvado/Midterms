@@ -5,12 +5,14 @@ library(sf)
 
 args <- commandArgs(trailingOnly = TRUE)
 out_geojson <- args[1]
+geo_file <- if (length(args) >= 2) args[2] else "regions.geojson"
+csv_file <- if (length(args) >= 3) args[3] else "regional_projections.csv"
 report <- character()
 
-regions <- st_read(here::here("data", "published", "regions.geojson"), quiet = TRUE) |>
+regions <- st_read(here::here("data", "published", geo_file), quiet = TRUE) |>
   mutate(region_id = as.character(region_id)) |>
   select(region_id)
-proj <- read_csv(here::here("data", "published", "regional_projections.csv"),
+proj <- read_csv(here::here("data", "published", csv_file),
                  col_types = cols(region_id = col_character(), region_label = col_character(),
                                   profile = col_character(), .default = col_double()))
 
@@ -26,6 +28,7 @@ collisions <- grep("\\.(x|y)$", names(joined), value = TRUE)
 gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0
 
 report <- c(report,
+  sprintf("%s + %s", geo_file, csv_file),
   sprintf("features: %d, projection rows: %d, joined: %d", nrow(regions), nrow(proj), nrow(joined)),
   sprintf("projection rows without a feature: %d", nrow(unmatched_proj)),
   sprintf("features without a projection row: %d", nrow(unmatched_feat)),
