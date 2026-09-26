@@ -66,16 +66,16 @@ jobs:
               "$RUNNER_TEMP/${name}_joined.geojson"
           }
           build() {
-            local name="$1" geo="$2" csv="$3"
-            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv"
+            local name="$1" geo="$2" csv="$3" unit="$4"
+            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit"
             if ! tile "$name"; then
               echo "::warning::$name tile over 500 KB; retrying with --no-tile-size-limit"
               tile "$name" --no-tile-size-limit
             fi
           }
-          build regions regions.geojson regional_projections.csv
+          build regions regions.geojson regional_projections.csv precinct
           if [ -f data/published/counties.geojson ]; then
-            build counties counties.geojson county_projections.csv
+            build counties counties.geojson county_projections.csv county
           fi
       - name: Report largest tile per zoom
         if: hashFiles('data/published/regions.geojson') != ''

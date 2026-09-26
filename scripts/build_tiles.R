@@ -7,6 +7,7 @@ args <- commandArgs(trailingOnly = TRUE)
 out_geojson <- args[1]
 geo_file <- if (length(args) >= 2) args[2] else "regions.geojson"
 csv_file <- if (length(args) >= 3) args[3] else "regional_projections.csv"
+unit <- if (length(args) >= 4) args[4] else "precinct"
 report <- character()
 
 regions <- st_read(here::here("data", "published", geo_file), quiet = TRUE) |>
@@ -23,6 +24,14 @@ dup_ids <- sum(duplicated(proj$region_id)) + sum(duplicated(regions$region_id))
 joined <- inner_join(regions, proj, by = "region_id") |>
   select(-any_of("profile")) |>
   mutate(across(where(is.numeric), ~ round(.x, 4)))
+bases <- sub("^shift_", "", grep("^shift_", names(joined), value = TRUE))
+for (b in bases) {
+  sh <- joined[[paste0("shift_", b)]]
+  bs <- joined[[paste0("base_", b)]]
+  joined[[paste0("shift_txt_", b)]] <- ifelse(is.na(sh), paste("no baseline for this", unit),
+                                              sprintf("%+.1f pts", 100 * sh))
+  joined[[paste0("base_txt_", b)]] <- ifelse(is.na(bs), "n/a", sprintf("%.1f%%", 100 * bs))
+}
 collisions <- grep("\\.(x|y)$", names(joined), value = TRUE)
 
 gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0
