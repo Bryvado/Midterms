@@ -178,15 +178,10 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
       id = paste0("shift_", b), label = paste0("Shift vs ", sub(" \\(.*$", "", base_info$label[i]),
                                   if (base_info$model_internal[i]) " (model)" else ""),
       col = paste0("shift_", b), breaks = shift_breaks, cols = shift_cols,
-      tip = list("case",
-        list("all", list("has", paste0("shift_", b)), list("has", paste0("base_", b))),
-        concat(title,
-          "<br>Shift vs ", base_info$display[i], " (two-party points): ", pct(paste0("shift_", b)),
-          "<br>Baseline Democratic two-party share: ", pct(paste0("base_", b)),
-          "<br>Projected Talarico two-party share: ", pct("mean")),
-        concat(title,
-          "<br>Shift vs ", base_info$display[i], ": no baseline for this ", unit,
-          "<br>Projected Talarico two-party share: ", pct("mean"))))
+      tip = concat(title,
+        "<br>Shift vs ", base_info$display[i], ": ", get_column(paste0("shift_txt_", b)),
+        "<br>Baseline Democratic two-party share: ", get_column(paste0("base_txt_", b)),
+        "<br>Projected Talarico two-party share: ", pct("mean")))
   }
   for (sc in c("talarico_p95", "paxton_p95")) {
     col <- paste0("scen_", sc, "_2p")
