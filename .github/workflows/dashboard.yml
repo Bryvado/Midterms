@@ -56,6 +56,12 @@ jobs:
         env:
           SITE_URL: ${{ steps.pages.outputs.base_url }}
         run: quarto render dashboard
+      - name: Copy click-detail files
+        run: |
+          mkdir -p dashboard/_site/details
+          for f in county_details.csv precinct_details.csv; do
+            if [ -f "data/published/$f" ]; then cp "data/published/$f" dashboard/_site/details/; fi
+          done
       - name: Build map tiles
         if: hashFiles('data/published/regions.geojson') != ''
         run: |

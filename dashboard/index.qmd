@@ -153,6 +153,7 @@ function(el, x, data) {
   })();
 }
 "
+detail_js <- paste(readLines(here::here("dashboard", "detail_panel.js")), collapse = "\n")
 make_map <- function(geo, tiles, unit) {
 if (!file.exists(pub(geo))) missing_note(geo) else
 if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
@@ -212,7 +213,13 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
                type = "continuous", add = TRUE, position = "bottom-right") |>
     htmlwidgets::onRender(layer_picker_js,
                           data = list(ids = vapply(layers, `[[`, "", "id"),
-                                      labels = vapply(layers, `[[`, "", "label")))
+                                      labels = vapply(layers, `[[`, "", "label"))) |>
+    htmlwidgets::onRender(detail_js,
+                          data = list(ids = vapply(layers, `[[`, "", "id"), unit = unit,
+                                      eager = unit == "county",
+                                      url = paste0(site_url, "/details/", unit, "_details.csv"),
+                                      bases = if (is.null(base_info)) list() else as.list(base_info$baseline),
+                                      base_labels = if (is.null(base_info)) list() else as.list(base_info$display)))
   if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(style = "font-size: 0.8em; margin: 0 0 4px;", htmltools::strong(map_gate)), m)
 }
 }
