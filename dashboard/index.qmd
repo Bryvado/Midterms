@@ -123,6 +123,36 @@ list(value = if (!length(lo) || !length(hi)) "not published" else
 #| include: false
 site_url <- sub("/$", "", Sys.getenv("SITE_URL"))
 map_gate <- ungated_for(c("regional", "vtd_model"))
+layer_picker_js <- "
+function(el, x, data) {
+  var tries = 0;
+  (function wait() {
+    var w = window.HTMLWidgets && HTMLWidgets.find('#' + el.id);
+    var map = el.map || (w && w.getMap && w.getMap());
+    if (!(map && map.getLayer && map.getLayer(data.ids[0]))) {
+      if (tries++ < 200) setTimeout(wait, 100);
+      else console.warn('layer picker: map not found for', el.id);
+      return;
+    }
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Map layer');
+    sel.style.cssText = 'position:absolute;top:10px;left:10px;z-index:5;max-width:60%;' +
+      'padding:4px 6px;font-size:13px;border:1px solid #bbb;border-radius:4px;background:#fff;';
+    data.ids.forEach(function(id, i) {
+      var o = document.createElement('option');
+      o.value = id; o.textContent = data.labels[i];
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function() {
+      data.ids.forEach(function(id) {
+        map.setLayoutProperty(id, 'visibility', id === sel.value ? 'visible' : 'none');
+      });
+    });
+    el.style.position = 'relative';
+    el.appendChild(sel);
+  })();
+}
+"
 make_map <- function(geo, tiles, unit) {
 if (!file.exists(pub(geo))) missing_note(geo) else
 if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy workflow (SITE_URL unset).") else {
@@ -185,9 +215,9 @@ if (!nzchar(site_url)) htmltools::p("Map tiles are built only in the deploy work
     add_legend("Shift, two-party pts (grey: no baseline)", width = "260px",
                values = sprintf("%+g", 100 * shift_breaks), colors = shift_cols,
                type = "continuous", add = TRUE, position = "bottom-right") |>
-    add_layers_control(position = "top-left",
-                       layers = setNames(lapply(layers, `[[`, "id"),
-                                         vapply(layers, `[[`, "", "label")))
+    htmlwidgets::onRender(layer_picker_js,
+                          data = list(ids = vapply(layers, `[[`, "", "id"),
+                                      labels = vapply(layers, `[[`, "", "label")))
   if (is.null(map_gate)) m else htmltools::tagList(htmltools::p(style = "font-size: 0.8em; margin: 0 0 4px;", htmltools::strong(map_gate)), m)
 }
 }
