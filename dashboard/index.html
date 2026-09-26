@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f5" />
+    <title>Texas 2026 Senate | Forecast explorer</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="site-header">
+        <div class="identity">
+          <div class="eyebrow">2026 U.S. Senate · Texas</div>
+          <h1>Forecast explorer</h1>
+        </div>
+        <div class="header-actions">
+          <span id="run-date" class="run-date">Loading model…</span>
+          <button id="status-button" class="status-chip" type="button" aria-haspopup="dialog">Model status</button>
+          <button id="methods-button" class="text-button" type="button" aria-haspopup="dialog">Methods & data</button>
+        </div>
+      </header>
+
+      <section class="summary" aria-label="Statewide forecast">
+        <div class="summary-item"><span class="summary-label">Talarico two-party share</span><strong id="share-value">—</strong><span id="share-sub" class="summary-sub">Election-day estimate</span></div>
+        <div class="summary-item"><span class="summary-label">Talarico win probability</span><strong id="win-value">—</strong><span class="summary-sub">Model probability</span></div>
+        <div class="summary-item"><span class="summary-label">Scenario range</span><strong id="range-value">—</strong><span class="summary-sub">5th–95th percentile of statewide share</span></div>
+      </section>
+
+      <main class="workspace">
+        <section class="map-pane" aria-label="Texas forecast map">
+          <div id="map" role="application" aria-label="Interactive Texas forecast map"></div>
+          <div class="map-controls">
+            <div class="segmented" role="group" aria-label="Geographic level">
+              <button class="active" data-unit="county" type="button" aria-pressed="true">Counties</button>
+              <button data-unit="precinct" type="button" aria-pressed="false">Precincts</button>
+            </div>
+            <label class="measure-label">Show
+              <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="p_talarico">Chance Talarico leads</option></select>
+            </label>
+          </div>
+          <button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button>
+          <div id="map-message" class="map-message" role="status">Loading map…</div>
+          <div id="map-tooltip" class="map-tooltip" hidden></div>
+          <div class="map-legend" id="legend" aria-label="Map legend"></div>
+        </section>
+
+        <aside class="side-pane" aria-label="Forecast context">
+          <div class="side-tabs" role="tablist" aria-label="Context">
+            <button id="tab-trend" role="tab" aria-selected="true" aria-controls="panel-trend" type="button">Polling</button>
+            <button id="tab-place" role="tab" aria-selected="false" aria-controls="panel-place" type="button">Selected place</button>
+          </div>
+          <section id="panel-trend" class="side-panel" role="tabpanel" aria-labelledby="tab-trend">
+            <div class="panel-heading"><h2 id="trend-title">Polling average</h2><p>Observed polls and projection to Election Day</p></div>
+            <div id="trend-chart" aria-label="Polling trend chart"></div>
+            <p class="chart-note">Shaded band: 95% interval. Dots: individual polls. The dashed line extends beyond the latest poll.</p>
+            <details class="panel-details"><summary id="poll-summary">Poll ledger</summary><div id="poll-ledger" class="table-scroll"></div></details>
+          </section>
+          <section id="panel-place" class="side-panel" role="tabpanel" aria-labelledby="tab-place" hidden>
+            <div id="place-content" class="place-content"><div class="empty-place"><strong>Select a place on the map</strong><p>Click a county or precinct to see its projection, past results, and demographics.</p></div></div>
+          </section>
+        </aside>
+      </main>
+      <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
+    </div>
+
+    <dialog id="methods-dialog" aria-labelledby="methods-title">
+      <div class="dialog-head"><div><div class="eyebrow">Documentation</div><h2 id="methods-title">Methods & model checks</h2></div><button class="dialog-close" type="button" aria-label="Close methods">×</button></div>
+      <div class="dialog-body">
+        <p>The headline combines an election-day polling average with a fundamentals prior. The polling average uses a Kalman filter; its dashed segment projects beyond the last observed poll. Polling-bias variance is added to the poll term in the combined estimate.</p>
+        <p>Map shares are Talarico's share of votes for the two major candidates, D/(D+R). Scenario maps use joint simulation draws near the statewide 5th and 95th percentiles. Precinct and county vote counts come from a separate vote-count simulation and may imply a two-party share that differs from the map by up to about half a point.</p>
+        <h3>Statewide shift from past races</h3><div id="shift-table" class="table-scroll"></div>
+        <h3>Model checks</h3><p id="gate-summary"></p><div id="gate-list" class="gate-list"></div>
+      </div>
+    </dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

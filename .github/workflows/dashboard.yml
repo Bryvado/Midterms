@@ -1,4 +1,4 @@
-name: Render and deploy dashboard
+name: Build and deploy dashboard
 
 on:
   push:
@@ -26,24 +26,30 @@ jobs:
       - uses: actions/checkout@v4
       - id: pages
         uses: actions/configure-pages@v5
-      - uses: quarto-dev/quarto-actions/setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - id: tile-cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/.tile-cache
+          key: tiles-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'scripts/build_tiles.R') }}
       - uses: r-lib/actions/setup-r@v2
+        if: steps.tile-cache.outputs.cache-hit != 'true'
         with:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.tile-cache.outputs.cache-hit != 'true'
         with:
           packages: |
             any::here
             any::readr
             any::dplyr
             any::sf
-            any::mapgl
-            any::plotly
-            any::DT
-            any::knitr
-            any::rmarkdown
       - name: Install tippecanoe
-        if: hashFiles('data/published/regions.geojson') != ''
+        if: steps.tile-cache.outputs.cache-hit != 'true' && hashFiles('data/published/regions.geojson') != ''
         run: |
           if ! (sudo apt-get update -qq && sudo apt-get install -y -qq tippecanoe); then
             sudo apt-get install -y -qq build-essential libsqlite3-dev zlib1g-dev
@@ -52,22 +58,18 @@ jobs:
             sudo make -C "$RUNNER_TEMP/tippecanoe" install
           fi
           tippecanoe --version
-      - name: Render
-        env:
-          SITE_URL: ${{ steps.pages.outputs.base_url }}
-        run: quarto render dashboard
-      - name: Copy click-detail files
+      - name: Build dashboard
+        working-directory: dashboard
         run: |
-          mkdir -p dashboard/_site/details
-          for f in county_details.csv precinct_details.csv; do
-            if [ -f "data/published/$f" ]; then cp "data/published/$f" dashboard/_site/details/; fi
-          done
+          npm ci
+          npm run build
       - name: Build map tiles
-        if: hashFiles('data/published/regions.geojson') != ''
+        if: steps.tile-cache.outputs.cache-hit != 'true' && hashFiles('data/published/regions.geojson') != ''
         run: |
+          mkdir -p dashboard/.tile-cache
           tile() {
             local name="$1"; shift
-            tippecanoe -o "dashboard/_site/$name.pmtiles" -l regions \
+            tippecanoe -o "dashboard/.tile-cache/$name.pmtiles" -l regions \
               --detect-shared-borders -zg --force "$@" \
               "$RUNNER_TEMP/${name}_joined.geojson"
           }
@@ -83,6 +85,8 @@ jobs:
           if [ -f data/published/counties.geojson ]; then
             build counties counties.geojson county_projections.csv county
           fi
+      - name: Copy map tiles into site
+        run: cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
       - name: Report largest tile per zoom
         if: hashFiles('data/published/regions.geojson') != ''
         run: |
@@ -91,7 +95,7 @@ jobs:
           import os
           from pmtiles.reader import MmapSource, all_tiles
           for name in ("regions", "counties"):
-              path = f"dashboard/_site/{name}.pmtiles"
+              path = f"dashboard/dist/{name}.pmtiles"
               if not os.path.exists(path):
                   continue
               sizes = {}
@@ -104,7 +108,7 @@ jobs:
           PY
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dashboard/_site
+          path: dashboard/dist
 
   deploy:
     needs: build

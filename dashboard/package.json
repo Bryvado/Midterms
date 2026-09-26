@@ -1,0 +1,20 @@
+{
+  "name": "midterms-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:data": "node scripts/stage-data.mjs",
+    "dev": "npm run prepare:data && vite",
+    "build": "npm run prepare:data && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "d3-dsv": "^3.0.1",
+    "maplibre-gl": "^5.6.0",
+    "plotly.js-basic-dist-min": "^3.0.0",
+    "pmtiles": "^4.0.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}

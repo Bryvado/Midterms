@@ -9,7 +9,10 @@
 dashboard/.quarto/
 dashboard/_site/
 dashboard/*_files/
-dashboard/index.html
+dashboard/node_modules/
+dashboard/dist/
+dashboard/public/data/
+dashboard/.tile-cache/
 *_cache/
 renv/library/
 renv/staging/
