@@ -75,7 +75,7 @@ jobs:
           }
           build() {
             local name="$1" geo="$2" csv="$3" unit="$4"
-            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit"
+            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit" "dashboard/.tile-cache/${unit}_density.csv"
             if ! tile "$name"; then
               echo "::warning::$name tile over 500 KB; retrying with --no-tile-size-limit"
               tile "$name" --no-tile-size-limit
@@ -86,7 +86,9 @@ jobs:
             build counties counties.geojson county_projections.csv county
           fi
       - name: Copy map tiles into site
-        run: cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
+        run: |
+          cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
+          cp dashboard/.tile-cache/*_density.csv dashboard/dist/data/
       - name: Report largest tile per zoom
         if: hashFiles('data/published/regions.geojson') != ''
         run: |

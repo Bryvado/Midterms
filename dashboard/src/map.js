@@ -1,7 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { base, pct, count, signed, escapeHTML } from './data.js';
+import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
 const shareColors = ['#a64238','#ce6e5d','#ecd0c8','#d7e5e8','#75aab9','#286b87'];
@@ -14,14 +14,39 @@ const message = document.querySelector('#map-message');
 const tooltip = document.querySelector('#map-tooltip');
 const legend = document.querySelector('#legend');
 let map, unit = 'county', measure = 'mean', onSelect = () => {};
+let measureRequest = 0;
+const metricKinds = new Map();
+const scales = new Map();
 
 const style = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const tileURL = name => `pmtiles://${new URL(`${base}${name}.pmtiles`, location.href).href}`;
 const layerName = level => `${level}-fill`;
 const isShift = key => key.startsWith('shift_');
 const isCount = key => key === 'dem_pres24';
+const sourceKey = key => key === 'result_confidence' ? 'p_talarico' : key === 'vote_density' ? 'ballots_per_sqmi' : key;
+const boundedValue = v => Math.min(1, Math.max(0, +v));
+const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:1 }).format(v)}`;
+
+function quantileScale(rows, key, kind) {
+  const values = rows.filter(row => row[key] !== '' && row[key] != null).map(row => +row[key]).filter(Number.isFinite).sort((a,b) => a-b);
+  if (!values.length) throw new Error(`No map values for ${key}`);
+  const stops = [0,.2,.4,.6,.8,1].map(q => values[Math.floor(q * (values.length-1))]);
+  const labels = stops.map(v => compact(v, kind));
+  for (let i=1; i<stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + .0001;
+  return { stops, colors:countColors, labels };
+}
+
+function densityScale(rows) {
+  const stops = rows.map(row => +row.value);
+  const labels = stops.map(v => Intl.NumberFormat('en-US',{ notation:'compact',maximumFractionDigits:1 }).format(v));
+  for (let i=1; i<stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + .0001;
+  return { stops, colors:countColors, labels };
+}
 
 function scale(key, level = unit) {
+  if (scales.has(key)) return scales.get(key)[level];
+  if (key === 'result_confidence') return { stops:probStops, colors:shareColors, labels:['Paxton 100%','50%','Talarico 100%'] };
+  if (metricKinds.get(key) === 'bounded') return { stops:probStops, colors:shareColors, labels:['0%','20%','40%','60%','80%','100%'] };
   if (isCount(key)) return level === 'county'
     ? { stops:[0,350,1300,5500,28000,150000], colors:countColors, labels:['0','350','1.3k','5.5k','28k','150k+'] }
     : { stops:[0,100,350,750,1200,2000], colors:countColors, labels:['0','100','350','750','1.2k','2k+'] };
@@ -32,20 +57,30 @@ function scale(key, level = unit) {
 
 function colorExpression(key, level) {
   const { stops, colors } = scale(key, level);
-  const interpolation = ['interpolate', ['linear'], ['to-number', ['get', key]], ...stops.flatMap((stop, i) => [stop, colors[i]])];
-  return ['case', ['has', key], interpolation, '#afb8b8'];
+  const column = sourceKey(key);
+  const value = metricKinds.get(key) === 'bounded'
+    ? ['min', 1, ['max', 0, ['to-number', ['get', column]]]]
+    : ['to-number', ['get', column]];
+  const interpolation = ['interpolate', ['linear'], value, ...stops.flatMap((stop, i) => [stop, colors[i]])];
+  return ['case', ['has', column], interpolation, '#afb8b8'];
 }
 
 function drawLegend() {
   const s = scale(measure, unit);
   const select = document.querySelector('#measure');
   const title = select.selectedOptions[0]?.textContent || 'Projected share';
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${measure.startsWith('base_') || isCount(measure) ? ' · 2024 actual' : ''}</div><div class="legend-ramp">${s.colors.map(color => `<span style="background:${color}"></span>`).join('')}</div><div class="legend-labels">${s.labels.map(label => `<span>${label}</span>`).join('')}</div>${isShift(measure) ? '<div class="legend-note">Grey: no baseline for this place</div>' : isCount(measure) ? '<div class="legend-note">Vote counts reflect population as well as preference.</div>' : ''}`;
+  const kind = metricKinds.get(measure);
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div><div class="legend-ramp">${s.colors.map(color => `<span style="background:${color}"></span>`).join('')}</div><div class="legend-labels">${s.labels.map(label => `<span>${escapeHTML(label)}</span>`).join('')}</div>${measure === 'result_confidence' ? '<div class="legend-note">Color indicates the favored candidate; intensity indicates model probability.</div>' : measure === 'vote_density' ? '<div class="legend-note">Projected ballots per square mile · quantile scale</div>' : isShift(measure) ? '<div class="legend-note">Grey: no baseline for this place</div>' : kind === 'bounded' ? '<div class="legend-note">Estimated shares capped at 100% for shading.</div>' : kind === 'count' || kind === 'money' || isCount(measure) ? '<div class="legend-note">Counts reflect population as well as preference.</div>' : ''}`;
 }
 
 function valueText(props) {
-  const v = props[measure];
-  return isCount(measure) ? count(v) : isShift(measure) ? signed(v) : pct(v);
+  const v = props[sourceKey(measure)];
+  const kind = metricKinds.get(measure);
+  if (measure === 'result_confidence') return +v === .5 ? 'Even (50%)' : `${+v > .5 ? 'Talarico' : 'Paxton'} favored · ${pct(Math.max(+v,1 - +v))}`;
+  if (measure === 'vote_density') return `${count(v)} ballots / sq mi`;
+  if (kind === 'bounded') return +v > 1 ? '100% (capped)' : pct(boundedValue(v));
+  if (kind === 'money') return `$${count(v)}`;
+  return kind === 'count' || isCount(measure) ? count(v) : isShift(measure) ? signed(v) : pct(v);
 }
 
 function showTooltip(event, props) {
@@ -75,8 +110,22 @@ export function setUnit(next) {
   tooltip.hidden = true;
 }
 
-export function setMeasure(next) {
+export async function setMeasure(next, meta) {
+  const request = ++measureRequest;
   measure = next;
+  if (meta) metricKinds.set(next, meta.kind);
+  if (((meta && ['count','money'].includes(meta.kind)) || next === 'dem_pres24') && !scales.has(next)) {
+    const [county, precinct] = await Promise.all([csv('county_details.csv'),csv('precinct_details.csv')]);
+    if (request !== measureRequest) return;
+    const kind = meta?.kind || 'count';
+    scales.set(next, { county:quantileScale(county,next,kind), precinct:quantileScale(precinct,next,kind) });
+  }
+  if (next === 'vote_density' && !scales.has(next)) {
+    const [county, precinct] = await Promise.all([csv('county_density.csv'),csv('precinct_density.csv')]);
+    if (request !== measureRequest) return;
+    scales.set(next,{ county:densityScale(county), precinct:densityScale(precinct) });
+  }
+  if (request !== measureRequest) return;
   drawLegend();
   if (!map?.getLayer('county-fill')) return;
   for (const level of ['county','precinct']) map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));

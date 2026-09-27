@@ -2,7 +2,7 @@ import './style.css';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure } from './map.js';
 import { initChart, renderChart } from './chart.js';
-import { setBaselines, selectPlace } from './details.js';
+import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
 const $ = selector => document.querySelector(selector);
 const measure = $('#measure');
@@ -18,7 +18,33 @@ for (const tab of document.querySelectorAll('[role=tab]')) tab.addEventListener(
   for (const panel of document.querySelectorAll('[role=tabpanel]')) panel.hidden = panel.id !== tab.getAttribute('aria-controls');
   if (tab.id === 'tab-trend') window.dispatchEvent(new Event('resize'));
 });
-measure.addEventListener('change', () => { setMeasure(measure.value); renderChart(measure.value); });
+async function applyMeasure(key, meta) {
+  try {
+    await setMeasure(key, meta);
+    if ($('#map-message').textContent.startsWith('Could not shade')) $('#map-message').hidden = true;
+    renderChart(key);
+    highlightShade(key);
+  } catch (error) {
+    console.error(error);
+    $('#map-message').textContent = `Could not shade by this measure: ${error.message}`;
+    $('#map-message').hidden = false;
+  }
+}
+measure.addEventListener('change', () => applyMeasure(measure.value));
+setShadeHandler(meta => {
+  if (![...measure.options].some(option => option.value === meta.key)) {
+    let group = measure.querySelector('#selected-measures');
+    if (!group) {
+      group = document.createElement('optgroup');
+      group.id = 'selected-measures';
+      group.label = 'Selected-place measures';
+      measure.append(group);
+    }
+    group.replaceChildren(new Option(meta.label,meta.key));
+  }
+  measure.value = meta.key;
+  applyMeasure(meta.key, meta);
+});
 
 initMap(selectPlace);
 
@@ -55,11 +81,11 @@ function renderShifts(shifts) {
   const combined = shifts.filter(row => row.component === 'combined').sort((a,b) => +(b.baseline === 'sen24') - +(a.baseline === 'sen24') || b.baseline.localeCompare(a.baseline));
   const shortLabels = { sen24:'2024 Senate', pres24:'2024 President', gov22:'2022 Governor', sen20:'2020 Senate', pres20:'2020 President', sen18:'2018 Senate', gov18:'2018 Governor', pres16:'2016 President' };
   $('#shift-table').innerHTML = table(['Baseline','D two-party','Shift','90% interval'], combined.map(row => [
-    row.label + (row.model_internal === 'TRUE' ? ' (model baseline)' : ''), pct(row.baseline_2p), signed(row.shift_mean),
+    row.label + (row.model_internal === 'TRUE' ? ' (reference baseline)' : ''), pct(row.baseline_2p), signed(row.shift_mean),
     `${signed(row.shift_q05)} to ${signed(row.shift_q95)}`,
   ]));
   optionGroup('2024 actual result', [['base_pres24','Harris two-party share'], ['dem_pres24','Harris votes']]);
-  optionGroup('Shift from prior election', combined.map(row => [`shift_${row.baseline}`,`Shift vs ${shortLabels[row.baseline] || row.label}${row.model_internal === 'TRUE' ? ' (model)' : ''}`]));
+  optionGroup('Shift from prior election', combined.map(row => [`shift_${row.baseline}`,`Shift vs ${shortLabels[row.baseline] || row.label}`]));
   optionGroup('Scenario maps', [['scen_paxton_p95_2p','Paxton best case (5th pct.)'], ['scen_talarico_p95_2p','Talarico best case (95th pct.)']]);
 }
 
