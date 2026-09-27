@@ -25,7 +25,7 @@ initMap(selectPlace);
 function optionGroup(label, values) {
   const group = document.createElement('optgroup');
   group.label = label;
-  values.forEach(([key,text]) => group.add(new Option(text,key)));
+  values.forEach(([key,text]) => group.append(new Option(text,key)));
   measure.append(group);
 }
 
