@@ -34,7 +34,7 @@ joined <- inner_join(regions, proj, by = "region_id") |>
   select(-any_of("profile")) |>
   mutate(across(where(is.numeric), ~ round(.x, 4)))
 area_sqmi <- as.numeric(st_area(st_transform(joined, 5070))) / 2589988.110336
-joined$ballots_per_sqmi <- ifelse(area_sqmi > 0, joined$ballots_mean / area_sqmi, NA_real_)
+joined$net_votes_per_sqmi <- ifelse(area_sqmi > 0, (joined$talarico_mean - joined$paxton_mean) / area_sqmi, NA_real_)
 bases <- sub("^shift_", "", grep("^shift_", names(joined), value = TRUE))
 for (b in bases) {
   sh <- joined[[paste0("shift_", b)]]
@@ -47,7 +47,7 @@ collisions <- grep("\\.(x|y)$", names(joined), value = TRUE)
 
 gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0 &&
   nrow(actual_unmatched) == 0 && actual_dup_ids == 0 && all(!is.na(joined$dem_pres24)) &&
-  all(is.finite(joined$ballots_per_sqmi)) && all(joined$ballots_per_sqmi >= 0)
+  all(is.finite(joined$net_votes_per_sqmi))
 
 report <- c(report,
   sprintf("%s + %s", geo_file, csv_file),
@@ -56,7 +56,7 @@ report <- c(report,
   sprintf("features without a projection row: %d", nrow(unmatched_feat)),
   sprintf("projection rows without 2024 Harris votes: %d", nrow(actual_unmatched)),
   sprintf("duplicate detail ids: %d", actual_dup_ids),
-  sprintf("ballots per square mile range: %.2f to %.2f", min(joined$ballots_per_sqmi, na.rm = TRUE), max(joined$ballots_per_sqmi, na.rm = TRUE)),
+  sprintf("net votes per square mile range: %.2f to %.2f", min(joined$net_votes_per_sqmi, na.rm = TRUE), max(joined$net_votes_per_sqmi, na.rm = TRUE)),
   sprintf("duplicated region_id: %d", dup_ids),
   sprintf("join column collisions: %s", if (length(collisions)) paste(collisions, collapse = ", ") else "none"))
 
@@ -64,9 +64,8 @@ if (gate_ok) {
   st_write(st_transform(joined, 4326), out_geojson, driver = "GeoJSON",
            delete_dsn = TRUE, quiet = TRUE)
   if (!is.null(density_csv)) {
-    write.csv(data.frame(prob = c(0, .2, .4, .6, .8, 1),
-                         value = as.numeric(quantile(joined$ballots_per_sqmi,
-                                                     probs = c(0, .2, .4, .6, .8, 1)))),
+    breaks <- as.numeric(quantile(abs(joined$net_votes_per_sqmi), probs = c(.5, .8, .95)))
+    write.csv(data.frame(value = c(-rev(breaks), 0, breaks)),
               density_csv, row.names = FALSE)
   }
 }

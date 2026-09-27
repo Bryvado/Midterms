@@ -16,6 +16,6 @@ Run `npm run build` in `dashboard/` to create the static site in `dashboard/dist
 
 ## Publishing
 
-Push dashboard changes or published data to `main`. [The Pages workflow](.github/workflows/dashboard.yml) builds the UI, joins projections and place details to the precinct and county geometry with `scripts/build_tiles.R`, creates PMTiles and vote-density breaks, and deploys the resulting static files. It caches map tiles by their source data and tile-building script so a UI-only change does not repeat the tile build.
+Push dashboard changes or published data to `main`. [The Pages workflow](.github/workflows/dashboard.yml) builds the UI, joins projections and place details to the precinct and county geometry with `scripts/build_tiles.R`, creates detailed PMTiles and net-vote-density breaks, and deploys the resulting static files. It caches map tiles by their source data and tile-building script so a UI-only change does not repeat the tile build. The county layer sits beneath precincts to cover small polygons that cannot render at statewide zoom.
 
 The published files are the data contract. `headline.csv`, `kalman_track.csv`, `poll_ledger.csv`, `gates.csv`, `uniform_shift.csv`, `scenarios.csv`, and the two detail CSVs are staged for the browser. The projection CSVs and GeoJSON feed the tile build. Keep the model's gate statuses and two-party definition visible when editing the UI.

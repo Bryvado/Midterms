@@ -68,18 +68,16 @@ jobs:
         run: |
           mkdir -p dashboard/.tile-cache
           tile() {
-            local name="$1"; shift
+            local name="$1" maxzoom="$2"; shift 2
             tippecanoe -o "dashboard/.tile-cache/$name.pmtiles" -l regions \
-              --detect-shared-borders -zg --force "$@" \
+              --no-simplification-of-shared-nodes --no-tiny-polygon-reduction \
+              --no-tile-size-limit -z "$maxzoom" --force "$@" \
               "$RUNNER_TEMP/${name}_joined.geojson"
           }
           build() {
             local name="$1" geo="$2" csv="$3" unit="$4"
             Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit" "dashboard/.tile-cache/${unit}_density.csv"
-            if ! tile "$name"; then
-              echo "::warning::$name tile over 500 KB; retrying with --no-tile-size-limit"
-              tile "$name" --no-tile-size-limit
-            fi
+            tile "$name" "$([ "$unit" = precinct ] && echo 12 || echo 9)"
           }
           build regions regions.geojson regional_projections.csv precinct
           if [ -f data/published/counties.geojson ]; then
