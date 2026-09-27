@@ -16,12 +16,19 @@ regions <- st_read(here::here("data", "published", geo_file), quiet = TRUE) |>
 proj <- read_csv(here::here("data", "published", csv_file),
                  col_types = cols(region_id = col_character(), region_label = col_character(),
                                   profile = col_character(), .default = col_double()))
+details_file <- if (unit == "county") "county_details.csv" else "precinct_details.csv"
+actual <- read_csv(here::here("data", "published", details_file),
+                   col_types = cols(region_id = col_character(), dem_pres24 = col_double(),
+                                    .default = col_skip()))
 
 unmatched_proj <- anti_join(proj, st_drop_geometry(regions), by = "region_id")
 unmatched_feat <- anti_join(st_drop_geometry(regions), proj, by = "region_id")
 dup_ids <- sum(duplicated(proj$region_id)) + sum(duplicated(regions$region_id))
+actual_unmatched <- anti_join(proj, actual, by = "region_id")
+actual_dup_ids <- sum(duplicated(actual$region_id))
 
 joined <- inner_join(regions, proj, by = "region_id") |>
+  left_join(actual, by = "region_id") |>
   select(-any_of("profile")) |>
   mutate(across(where(is.numeric), ~ round(.x, 4)))
 bases <- sub("^shift_", "", grep("^shift_", names(joined), value = TRUE))
@@ -34,13 +41,16 @@ for (b in bases) {
 }
 collisions <- grep("\\.(x|y)$", names(joined), value = TRUE)
 
-gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0
+gate_ok <- nrow(unmatched_proj) == 0 && dup_ids == 0 && length(collisions) == 0 &&
+  nrow(actual_unmatched) == 0 && actual_dup_ids == 0 && all(!is.na(joined$dem_pres24))
 
 report <- c(report,
   sprintf("%s + %s", geo_file, csv_file),
   sprintf("features: %d, projection rows: %d, joined: %d", nrow(regions), nrow(proj), nrow(joined)),
   sprintf("projection rows without a feature: %d", nrow(unmatched_proj)),
   sprintf("features without a projection row: %d", nrow(unmatched_feat)),
+  sprintf("projection rows without 2024 Harris votes: %d", nrow(actual_unmatched)),
+  sprintf("duplicate detail ids: %d", actual_dup_ids),
   sprintf("duplicated region_id: %d", dup_ids),
   sprintf("join column collisions: %s", if (length(collisions)) paste(collisions, collapse = ", ") else "none"))
 
@@ -49,4 +59,4 @@ if (gate_ok) st_write(st_transform(joined, 4326), out_geojson, driver = "GeoJSON
 
 writeLines(report)
 if (!gate_ok) stop("regions join gate failed; first unmatched projection ids: ",
-                   paste(head(unmatched_proj$region_id, 10), collapse = ", "))
+                   paste(head(c(unmatched_proj$region_id, actual_unmatched$region_id), 10), collapse = ", "))

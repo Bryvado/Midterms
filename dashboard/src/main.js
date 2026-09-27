@@ -58,6 +58,7 @@ function renderShifts(shifts) {
     row.label + (row.model_internal === 'TRUE' ? ' (model baseline)' : ''), pct(row.baseline_2p), signed(row.shift_mean),
     `${signed(row.shift_q05)} to ${signed(row.shift_q95)}`,
   ]));
+  optionGroup('2024 actual result', [['base_pres24','Harris two-party share'], ['dem_pres24','Harris votes']]);
   optionGroup('Shift from prior election', combined.map(row => [`shift_${row.baseline}`,`Shift vs ${shortLabels[row.baseline] || row.label}${row.model_internal === 'TRUE' ? ' (model)' : ''}`]));
   optionGroup('Scenario maps', [['scen_paxton_p95_2p','Paxton best case (5th pct.)'], ['scen_talarico_p95_2p','Talarico best case (95th pct.)']]);
 }

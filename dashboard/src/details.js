@@ -1,4 +1,4 @@
-import { csv, pct, count, signed, escapeHTML, table } from './data.js';
+import { csv, pct, count, escapeHTML, table } from './data.js';
 
 let bases = [];
 let selected = 0;
@@ -15,6 +15,7 @@ function section(title, headers, rows) {
 function renderPlace(unit, props, data) {
   const label = props.region_label || props.region_id;
   const value = k => data[k];
+  const harris = +value('dem_pres24'), trump = +value('rep_pres24');
   const voteRows = [
     ['Ballots cast','ballots'], ['Talarico (D)','talarico'], ['Paxton (R)','paxton'],
   ].map(([name,key]) => [name,count(value(`${key}_mean`)),`${count(value(`${key}_q05`))}–${count(value(`${key}_q95`))}`]);
@@ -32,6 +33,7 @@ function renderPlace(unit, props, data) {
   ];
   content.innerHTML = `<div class="place-kicker">${unit === 'county' ? 'County' : 'Precinct'}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${pct(props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${pct(props.q05)}–${pct(props.q95)}</strong></div></div>
+    <p class="actual-result"><strong>2024 Harris:</strong> ${count(value('dem_pres24'))} actual votes · ${harris + trump > 0 ? pct(harris / (harris + trump)) : 'n/a'} two-party share</p>
     <p class="note">Chance Talarico leads here: ${pct(props.p_talarico)}.${String(data.demographics_imputed).toUpperCase() === 'TRUE' ? ' Demographics estimated from neighboring precincts.' : ''}</p>
     ${section('Projected 2026 votes',['','Mean','90% range'],voteRows)}
     <p class="note">Vote counts come from a separate simulation and may imply a two-party share differing from the map by up to about half a point.</p>
