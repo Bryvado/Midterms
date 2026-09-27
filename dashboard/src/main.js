@@ -46,7 +46,14 @@ setShadeHandler(meta => {
   applyMeasure(meta.key, meta);
 });
 
-initMap(selectPlace);
+try {
+  initMap(selectPlace);
+} catch (error) {
+  console.error('Map initialization failed:', error);
+  $('#map-message').textContent = 'This browser could not display the map. The forecast and polling data remain available.';
+  $('#map-theme').disabled = true;
+  $('#reset-map').disabled = true;
+}
 
 function optionGroup(label, values) {
   const group = document.createElement('optgroup');

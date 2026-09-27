@@ -4,21 +4,29 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
-const shareColors = ['#a64238','#ce6e5d','#ecd0c8','#d7e5e8','#75aab9','#286b87'];
-const shiftColors = ['#a64238','#d7846f','#f2f0ea','#88b3be','#286b87'];
-const countColors = ['#edf3f5','#c7dfe6','#9dc7d4','#68a3b9','#367b9a','#124d70'];
-const shareStops = [0.2, 0.35, 0.4999, 0.5, 0.65, 0.8];
-const shiftStops = [-.15, -.075, 0, .075, .15];
-const probStops = [0, .2, .4, .6, .8, 1];
+const electionColors = {
+  light:['#9f352f','#c86656','#e4ab9c','#efeee8','#b2d5dc','#609fb5','#1d6483'],
+  dark:['#ee766e','#d97068','#b77976','#b9c3c4','#79b5c2','#4ab0ce','#26a2d5'],
+};
+const volumeColors = {
+  light:['#edf4f2','#c6e4df','#90c9c3','#55a9ac','#2c7b8e','#184c6a'],
+  dark:['#415467','#527187','#568fa6','#4aa8be','#37c2d0','#a5e4e3'],
+};
+const shareStops = [0,.25,.4,.5,.6,.75,1];
+const shiftStops = [-.15,-.08,-.03,0,.03,.08,.15];
+const probStops = [0,.2,.4,.5,.6,.8,1];
 const message = document.querySelector('#map-message');
 const tooltip = document.querySelector('#map-tooltip');
 const legend = document.querySelector('#legend');
-let map, unit = 'county', measure = 'mean', onSelect = () => {};
+let map, unit = 'county', measure = 'mean', theme = 'light', onSelect = () => {};
 let measureRequest = 0;
 const metricKinds = new Map();
 const scales = new Map();
 
-const style = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const styles = {
+  light:'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+};
 const tileURL = name => `pmtiles://${new URL(`${base}${name}.pmtiles`, location.href).href}`;
 const layerName = level => `${level}-fill`;
 const isShift = key => key.startsWith('shift_');
@@ -28,31 +36,27 @@ const boundedValue = v => Math.min(1, Math.max(0, +v));
 const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:1 }).format(v)}`;
 
 function quantileScale(rows, key, kind) {
-  const values = rows.filter(row => row[key] !== '' && row[key] != null).map(row => +row[key]).filter(Number.isFinite).sort((a,b) => a-b);
+  const values = rows.filter(row => row[key] !== '' && row[key] != null).map(row => +row[key])
+    .filter(Number.isFinite).map(v => kind === 'bounded' ? boundedValue(v) : v).sort((a,b) => a-b);
   if (!values.length) throw new Error(`No map values for ${key}`);
   const stops = [0,.2,.4,.6,.8,1].map(q => values[Math.floor(q * (values.length-1))]);
-  const labels = stops.map(v => compact(v, kind));
+  const labels = stops.map(v => kind === 'bounded' ? pct(v) : compact(v, kind));
   for (let i=1; i<stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + .0001;
-  return { stops, colors:countColors, labels };
+  return { stops, labels, quantiles:true };
 }
 
 function densityScale(rows) {
   const stops = rows.map(row => +row.value);
   const labels = stops.map(v => Intl.NumberFormat('en-US',{ notation:'compact',maximumFractionDigits:1 }).format(v));
   for (let i=1; i<stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + .0001;
-  return { stops, colors:countColors, labels };
+  return { stops, labels, quantiles:true };
 }
 
 function scale(key, level = unit) {
-  if (scales.has(key)) return scales.get(key)[level];
-  if (key === 'result_confidence') return { stops:probStops, colors:shareColors, labels:['Paxton 100%','50%','Talarico 100%'] };
-  if (metricKinds.get(key) === 'bounded') return { stops:probStops, colors:shareColors, labels:['0%','20%','40%','60%','80%','100%'] };
-  if (isCount(key)) return level === 'county'
-    ? { stops:[0,350,1300,5500,28000,150000], colors:countColors, labels:['0','350','1.3k','5.5k','28k','150k+'] }
-    : { stops:[0,100,350,750,1200,2000], colors:countColors, labels:['0','100','350','750','1.2k','2k+'] };
-  if (isShift(key)) return { stops: shiftStops, colors: shiftColors, labels: ['−15','−7.5','0','+7.5','+15'], suffix: 'two-party points' };
-  if (key === 'p_talarico') return { stops: probStops, colors: shareColors, labels: ['0%','20%','40%','60%','80%','100%'], suffix: 'probability' };
-  return { stops: shareStops, colors: shareColors, labels: ['20%','35%','50%','65%','80%'], suffix: 'two-party share' };
+  if (scales.has(key)) return { ...scales.get(key)[level], colors:volumeColors[theme] };
+  if (key === 'result_confidence' || key === 'p_talarico') return { stops:probStops, colors:electionColors[theme], labels:['Paxton 100%','50%','Talarico 100%'] };
+  if (isShift(key)) return { stops:shiftStops, colors:electionColors[theme], labels:['−15','0','+15'], suffix:'two-party points' };
+  return { stops:shareStops, colors:electionColors[theme], labels:['0%','50%','100%'], suffix:'two-party share' };
 }
 
 function colorExpression(key, level) {
@@ -70,7 +74,9 @@ function drawLegend() {
   const select = document.querySelector('#measure');
   const title = select.selectedOptions[0]?.textContent || 'Projected share';
   const kind = metricKinds.get(measure);
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div><div class="legend-ramp">${s.colors.map(color => `<span style="background:${color}"></span>`).join('')}</div><div class="legend-labels">${s.labels.map(label => `<span>${escapeHTML(label)}</span>`).join('')}</div>${measure === 'result_confidence' ? '<div class="legend-note">Color indicates the favored candidate; intensity indicates model probability.</div>' : measure === 'vote_density' ? '<div class="legend-note">Projected ballots per square mile · quantile scale</div>' : isShift(measure) ? '<div class="legend-note">Grey: no baseline for this place</div>' : kind === 'bounded' ? '<div class="legend-note">Estimated shares capped at 100% for shading.</div>' : kind === 'count' || kind === 'money' || isCount(measure) ? '<div class="legend-note">Counts reflect population as well as preference.</div>' : ''}`;
+  const positions = s.stops.map((stop,i) => (s.quantiles ? 100 * i / (s.stops.length - 1) : 100 * (stop - s.stops[0]) / (s.stops.at(-1) - s.stops[0])).toFixed(2));
+  const gradient = s.colors.map((color,i) => `${color} ${positions[i]}%`).join(',');
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div><div class="legend-ramp" style="background:linear-gradient(90deg,${gradient})"></div><div class="legend-labels">${s.labels.map(label => `<span>${escapeHTML(label)}</span>`).join('')}</div>${measure === 'result_confidence' ? '<div class="legend-note">Red: Paxton favored · blue: Talarico favored. Stronger color means higher confidence.</div>' : measure === 'vote_density' ? '<div class="legend-note">Projected ballots per square mile · percentile breaks</div>' : isShift(measure) ? '<div class="legend-note">Two-party points; grey areas lack a baseline.</div>' : s.quantiles ? `<div class="legend-note">Percentile breaks within ${unit === 'county' ? 'counties' : 'precincts'}${kind === 'bounded' ? '; estimates capped at 100%' : ''}.</div>` : ''}`;
 }
 
 function valueText(props) {
@@ -114,7 +120,7 @@ export async function setMeasure(next, meta) {
   const request = ++measureRequest;
   measure = next;
   if (meta) metricKinds.set(next, meta.kind);
-  if (((meta && ['count','money'].includes(meta.kind)) || next === 'dem_pres24') && !scales.has(next)) {
+  if (((meta && ['count','money','bounded'].includes(meta.kind)) || next === 'dem_pres24') && !scales.has(next)) {
     const [county, precinct] = await Promise.all([csv('county_details.csv'),csv('precinct_details.csv')]);
     if (request !== measureRequest) return;
     const kind = meta?.kind || 'count';
@@ -132,17 +138,28 @@ export async function setMeasure(next, meta) {
   tooltip.hidden = true;
 }
 
+export function setTheme(next) {
+  if (!styles[next] || theme === next) return;
+  theme = next;
+  const button = document.querySelector('#map-theme');
+  button.textContent = theme === 'light' ? 'Dark map' : 'Light map';
+  button.setAttribute('aria-pressed', String(theme === 'dark'));
+  document.querySelector('.map-pane').dataset.theme = theme;
+  drawLegend();
+  if (map) map.setStyle(styles[theme]);
+}
+
 export function initMap(select) {
   onSelect = select;
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
-  map = new maplibregl.Map({ container:'map', style, bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
+  map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-  map.on('load', () => {
+  map.on('style.load', () => {
     for (const level of ['county','precinct']) {
       map.addSource(level, { type:'vector', url:tileURL(level === 'county' ? 'counties' : 'regions'), promoteId:'region_id' });
-      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:level === unit ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':.83, 'fill-outline-color':'rgba(40,60,65,.28)' } });
+      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:level === unit ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':theme === 'dark' ? .9 : .87, 'fill-outline-color':theme === 'dark' ? 'rgba(240,247,247,.3)' : 'rgba(40,60,65,.3)' } });
     }
     message.hidden = true;
   });
@@ -169,6 +186,7 @@ export function initMap(select) {
     console.error('Map error:', e.error);
   });
   document.querySelector('#reset-map').addEventListener('click', () => map.fitBounds(bounds, { padding: 28, duration: 450 }));
+  document.querySelector('#map-theme').addEventListener('click', () => setTheme(theme === 'light' ? 'dark' : 'light'));
   drawLegend();
   return map;
 }
