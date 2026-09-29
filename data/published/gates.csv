@@ -1,37 +1,81 @@
 gate,status,affects,detail,script,run_at
-headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-29T03:10:03Z
-headline_p_consistent,PASS,publish,"mean 0.5093, P 0.728",08_publish.R,2026-09-29T03:10:03Z
-track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-29T03:10:03Z
-track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-29T03:10:03Z
-ledger_count,PASS,publish,40 ledger rows vs 40 pooled,08_publish.R,2026-09-29T03:10:03Z
-ledger_repools_to_obs,PASS,publish,"36/36 dates matched, max diff 1.11e-16",08_publish.R,2026-09-29T03:10:03Z
-vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-29T03:10:03Z
-vtd_saved_after_combined,PASS,publish,06 2026-09-28 22:30:05.988448 vs 05 2026-09-28 22:09:22.045176,08_publish.R,2026-09-29T03:10:03Z
-vtd_draws_center,PASS,publish,draw mean gap 4.49e-05,08_publish.R,2026-09-29T03:10:03Z
-vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-29T03:10:03Z
-baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:10:03Z
-pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-09-29T03:10:03Z
-vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-09-29T03:10:03Z
-vtd_draws_after_forecast,PASS,publish,07 2026-09-28 23:05:45.112733 vs 06 2026-09-28 22:30:05.988448,08_publish.R,2026-09-29T03:10:03Z
-scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5346, VTD draws aggregate 0.5347, window gap 0.0016",08_publish.R,2026-09-29T03:10:03Z
-scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4840, VTD draws aggregate 0.4841, window gap 0.0015",08_publish.R,2026-09-29T03:10:03Z
-vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-09-29T03:10:03Z
-geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-09-29T03:10:03Z
-county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-09-29T03:10:03Z
-county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-09-29T03:10:03Z
-detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-09-29T03:10:03Z
+ElectIndex freshness,INFO,poll,race_polls.csv 22.8h old,03_polls.R,2026-09-29T03:15:36Z
+manual poll_ids unique,PASS,poll,0 duplicated,03_polls.R,2026-09-29T03:15:36Z
+each manual poll matches <= 1 EI poll,PASS,poll,7 manual rows | 6 matched | 1 manual-only,03_polls.R,2026-09-29T03:15:36Z
+no EI poll claimed twice,PASS,poll,0 duplicate claims,03_polls.R,2026-09-29T03:15:36Z
+ledger size >= 30,PASS,poll,40 polls,03_polls.R,2026-09-29T03:15:36Z
+no duplicate poll_ids,PASS,poll,0 duplicated,03_polls.R,2026-09-29T03:15:36Z
+ledger values plausible,PASS,poll,0 implausible rows,03_polls.R,2026-09-29T03:15:36Z
+every 09-18 checkpoint poll still present,PASS,poll,35 of 35 frozen polls represented | missing: ,03_polls.R,2026-09-29T03:15:36Z
+checkpoint-set polls reproduce 09-18 obs_ei,PASS,poll,31/31 dates both ways | max|dy| 1.11e-16 | max|dr| 5.42e-20 | poll-count mismatches 0,03_polls.R,2026-09-29T03:15:36Z
+polls added since 09-18,UNGATED,poll,5 poll(s): no checkpoint reference exists,03_polls.R,2026-09-29T03:15:36Z
+named-Brown polls vs obs_brown checkpoint,INFO,poll,13 in checkpoint set (ref 13) | 17 total incl. additions,03_polls.R,2026-09-29T03:15:36Z
+A: kalman machinery on checkpoint obs,PASS,poll,variant A_init_eq_firstobs | max_ds 1.07e-11 | max_dse 4.24e-12 | d_obj -7.83,04_kalman.R,2026-09-29T03:15:37Z
+B: production kalman on current obs_ei,UNGATED,poll,machinery proven in stage A; new input has no reference,04_kalman.R,2026-09-29T03:15:37Z
+kalman_daily_wp (s=1.0),UNGATED,poll,"historical s(t) formula confirmed unrecoverable 2026-09-19 (exhaustive search); 1.0 = no smooth_se inflation, a documented placeholder, not a derived formula",04_kalman.R,2026-09-29T03:15:37Z
+checkpoint Brown polls have distinct end dates,PASS,poll,"13 checkpoint polls, 13 distinct dates (checkpoint gates need one obs per date)",04_kalman.R,2026-09-29T03:15:37Z
+"production Brown obs combined by date (IVW, as obs_ei)",INFO,poll,17 polls -> 17 dates | 0 dates combine more than one poll,04_kalman.R,2026-09-29T03:15:37Z
+brown poll-level vs brown_polls (checkpoint set),PASS,poll,13/13 date+n+dem+rep+oth exact (joined on date+n; pollster strings may differ),04_kalman.R,2026-09-29T03:15:37Z
+brown obs vs obs_brown checkpoint,PASS,poll,13 dates | max_dy 3.47e-18 | max_dr 6.78e-21,04_kalman.R,2026-09-29T03:15:37Z
+brown obs vs kalman-checkpoint obs,PASS,poll,max_dy 3.47e-18 | max_dr 6.78e-21,04_kalman.R,2026-09-29T03:15:37Z
+brown kalman machinery,PASS,poll,variant A_init_eq_firstobs | max_ds 6.94e-18 | max_dse 1.04e-17,04_kalman.R,2026-09-29T03:15:37Z
+brown checkpoint-set production on shared dates,PASS,poll,max_ds 6.94e-18 | max_dse 1.04e-17,04_kalman.R,2026-09-29T03:15:37Z
+brown production on all named-Brown polls,UNGATED,poll,17 polls on 17 dates (4 polls added since 09-18) | q re-optimized 2.694e-05 (checkpoint 1.581e-05),04_kalman.R,2026-09-29T03:15:37Z
+fund_sd reproduces from loo_backtest,PASS,fundamentals,computed 0.02164176 vs stored 0.02164176 | diff 0.000e+00,05_fundamentals.R,2026-09-29T03:11:56Z
+median-race rule reproduces stored 2018/2022,PASS,fundamentals,2018 diff 1.46e-05 | 2022 diff 3.63e-04,05_fundamentals.R,2026-09-29T03:11:56Z
+five-race backtest reproduces checkpoint sd_frac,PASS,fundamentals,"sd 0.01680 vs checkpoint 0.01680 (own IVW+DEFF+45day-halflife weighting, n=5 races)",05_fundamentals.R,2026-09-29T03:11:56Z
+bias_sd rebuilt from per-cycle TX poll misses,PASS,combined,"0.0167 (ref 0.0167) | 13 cycles 2000-2024, excluding 1998 | 90% CI 0.0126-0.0254 | 2024 from own RCP backtest (538 file ends 2022)",05_fundamentals.R,2026-09-29T03:11:56Z
+"polling bias: variance only, no mean correction",UNGATED,combined,overall lean toward Democrats -0.0065 (se 0.0046); 1998 excluded as a single lopsided race; midterm lean reported as sensitivity,05_fundamentals.R,2026-09-29T03:11:56Z
+2026 primary participation gap vs 2018,INFO,fundamentals,D share of primary ballots 0.4106 -> 0.5614 | E = +0.6081 logit (2018 = same out-party environment as 2026),05_fundamentals.R,2026-09-29T03:11:56Z
+enclosed rural pockets reassigned to urban,UNGATED,fundamentals,"231 rural groups of <= 3 precincts; 135 precincts reassigned (>= half of bordering precincts urban) | left rural, flagged: 89 enclosed mainly by suburbs, 33 mainly by Hispanic profile",05_fundamentals.R,2026-09-29T03:11:56Z
+transfer regressions vs pre-rebase preflight (2022 VTD universe),INFO,fundamentals,7750 VTDs | pooled FE 0.1158 (ref 0.115) | profiles 0.030/0.286/0.164/0.098 (ref 0.032/0.273/0.176/0.101) | max diff 0.0130,05_fundamentals.R,2026-09-29T03:11:56Z
+enthusiasm transfer applied statewide,UNGATED,fundamentals,"beta by profile 0.030/0.286/0.164/0.098, electorate-weighted mean 0.1827, structural sd 0.1008 (spread across profiles); local rate assumed to apply to a statewide shift",05_fundamentals.R,2026-09-29T03:11:56Z
+three-bloc allocation vs pre-rebase preflight (2022 VTD universe),INFO,fundamentals,E rural +1.0557 suburbs +1.3940 urban+hispanic -0.7821 (max diff vs ref 0.0292) | 2018->22 validation max |err| 0.0534 (ref 0.0522),05_fundamentals.R,2026-09-29T03:11:56Z
+enthusiasm allocation across profiles,UNGATED,fundamentals,three-bloc measured allocation adopted (validation errors +0.6/+3.3/-5.3 pts); allocation sd 0.0172 logit across even/three-bloc/four/swapped shifts 0.1111/0.1377/0.1238/0.0975,05_fundamentals.R,2026-09-29T03:11:56Z
+Brown fade structure: no fade or all-abstain leaves two-party unchanged,PASS,fundamentals,keep=1 diff 0.0e+00 | all-abstain diff 0.0e+00,05_fundamentals.R,2026-09-29T03:11:56Z
+Brown fade calibration,INFO,fundamentals,"polled 0.0581 (logit sd 0.140, last obs 2026-09-26) | keep U(0.582, 0.933) from Johnson 2016 / Brown 2024 | return to Paxton U(0.60, 0.80) from 2026 party breakdowns | final Brown mean 0.0444 [0.0319, 0.0591]",05_fundamentals.R,2026-09-29T03:11:56Z
+Brown leavers' abstention share,UNGATED,fundamentals,"U(0.00, 0.50): not identified by 2026 polls | two-party shift from fade: mean -0.0024, sd 0.0014",05_fundamentals.R,2026-09-29T03:11:56Z
+even-allocation reference vs 2026-09-22 estimate,INFO,fundamentals,P 0.677747 vs 0.661026 (identical only while the 09-22 poll track is unchanged),05_fundamentals.R,2026-09-29T03:11:56Z
+Brown fade effect on the headline,INFO,fundamentals,P without fade link 0.7626 -> with 0.7281 | mean 0.5109 -> 0.5093,05_fundamentals.R,2026-09-29T03:11:56Z
+joint draws reproduce analytic P,PASS,fundamentals,"0.7307 vs 0.7281 (4 SE 0.0056) | corr(target, Brown final) 0.019",05_fundamentals.R,2026-09-29T03:11:56Z
+combined P(>half) consistent with combined_mean,PASS,combined,mean 0.509277 (above half) | P(>half) 0.728096 (above half),05_fundamentals.R,2026-09-29T03:11:56Z
+enthusiasm moves P in the direction of the gap,PASS,fundamentals,P no-enthusiasm 0.3222 -> even 0.6777 -> measured shift only 0.7165 -> adopted 0.7281,05_fundamentals.R,2026-09-29T03:11:56Z
+"enthusiasm sensitivity: pooled FE transfer, even allocation",INFO,fundamentals,beta 0.1158 -> mean 0.5037 sd 0.0152 P 0.5954,05_fundamentals.R,2026-09-29T03:11:56Z
+polling-bias sensitivities (not adopted),INFO,combined,"C all cycles (bias_sd 0.0219): P 0.6753 | D midterm out-party lean, all 7 (+0.0024, se 0.0113): P 0.7196 | E midterm lean 2006+ 5 (+0.0194, se 0.0028, start chosen post hoc): P 0.9258",05_fundamentals.R,2026-09-29T03:11:56Z
+change vs previous combined_estimate,INFO,combined,mean 0.509277 -> 0.509277 (+0.0000) | sd 0.015281 -> 0.015281 | P 0.7281 -> 0.7281 (prev saved 2026-09-28 22:09),05_fundamentals.R,2026-09-29T03:11:56Z
+headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-09-29T03:18:10Z
+headline_p_consistent,PASS,publish,"mean 0.5093, P 0.728",08_publish.R,2026-09-29T03:18:10Z
+track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-09-29T03:18:10Z
+track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-09-29T03:18:10Z
+ledger_count,PASS,publish,40 ledger rows vs 40 pooled,08_publish.R,2026-09-29T03:18:10Z
+ledger_repools_to_obs,PASS,publish,"36/36 dates matched, max diff 1.11e-16",08_publish.R,2026-09-29T03:18:10Z
+vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-09-29T03:18:10Z
+vtd_built_on_current_draws,PASS,publish,"06's 100000 target draws are identical to 05's joint draws (06 saved 09-28 22:30, 05 saved 09-28 23:11)",08_publish.R,2026-09-29T03:18:10Z
+vtd_draws_center,PASS,publish,draw mean gap 4.49e-05,08_publish.R,2026-09-29T03:18:10Z
+vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-29T03:18:10Z
+baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-09-29T03:18:10Z
+pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-09-29T03:18:10Z
+vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-09-29T03:18:10Z
+vtd_draws_after_forecast,PASS,publish,07 2026-09-28 23:05:45.112733 vs 06 2026-09-28 22:30:05.988448,08_publish.R,2026-09-29T03:18:10Z
+scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5346, VTD draws aggregate 0.5347, window gap 0.0016",08_publish.R,2026-09-29T03:18:10Z
+scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4840, VTD draws aggregate 0.4841, window gap 0.0015",08_publish.R,2026-09-29T03:18:10Z
+vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-09-29T03:18:10Z
+geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-09-29T03:18:10Z
+county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-09-29T03:18:10Z
+county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-09-29T03:18:10Z
+detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-09-29T03:18:10Z
