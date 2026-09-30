@@ -37,6 +37,18 @@
             <label class="measure-label">Show
               <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
             </label>
+            <button id="color-toggle" class="color-toggle" type="button" aria-expanded="false" aria-controls="color-panel">Colors</button>
+          </div>
+          <div id="color-panel" class="color-panel" role="group" aria-label="Map color settings" hidden>
+            <label>Palette <select id="color-palette"></select></label>
+            <div id="color-custom" class="color-custom" hidden>
+              <label><span id="color-lo-label">Low</span> <input id="color-lo" type="color"></label>
+              <label><span id="color-hi-label">High</span> <input id="color-hi" type="color"></label>
+            </div>
+            <label id="color-range-row">Color range <select id="color-range"></select></label>
+            <label id="color-scale-row">Scale <select id="color-scale"><option value="auto">Automatic</option><option value="linear">Linear</option><option value="log">Logarithmic</option><option value="pct">Percentile</option></select></label>
+            <label>Bins <select id="color-bins"><option value="cont">Continuous</option><option value="step">Stepped</option></select></label>
+            <button id="color-reset" type="button" class="text-button">Reset colors</button>
           </div>
           <button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button>
           <button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button>
