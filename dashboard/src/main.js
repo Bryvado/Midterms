@@ -1,7 +1,7 @@
 import './style.css';
 import './layout.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
-import { initMap, setUnit, setMeasure } from './map.js';
+import { initMap, setUnit, setMeasure, setReference, initialMeasure } from './map.js';
 import { initChart, renderChart } from './chart.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
@@ -99,9 +99,10 @@ function renderSummary(headline, scenarios, gates) {
   $('#gate-list').innerHTML = sorted.map(row => `<div class="gate ${row.status.toLowerCase()}"><b>${escapeHTML(row.status)}</b>${escapeHTML(row.gate.replaceAll('_',' '))}<br><span>${escapeHTML(row.detail)} · ${escapeHTML(row.affects)}</span></div>`).join('');
 }
 
+const shortLabels = { sen24:'2024 Senate', pres24:'2024 President', gov22:'2022 Governor', sen20:'2020 Senate', pres20:'2020 President', sen18:'2018 Senate', gov18:'2018 Governor', pres16:'2016 President' };
+
 function renderShifts(shifts) {
   const combined = shifts.filter(row => row.component === 'combined').sort((a,b) => +(b.baseline === 'sen24') - +(a.baseline === 'sen24') || b.baseline.localeCompare(a.baseline));
-  const shortLabels = { sen24:'2024 Senate', pres24:'2024 President', gov22:'2022 Governor', sen20:'2020 Senate', pres20:'2020 President', sen18:'2018 Senate', gov18:'2018 Governor', pres16:'2016 President' };
   $('#shift-table').innerHTML = table(['Baseline','D two-party','Shift','90% interval'], combined.map(row => [
     row.label + (row.model_internal === 'TRUE' ? ' (reference baseline)' : ''), pct(row.baseline_2p), signed(row.shift_mean),
     `${signed(row.shift_q05)} to ${signed(row.shift_q95)}`,
@@ -138,6 +139,12 @@ try {
   ].map(csv));
   renderSummary(headline,scenarios,gates);
   renderShifts(shifts);
+  setReference(headline, shifts, shortLabels);
+  const requested = initialMeasure();
+  if (requested && requested !== measure.value && [...measure.options].some(option => option.value === requested)) {
+    measure.value = requested;
+    applyMeasure(requested);
+  }
   renderLedger(ledger);
   setBaselines(shifts);
   initChart(track,ledger,headline,shifts);

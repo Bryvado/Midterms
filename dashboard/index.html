@@ -14,6 +14,7 @@
           <h1>Forecast explorer</h1>
         </div>
         <div class="panel-toggles" role="group" aria-label="Panels">
+          <button type="button" data-open-panel="display" aria-pressed="false">Display</button>
           <button type="button" data-open-panel="controls" aria-pressed="true">Map controls</button>
           <button type="button" data-open-panel="legend" aria-pressed="true">Legend</button>
           <button type="button" data-open-panel="polling" aria-pressed="true">Polling</button>
@@ -36,24 +37,6 @@
       <main class="workspace">
         <section class="map-pane" aria-label="Texas forecast map">
           <div id="map" role="application" aria-label="Interactive Texas forecast map"></div>
-          <div id="color-panel" class="color-panel" role="group" aria-label="Map color settings" hidden>
-            <label id="color-palette-row">Palette <select id="color-palette"></select></label>
-            <div id="color-custom" class="color-custom" hidden>
-              <label><span id="color-lo-label">Low</span> <input id="color-lo" type="color"></label>
-              <label><span id="color-hi-label">High</span> <input id="color-hi" type="color"></label>
-            </div>
-            <label id="color-range-row">Color range <select id="color-range"></select></label>
-            <label id="color-scale-row">Scale <select id="color-scale"><option value="auto">Automatic</option><option value="linear">Linear</option><option value="log">Logarithmic</option><option value="pct">Percentile</option></select></label>
-            <label>Bins <select id="color-bins"><option value="cont">Continuous</option><option value="step">Stepped</option></select></label>
-            <label>Fill opacity <span class="range-row"><input id="fill-opacity" type="range" min="0" max="100" step="5"><output id="fill-opacity-value"></output></span></label>
-            <div class="check-row"><label><input id="outline-on" type="checkbox"> Area borders</label></div>
-            <label>Border opacity <span class="range-row"><input id="outline-opacity" type="range" min="0" max="100" step="5"><output id="outline-opacity-value"></output></span></label>
-            <fieldset class="overlay-set"><legend>Boundary lines on top</legend>
-              <label><input id="overlay-county" type="checkbox"> County lines</label>
-              <label><input id="overlay-cd" type="checkbox"> 2025 congressional districts</label>
-            </fieldset>
-            <button id="color-reset" type="button" class="text-button">Reset map display</button>
-          </div>
           <div id="map-message" class="map-message" role="status">Loading map…</div>
           <div id="map-tooltip" class="map-tooltip" hidden></div>
         </section>
@@ -70,10 +53,42 @@
               <label class="measure-label">Show
                 <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
               </label>
-              <button id="color-toggle" class="color-toggle" type="button" aria-expanded="false" aria-controls="color-panel">Colors</button>
             </div>
             <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
             <div class="map-buttons"><button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button><button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button></div>
+          </div>
+          <span class="fp-resize" aria-hidden="true"></span>
+        </section>
+        <section class="float-panel fp-display" id="fp-display" data-panel="display" aria-label="Display">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Display</h2><button type="button" class="fp-close" aria-label="Close display panel">×</button></header>
+          <div class="fp-body" id="display-panel">
+            <fieldset class="display-group"><legend>Color</legend>
+              <label>Palette <select id="color-palette"></select></label>
+              <p id="color-palette-note" class="display-note"></p>
+              <div id="color-custom" class="color-custom" hidden>
+                <label><span id="color-lo-label">Low</span><input id="color-lo" type="color"></label>
+                <label><span id="color-hi-label">High</span><input id="color-hi" type="color"></label>
+              </div>
+            </fieldset>
+            <fieldset class="display-group"><legend>Scale <span class="display-scope">for this metric</span></legend>
+              <label id="scale-center-row">Center <select id="scale-center"></select></label>
+              <label>Range <select id="scale-range"></select></label>
+              <div id="scale-custom" class="scale-custom" hidden>
+                <label>Min <input id="scale-min" type="number" step="any" inputmode="decimal"></label>
+                <label>Max <input id="scale-max" type="number" step="any" inputmode="decimal"></label>
+                <span id="scale-custom-units" class="display-note"></span>
+              </div>
+              <label>Bins <select id="scale-bins"></select></label>
+              <label id="scale-log-row" class="check"><input id="scale-log" type="checkbox"> Logarithmic</label>
+            </fieldset>
+            <fieldset class="display-group"><legend>Layers</legend>
+              <label>Fill opacity <span class="range-row"><input id="fill-opacity" type="range" min="0" max="100" step="5"><output id="fill-opacity-value"></output></span></label>
+              <label class="check"><input id="outline-on" type="checkbox"> Area borders</label>
+              <label>Border opacity <span class="range-row"><input id="outline-opacity" type="range" min="0" max="100" step="5"><output id="outline-opacity-value"></output></span></label>
+              <label class="check"><input id="overlay-county" type="checkbox"> County lines on top</label>
+              <label class="check"><input id="overlay-cd" type="checkbox"> 2025 congressional district lines on top</label>
+            </fieldset>
+            <button id="display-reset" type="button" class="text-button">Reset display</button>
           </div>
           <span class="fp-resize" aria-hidden="true"></span>
         </section>
@@ -117,7 +132,7 @@
         <p>The headline combines an election-day polling average with a fundamentals prior. The polling average uses a Kalman filter; its dashed segment projects beyond the last observed poll. Polling-bias variance is added to the poll term in the combined estimate.</p>
         <p>Map shares are Talarico's share of votes for the two major candidates, D/(D+R). Scenario maps use joint simulation draws near the statewide 5th and 95th percentiles. Precinct and county vote counts come from a separate vote-count simulation and may imply a two-party share that differs from the map by up to about half a point.</p>
         <p>The actual 2024 Harris result is the model's reference baseline for geographic shifts. “Reference baseline” describes its role in the model, not how the 2024 votes were obtained.</p>
-        <p>Click a number in the selected-place panel to shade every county or precinct by that measure. Red and blue map colors represent Republican and Democratic outcomes, centered on an even 50% share. Result confidence uses one purple scale from 50% (even) to 100% (certain), regardless of which candidate is favored; it is the published larger of the two candidates' modeled chances of leading. Projected margin is Talarico minus Paxton as a share of all ballots, and Brown share is Brown's share of all ballots, both as published by the model. Net vote density is the published net Talarico minus Paxton votes per square mile of full-resolution area: blue is a Talarico lead, red is a Paxton lead. Areas expected to cast under half a ballot have no margin, Brown share or density and are drawn as no data. Its color saturates at the 95th percentile of absolute net density within the selected geographic level. These are separate map views. Counts and demographic shares use percentile breaks within the selected geographic level. Estimated demographic percentages are capped at 100% for display and shading; the published CSVs retain the original estimates. Use Dark map or Light map to change the background without changing the selected measure or location.</p>
+        <p>Click a number in the selected-place panel to shade every county or precinct by that measure. Red and blue map colors represent Republican and Democratic outcomes. Result confidence uses one purple scale from 50% (even) to 100% (certain), regardless of which candidate is favored; it is the published larger of the two candidates' modeled chances of leading. Projected margin is Talarico minus Paxton as a share of all ballots, and Brown share is Brown's share of all ballots, both as published by the model. Net vote density is the published net Talarico minus Paxton votes per square mile of full-resolution area: blue is a Talarico lead, red is a Paxton lead. Areas expected to cast under half a ballot have no margin, Brown share or density and are drawn as no data. The Display panel sets how each metric is colored: a center (an even 50%, the statewide forecast or a baseline race's statewide result), a range (fit to the areas in view, fit to all areas at the current level, a fixed width or custom bounds) and continuous, stepped or ratings-style bins. These settings change only the coloring; the legend states the active center and range. Estimated demographic percentages are capped at 100% for display and shading; the published CSVs retain the original estimates. Use Dark map or Light map to change the background without changing the selected measure or location.</p>
         <h3>Statewide shift from past races</h3><div id="shift-table" class="table-scroll"></div>
         <h3>Model checks</h3><p id="gate-summary"></p><div id="gate-list" class="gate-list"></div>
       </div>

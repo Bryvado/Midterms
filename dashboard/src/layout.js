@@ -22,6 +22,7 @@ function defaults() {
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
     legend:{ x:52, y:null, w:250, h:null, open:true },
+    display:{ x:Math.max(GAP, W - sideW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - sideW - GAP, y:GAP, w:sideW, h:pollH, open:true },
     place:{ x:W - sideW - GAP, y:pollH + GAP * 2, w:sideW, h:Math.max(MIN.h, H - pollH - GAP * 3), open:true },
   };
