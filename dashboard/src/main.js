@@ -1,4 +1,5 @@
 import './style.css';
+import './layout.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure } from './map.js';
 import { initChart, renderChart } from './chart.js';
@@ -13,12 +14,27 @@ $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
 
 for (const button of document.querySelectorAll('[data-unit]')) button.addEventListener('click', () => setUnit(button.dataset.unit));
-for (const tab of document.querySelectorAll('[role=tab]')) tab.addEventListener('click', () => {
-  for (const item of document.querySelectorAll('[role=tab]')) item.setAttribute('aria-selected', String(item === tab));
-  for (const panel of document.querySelectorAll('[role=tabpanel]')) panel.hidden = panel.id !== tab.getAttribute('aria-controls');
-  if (tab.id === 'tab-trend') window.dispatchEvent(new Event('resize'));
-});
+let scenarioRows = [];
+// When a scenario map is shown, the headline's range card states that scenario's statewide outcome from scenarios.csv.
+function showScenario(key) {
+  const name = { scen_paxton_p95_2p:'paxton_p95', scen_talarico_p95_2p:'talarico_p95' }[key];
+  const row = name && scenarioRows.find(r => r.scenario === name);
+  const low = scenarioRows.find(r => r.scenario === 'paxton_p95'), high = scenarioRows.find(r => r.scenario === 'talarico_p95');
+  const range = low && high ? `${pct(low.talarico_2p)}–${pct(high.talarico_2p)}` : 'n/a';
+  $('#range-card').classList.toggle('scenario-active', !!row);
+  if (row) {
+    $('#range-label').textContent = `Map scenario: ${name === 'talarico_p95' ? 'Talarico' : 'Paxton'} best case`;
+    $('#range-value').textContent = pct(row.talarico_2p);
+    $('#range-sub').textContent = `Statewide Talarico two-party share at the ${name === 'talarico_p95' ? '95th' : '5th'} percentile · full range ${range}`;
+  } else {
+    $('#range-label').textContent = 'Scenario range';
+    $('#range-value').textContent = range;
+    $('#range-sub').textContent = '5th–95th percentile of statewide share';
+  }
+}
+
 async function applyMeasure(key, meta) {
+  showScenario(key);
   try {
     await setMeasure(key, meta);
     if ($('#map-message').textContent.startsWith('Could not shade')) $('#map-message').hidden = true;
@@ -68,9 +84,8 @@ function renderSummary(headline, scenarios, gates) {
   $('#share-value').textContent = pct(combined.mean);
   $('#share-sub').textContent = `± ${pct(combined.sd)} model SD`;
   $('#win-value').textContent = pct(combined.p_talarico_win,0);
-  const low = scenarios.find(row => row.scenario === 'paxton_p95');
-  const high = scenarios.find(row => row.scenario === 'talarico_p95');
-  $('#range-value').textContent = low && high ? `${pct(low.talarico_2p)}–${pct(high.talarico_2p)}` : 'n/a';
+  scenarioRows = scenarios;
+  showScenario(measure.value);
   $('#run-date').textContent = `Model run ${combined.run_date}`;
   const fails = gates.filter(row => row.status === 'FAIL').length;
   const ungated = gates.filter(row => row.status === 'UNGATED').length;
@@ -96,11 +111,25 @@ function renderShifts(shifts) {
   optionGroup('Scenario maps', [['scen_paxton_p95_2p','Paxton best case (5th pct.)'], ['scen_talarico_p95_2p','Talarico best case (95th pct.)']]);
 }
 
+const shortDate = value => new Intl.DateTimeFormat('en-US',{ timeZone:'UTC', month:'short', day:'numeric' }).format(new Date(`${value}T00:00:00Z`));
+
 function renderLedger(rows) {
   const sorted = [...rows].sort((a,b) => b.end_date.localeCompare(a.end_date));
-  $('#poll-ledger').innerHTML = table(['Pollster','End','n','Talarico','Paxton','Other','Two-party','Weight','Source'], sorted.map(row => [
-    row.pollster,row.end_date,row.n,row.talarico,row.paxton,row.other,pct(row.talarico_2p),pct(row.weight),row.source,
-  ]));
+  const body = sorted.map((row, i) => `<tr>
+      <td class="pollster" title="${escapeHTML(row.pollster)}">${escapeHTML(row.pollster)}</td><td>${escapeHTML(shortDate(row.end_date))}</td><td>${escapeHTML(row.n)}</td>
+      <td>${escapeHTML(row.talarico)}</td><td>${escapeHTML(row.paxton)}</td><td>${escapeHTML(pct(row.talarico_2p))}</td>
+      <td><button type="button" class="row-expand" aria-expanded="false" aria-controls="poll-more-${i}" aria-label="More about ${escapeHTML(row.pollster)} poll">▸</button></td></tr>
+    <tr id="poll-more-${i}" class="poll-more" hidden><td colspan="7">Other ${escapeHTML(row.other)}${row.brown_named === 'TRUE' ? ' · Brown named' : ''} · relative weight ${escapeHTML(pct(row.weight))} · source: ${escapeHTML(row.source)}</td></tr>`).join('');
+  $('#poll-ledger').innerHTML = `<table class="ledger"><colgroup><col><col class="c-date"><col class="c-n"><col class="c-num"><col class="c-num"><col class="c-2p"><col class="c-x"></colgroup>
+    <thead><tr><th>Pollster</th><th>End</th><th>n</th><th title="Talarico">Tal.</th><th title="Paxton">Pax.</th><th title="Talarico two-party share">2-pty</th><th><span class="visually-hidden">Details</span></th></tr></thead><tbody>${body}</tbody></table>`;
+  $('#poll-ledger').addEventListener('click', event => {
+    const button = event.target.closest('.row-expand');
+    if (!button) return;
+    const open = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(open));
+    button.textContent = open ? '▾' : '▸';
+    document.getElementById(button.getAttribute('aria-controls')).hidden = !open;
+  });
 }
 
 try {
@@ -117,5 +146,5 @@ try {
   $('#run-date').textContent = 'Published data unavailable';
   $('#status-button').textContent = 'Data unavailable';
   $('#status-button').classList.add('fail');
-  $('#panel-trend').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
+  $('#trend-chart').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
 }

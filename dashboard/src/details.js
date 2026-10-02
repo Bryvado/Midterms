@@ -1,4 +1,5 @@
 import { csv, pct, count, escapeHTML } from './data.js';
+import { openPanel } from './layout.js';
 
 const levelInfo = {
   county:{ file:'county_details.csv', kicker:'County' },
@@ -87,7 +88,7 @@ function renderPlace(unit, props, data) {
 
 export async function selectPlace(unit, props) {
   const request = ++selected;
-  document.querySelector('#tab-place').click();
+  openPanel('place');
   content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit]?.kicker || unit)}</div><h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">Loading details…</p>`;
   try {
     const rows = await csv(levelInfo[unit].file);

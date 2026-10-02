@@ -143,9 +143,12 @@ function scale(key, level = unit) {
     if (type === 'share') edges = edges.filter(v => v > 0 && v < 1);
     note = type === 'shift' ? 'Two-party points; grey areas lack a baseline.' : type === 'margin' ? 'Talarico minus Paxton as a share of all ballots, in points.' : lo > 0 ? `Colors saturate below ${pct(lo,0)} and above ${pct(hi,0)}.` : '';
   } else if (type === 'brown') {
-    lo = 0; hi = .15;
-    edges = [.03,.06,.09,.12];
-    note = 'Brown votes as a share of all ballots. Colors cap at 15%.';
+    // Brown is a few percent everywhere, so the ramp spans this level's 2nd–98th percentile, rounded to half points.
+    const values = valueCache.get(key)[level];
+    const at = q => values[Math.floor(q * (values.length - 1))];
+    lo = Math.floor(at(.02) * 200) / 200; hi = Math.max(lo + .005, Math.ceil(at(.98) * 200) / 200);
+    edges = scaleLinear().domain([lo, hi]).ticks(5).filter(v => v > lo + 1e-9 && v < hi - 1e-9);
+    note = `Brown votes as a share of all ballots. Colors span ${pct(lo,1)}–${pct(hi,1)}, the 2nd–98th percentile of ${levels[level].plural}.`;
   } else if (type === 'confidence') {
     lo = .5; hi = 1;
     edges = [.6,.7,.8,.9];
@@ -275,10 +278,11 @@ function initColorControls() {
   const toggle = document.querySelector('#color-toggle');
   if (!panel || !toggle) return;
   toggle.addEventListener('click', () => {
-    const controls = document.querySelector('.map-controls');
-    const note = document.querySelector('#level-note');
-    const anchor = note && !note.hidden ? note : controls;
-    panel.style.top = `${anchor.offsetTop + anchor.offsetHeight + 6}px`;
+    const owner = document.querySelector('#fp-controls').getBoundingClientRect();
+    const pane = document.querySelector('.map-pane').getBoundingClientRect();
+    const phone = window.matchMedia('(max-width:700px)').matches;
+    panel.style.top = `${phone ? 8 : Math.max(8, owner.bottom - pane.top + 6)}px`;
+    panel.style.left = `${phone ? 8 : Math.max(8, owner.left - pane.left)}px`;
     panel.hidden = !panel.hidden;
     toggle.setAttribute('aria-expanded', String(!panel.hidden));
     if (!panel.hidden) panel.querySelector('select').focus();
@@ -349,7 +353,7 @@ export async function setMeasure(next, meta) {
   measure = next;
   if (meta) metricKinds.set(next, meta.kind);
   const type = metricType(next);
-  if (type === 'seq' && !valueCache.has(next)) {
+  if ((type === 'seq' || type === 'brown') && !valueCache.has(next)) {
     const tables = await Promise.all(levelKeys.map(level => csv(levels[level].details)));
     if (request !== measureRequest) return;
     const bounded = metricKinds.get(next) === 'bounded';
@@ -394,8 +398,8 @@ export function initMap(select) {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.on('style.load', () => {
     // Fills and overlays go beneath the basemap's first label layer so place names stay readable.
     const labels = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
