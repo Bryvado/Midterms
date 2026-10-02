@@ -41,12 +41,14 @@ const rangeOptions = {
   shift:{ values:['.05','.1','.15','.25'], fallback:'.15', center:0, text:r => `±${Math.round(100 * r)} points` },
   margin:{ values:['.1','.2','.4'], fallback:'.2', center:0, text:r => `±${Math.round(100 * r)} points` },
 };
-const defaults = { dpal:'redblue', spal:'teal', scale:'auto', bins:'cont', range:'', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
+const defaults = { op:'87', ol:'30', ln:'1', oc:'0', od:'0', dpal:'redblue', spal:'teal', scale:'auto', bins:'cont', range:'', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
 const settings = { ...defaults };
 const hex = /^#[0-9a-f]{6}$/i;
 const valid = {
   dpal:v => v in divergingPalettes, spal:v => v in sequentialPalettes, scale:v => ['auto','linear','log','pct'].includes(v),
   bins:v => ['cont','step'].includes(v), range:v => Object.values(rangeOptions).some(o => o.values.includes(v)),
+  op:v => /^\d{1,3}$/.test(v) && +v <= 100, ol:v => /^\d{1,3}$/.test(v) && +v <= 100,
+  ln:v => v === '0' || v === '1', oc:v => v === '0' || v === '1', od:v => v === '0' || v === '1',
   dlo:v => hex.test(v), dhi:v => hex.test(v), slo:v => hex.test(v), shi:v => hex.test(v),
 };
 const params = new URLSearchParams(location.search);
@@ -54,6 +56,18 @@ for (const key of Object.keys(defaults)) if (params.has(key) && valid[key](param
 const message = document.querySelector('#map-message');
 const tooltip = document.querySelector('#map-tooltip');
 const legend = document.querySelector('#legend');
+const levels = {
+  county:{ tiles:'counties', details:'county_details.csv', plural:'counties' },
+  precinct:{ tiles:'regions', details:'precinct_details.csv', plural:'precincts' },
+  cd:{ tiles:'districts', details:'cd_details.csv', plural:'congressional districts' },
+  cousub:{ tiles:'cousubs', details:'cousub_details.csv', plural:'county subdivisions' },
+};
+const levelKeys = Object.keys(levels);
+const overlayStyle = {
+  county:{ label:'County lines', light:'#8a5a19', dark:'#f0c674', width:.9, dash:[2,1.5] },
+  cd:{ label:'2025 congressional district lines', light:'#141414', dark:'#ffffff', width:1.8, dash:null },
+};
+const outlineColor = { light:'40,60,65', dark:'240,247,247' };
 let map, unit = 'county', measure = 'mean', theme = 'light', onSelect = () => {};
 let measureRequest = 0;
 const metricKinds = new Map();
@@ -70,6 +84,10 @@ const isCount = key => key === 'dem_pres24';
 const sourceKey = key => key === 'result_confidence' ? 'confidence' : key === 'vote_density' ? 'net_votes_per_sqmi' : key;
 const boundedValue = v => Math.min(1, Math.max(0, +v));
 const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:1 }).format(v)}`;
+
+const levelVisible = level => level === unit || (level === 'county' && unit === 'precinct');
+const fillOpacity = () => +settings.op / 100;
+const outline = () => settings.ln === '1' ? `rgba(${outlineColor[theme]},${+settings.ol / 100})` : 'rgba(0,0,0,0)';
 
 function metricType(key) {
   if (key === 'vote_density') return 'density';
@@ -140,7 +158,7 @@ function scale(key, level = unit) {
       edges = [.2,.4,.6,.8].map(at);
       stops = [0,.2,.4,.6,.8,1].map(at);
       even = true;
-      note = `Percentile breaks within ${level === 'county' ? 'counties' : 'precincts'}.`;
+      note = `Percentile breaks within ${levels[level].plural}.`;
     } else if (mode === 'log') {
       lo = Math.max(1, values[0]); hi = Math.max(lo * 10, values.at(-1));
       transform = 'log';
@@ -200,7 +218,7 @@ function drawLegend() {
     labels = `<div class="legend-edges">${picks.map(i => `<span style="left:${(100 * (s.type === 'density' ? i / (s.stops.length - 1) : s.positions[i])).toFixed(2)}%">${escapeHTML(format(measure, s.stops[i]))}</span>`).join('')}</div>`;
   }
   const ends = s.type === 'prob' || s.type === 'share' || s.type === 'shift' || s.type === 'margin' || s.type === 'density' ? '<div class="legend-ends"><span>Paxton</span><span>Talarico</span></div>' : '';
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${escapeHTML(unitText)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div>${ramp}${labels}${ends}<div class="legend-nodata"><span></span>No data</div>${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${escapeHTML(unitText)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div>${ramp}${labels}${ends}<div class="legend-nodata"><span></span>No data</div>${Object.entries(overlayStyle).filter(([level]) => settings[level === 'county' ? 'oc' : 'od'] === '1').map(([, style]) => `<div class="legend-line"><span style="border-top:${Math.max(2, style.width)}px ${style.dash ? 'dashed' : 'solid'} ${style[theme]}"></span>${escapeHTML(style.label)}</div>`).join('')}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
   syncControls();
 }
 
@@ -226,6 +244,14 @@ function syncControls() {
   panel.querySelector('#color-scale-row').hidden = type !== 'seq';
   panel.querySelector('#color-scale').value = settings.scale;
   panel.querySelector('#color-bins').value = settings.bins;
+  panel.querySelector('#fill-opacity').value = settings.op;
+  panel.querySelector('#fill-opacity-value').textContent = `${settings.op}%`;
+  panel.querySelector('#outline-opacity').value = settings.ol;
+  panel.querySelector('#outline-opacity-value').textContent = `${settings.ol}%`;
+  panel.querySelector('#outline-opacity').disabled = settings.ln !== '1';
+  panel.querySelector('#outline-on').checked = settings.ln === '1';
+  document.querySelector('#overlay-county').checked = settings.oc === '1';
+  document.querySelector('#overlay-cd').checked = settings.od === '1';
 }
 
 function applyColors() {
@@ -236,7 +262,12 @@ function applyColors() {
   history.replaceState(null, '', url);
   drawLegend();
   if (!map?.getLayer('county-fill')) return;
-  for (const level of ['county','precinct']) map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
+  for (const level of levelKeys) {
+    map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
+    map.setPaintProperty(layerName(level), 'fill-opacity', fillOpacity());
+    map.setPaintProperty(layerName(level), 'fill-outline-color', outline());
+  }
+  for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
 
 function initColorControls() {
@@ -245,7 +276,9 @@ function initColorControls() {
   if (!panel || !toggle) return;
   toggle.addEventListener('click', () => {
     const controls = document.querySelector('.map-controls');
-    panel.style.top = `${controls.offsetTop + controls.offsetHeight + 6}px`;
+    const note = document.querySelector('#level-note');
+    const anchor = note && !note.hidden ? note : controls;
+    panel.style.top = `${anchor.offsetTop + anchor.offsetHeight + 6}px`;
     panel.hidden = !panel.hidden;
     toggle.setAttribute('aria-expanded', String(!panel.hidden));
     if (!panel.hidden) panel.querySelector('select').focus();
@@ -259,6 +292,10 @@ function initColorControls() {
   panel.querySelector('#color-lo').addEventListener('input', e => { settings[diverging() ? 'dlo' : 'slo'] = e.target.value; applyColors(); });
   panel.querySelector('#color-hi').addEventListener('input', e => { settings[diverging() ? 'dhi' : 'shi'] = e.target.value; applyColors(); });
   panel.querySelector('#color-reset').addEventListener('click', () => { Object.assign(settings, defaults); applyColors(); });
+  const sliders = { '#fill-opacity':'op', '#outline-opacity':'ol' };
+  for (const [id, key] of Object.entries(sliders)) panel.querySelector(id).addEventListener('input', e => { settings[key] = String(e.target.value); applyColors(); });
+  const toggles = { '#outline-on':'ln', '#overlay-county':'oc', '#overlay-cd':'od' };
+  for (const [id, key] of Object.entries(toggles)) document.querySelector(id).addEventListener('change', e => { settings[key] = e.target.checked ? '1' : '0'; applyColors(); });
 }
 
 function valueText(props) {
@@ -295,7 +332,13 @@ export function setUnit(next) {
     button.setAttribute('aria-pressed', String(active));
   });
   if (map?.getLayer('county-fill')) {
-    for (const level of ['county','precinct']) map.setLayoutProperty(layerName(level), 'visibility', level === 'county' || level === unit ? 'visible' : 'none');
+    for (const level of levelKeys) map.setLayoutProperty(layerName(level), 'visibility', levelVisible(level) ? 'visible' : 'none');
+  }
+  const note = document.querySelector('#level-note');
+  if (note) {
+    const controls = document.querySelector('.map-controls');
+    note.style.top = `${controls.offsetTop + controls.offsetHeight + 6}px`;
+    note.hidden = unit !== 'cd';
   }
   drawLegend();
   tooltip.hidden = true;
@@ -307,7 +350,7 @@ export async function setMeasure(next, meta) {
   if (meta) metricKinds.set(next, meta.kind);
   const type = metricType(next);
   if (type === 'seq' && !valueCache.has(next)) {
-    const [county, precinct] = await Promise.all([csv('county_details.csv'),csv('precinct_details.csv')]);
+    const tables = await Promise.all(levelKeys.map(level => csv(levels[level].details)));
     if (request !== measureRequest) return;
     const bounded = metricKinds.get(next) === 'bounded';
     const sorted = rows => {
@@ -315,10 +358,10 @@ export async function setMeasure(next, meta) {
       if (!values.length) throw new Error(`No map values for ${next}`);
       return values;
     };
-    valueCache.set(next, { county:sorted(county), precinct:sorted(precinct) });
+    valueCache.set(next, Object.fromEntries(levelKeys.map((level, i) => [level, sorted(tables[i])])));
   }
   if (type === 'density' && !valueCache.has(next)) {
-    const [county, precinct] = await Promise.all([csv('county_details.csv'),csv('precinct_details.csv')]);
+    const tables = await Promise.all(levelKeys.map(level => csv(levels[level].details)));
     if (request !== measureRequest) return;
     // Colour breaks only: 50th, 80th and 95th percentiles of absolute published density.
     const breaks = rows => {
@@ -326,12 +369,12 @@ export async function setMeasure(next, meta) {
       const [b50, b80, b95] = [.5,.8,.95].map(q => abs[Math.floor(q * (abs.length - 1))]);
       return [-b95,-b80,-b50,0,b50,b80,b95];
     };
-    valueCache.set(next, { county:breaks(county), precinct:breaks(precinct) });
+    valueCache.set(next, Object.fromEntries(levelKeys.map((level, i) => [level, breaks(tables[i])])));
   }
   if (request !== measureRequest) return;
   drawLegend();
   if (!map?.getLayer('county-fill')) return;
-  for (const level of ['county','precinct']) map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
+  for (const level of levelKeys) map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
   tooltip.hidden = true;
 }
 
@@ -354,9 +397,14 @@ export function initMap(select) {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   map.on('style.load', () => {
-    for (const level of ['county','precinct']) {
-      map.addSource(level, { type:'vector', url:tileURL(level === 'county' ? 'counties' : 'regions'), promoteId:'region_id' });
-      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:level === 'county' || level === unit ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':theme === 'dark' ? .9 : .87, 'fill-outline-color':theme === 'dark' ? 'rgba(240,247,247,.3)' : 'rgba(40,60,65,.3)' } });
+    // Fills and overlays go beneath the basemap's first label layer so place names stay readable.
+    const labels = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
+    for (const level of levelKeys) {
+      map.addSource(level, { type:'vector', url:tileURL(levels[level].tiles), promoteId:'region_id' });
+      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':outline() } }, labels);
+    }
+    for (const [level, style] of Object.entries(overlayStyle)) {
+      map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
     }
     message.hidden = true;
   });

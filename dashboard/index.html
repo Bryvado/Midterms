@@ -33,12 +33,15 @@
             <div class="segmented" role="group" aria-label="Geographic level">
               <button class="active" data-unit="county" type="button" aria-pressed="true">Counties</button>
               <button data-unit="precinct" type="button" aria-pressed="false">Precincts</button>
+              <button data-unit="cd" type="button" aria-pressed="false" title="Congressional district (2025 map)">Districts</button>
+              <button data-unit="cousub" type="button" aria-pressed="false" title="County subdivision">Subdivisions</button>
             </div>
             <label class="measure-label">Show
               <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
             </label>
             <button id="color-toggle" class="color-toggle" type="button" aria-expanded="false" aria-controls="color-panel">Colors</button>
           </div>
+          <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
           <div id="color-panel" class="color-panel" role="group" aria-label="Map color settings" hidden>
             <label id="color-palette-row">Palette <select id="color-palette"></select></label>
             <div id="color-custom" class="color-custom" hidden>
@@ -48,7 +51,14 @@
             <label id="color-range-row">Color range <select id="color-range"></select></label>
             <label id="color-scale-row">Scale <select id="color-scale"><option value="auto">Automatic</option><option value="linear">Linear</option><option value="log">Logarithmic</option><option value="pct">Percentile</option></select></label>
             <label>Bins <select id="color-bins"><option value="cont">Continuous</option><option value="step">Stepped</option></select></label>
-            <button id="color-reset" type="button" class="text-button">Reset colors</button>
+            <label>Fill opacity <span class="range-row"><input id="fill-opacity" type="range" min="0" max="100" step="5"><output id="fill-opacity-value"></output></span></label>
+            <div class="check-row"><label><input id="outline-on" type="checkbox"> Area borders</label></div>
+            <label>Border opacity <span class="range-row"><input id="outline-opacity" type="range" min="0" max="100" step="5"><output id="outline-opacity-value"></output></span></label>
+            <fieldset class="overlay-set"><legend>Boundary lines on top</legend>
+              <label><input id="overlay-county" type="checkbox"> County lines</label>
+              <label><input id="overlay-cd" type="checkbox"> 2025 congressional districts</label>
+            </fieldset>
+            <button id="color-reset" type="button" class="text-button">Reset map display</button>
           </div>
           <button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button>
           <button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button>
