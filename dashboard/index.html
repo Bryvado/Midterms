@@ -13,6 +13,13 @@
           <div class="eyebrow">2026 U.S. Senate · Texas</div>
           <h1>Forecast explorer</h1>
         </div>
+        <div class="panel-toggles" role="group" aria-label="Panels">
+          <button type="button" data-open-panel="controls" aria-pressed="true">Map controls</button>
+          <button type="button" data-open-panel="legend" aria-pressed="true">Legend</button>
+          <button type="button" data-open-panel="polling" aria-pressed="true">Polling</button>
+          <button type="button" data-open-panel="place" aria-pressed="true">Selected place</button>
+          <button type="button" id="reset-layout" class="reset-layout">Reset layout</button>
+        </div>
         <div class="header-actions">
           <span id="run-date" class="run-date">Loading model…</span>
           <button id="status-button" class="status-chip" type="button" aria-haspopup="dialog">Model status</button>
@@ -23,25 +30,12 @@
       <section class="summary" aria-label="Statewide forecast">
         <div class="summary-item"><span class="summary-label">Talarico two-party share</span><strong id="share-value">—</strong><span id="share-sub" class="summary-sub">Election-day estimate</span></div>
         <div class="summary-item"><span class="summary-label">Talarico win probability</span><strong id="win-value">—</strong><span class="summary-sub">Model probability</span></div>
-        <div class="summary-item"><span class="summary-label">Scenario range</span><strong id="range-value">—</strong><span class="summary-sub">5th–95th percentile of statewide share</span></div>
+        <div class="summary-item" id="range-card" aria-live="polite"><span class="summary-label" id="range-label">Scenario range</span><strong id="range-value">—</strong><span class="summary-sub" id="range-sub">5th–95th percentile of statewide share</span></div>
       </section>
 
       <main class="workspace">
         <section class="map-pane" aria-label="Texas forecast map">
           <div id="map" role="application" aria-label="Interactive Texas forecast map"></div>
-          <div class="map-controls">
-            <div class="segmented" role="group" aria-label="Geographic level">
-              <button class="active" data-unit="county" type="button" aria-pressed="true">Counties</button>
-              <button data-unit="precinct" type="button" aria-pressed="false">Precincts</button>
-              <button data-unit="cd" type="button" aria-pressed="false" title="Congressional district (2025 map)">Districts</button>
-              <button data-unit="cousub" type="button" aria-pressed="false" title="County subdivision">Subdivisions</button>
-            </div>
-            <label class="measure-label">Show
-              <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
-            </label>
-            <button id="color-toggle" class="color-toggle" type="button" aria-expanded="false" aria-controls="color-panel">Colors</button>
-          </div>
-          <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
           <div id="color-panel" class="color-panel" role="group" aria-label="Map color settings" hidden>
             <label id="color-palette-row">Palette <select id="color-palette"></select></label>
             <div id="color-custom" class="color-custom" hidden>
@@ -60,28 +54,59 @@
             </fieldset>
             <button id="color-reset" type="button" class="text-button">Reset map display</button>
           </div>
-          <button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button>
-          <button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button>
           <div id="map-message" class="map-message" role="status">Loading map…</div>
           <div id="map-tooltip" class="map-tooltip" hidden></div>
-          <div class="map-legend" id="legend" aria-label="Map legend"></div>
         </section>
-
-        <aside class="side-pane" aria-label="Forecast context">
-          <div class="side-tabs" role="tablist" aria-label="Context">
-            <button id="tab-trend" role="tab" aria-selected="true" aria-controls="panel-trend" type="button">Polling</button>
-            <button id="tab-place" role="tab" aria-selected="false" aria-controls="panel-place" type="button">Selected place</button>
+        <section class="float-panel fp-controls" id="fp-controls" data-panel="controls" aria-label="Map controls">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Map controls</h2><button type="button" class="fp-close" aria-label="Close map controls panel">×</button></header>
+          <div class="fp-body">
+            <div class="map-controls">
+              <div class="segmented" role="group" aria-label="Geographic level">
+                <button class="active" data-unit="county" type="button" aria-pressed="true">Counties</button>
+                <button data-unit="precinct" type="button" aria-pressed="false">Precincts</button>
+                <button data-unit="cd" type="button" aria-pressed="false" title="Congressional district (2025 map)">Districts</button>
+                <button data-unit="cousub" type="button" aria-pressed="false" title="County subdivision">Subdivisions</button>
+              </div>
+              <label class="measure-label">Show
+                <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
+              </label>
+              <button id="color-toggle" class="color-toggle" type="button" aria-expanded="false" aria-controls="color-panel">Colors</button>
+            </div>
+            <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
+            <div class="map-buttons"><button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button><button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button></div>
           </div>
-          <section id="panel-trend" class="side-panel" role="tabpanel" aria-labelledby="tab-trend">
-            <div class="panel-heading"><h2 id="trend-title">Polling average</h2><p>Observed polls and projection to Election Day</p></div>
+          <span class="fp-resize" aria-hidden="true"></span>
+        </section>
+        <section class="float-panel fp-legend" id="fp-legend" data-panel="legend" aria-label="Legend">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Legend</h2><button type="button" class="fp-close" aria-label="Close legend panel">×</button></header>
+          <div class="fp-body">
+            <div class="map-legend" id="legend" aria-label="Map legend"></div>
+          </div>
+          <span class="fp-resize" aria-hidden="true"></span>
+        </section>
+        <section class="float-panel fp-polling" id="fp-polling" data-panel="polling" aria-label="Polling">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Polling</h2><button type="button" class="fp-close" aria-label="Close polling panel">×</button></header>
+          <div class="fp-body">
+            <h3 id="trend-title" class="trend-title">Polling average</h3>
+            <div class="chart-toggles" role="group" aria-label="Chart layers">
+              <label><input type="checkbox" data-chart-layer="dots"> Polls</label>
+              <label><input type="checkbox" data-chart-layer="avg"> Poll average, 95% band</label>
+              <label><input type="checkbox" data-chart-layer="fc"> Forecast, 95% band</label>
+              <label><input type="checkbox" data-chart-layer="fund"> Fundamentals</label>
+            </div>
             <div id="trend-chart" aria-label="Polling trend chart"></div>
-            <p class="chart-note">Shaded band: 95% interval. Dots: individual polls. The dashed line extends beyond the latest poll.</p>
-            <details class="panel-details"><summary id="poll-summary">Poll ledger</summary><div id="poll-ledger" class="table-scroll"></div></details>
-          </section>
-          <section id="panel-place" class="side-panel" role="tabpanel" aria-labelledby="tab-place" hidden>
-            <div id="place-content" class="place-content"><div class="empty-place"><strong>Select a place on the map</strong><p>Click a county or precinct to see its projection, past results, and demographics.</p></div></div>
-          </section>
-        </aside>
+            <p class="chart-note" id="chart-note">The forecast pulls the poll average toward the fundamentals estimate and accounts for Brown's expected fade, which is why it sits below the polls. Fundamentals gain only a little weight before Election Day because historical polling error, not time, dominates poll uncertainty.</p>
+            <details class="panel-details"><summary id="poll-summary">Poll ledger</summary><div id="poll-ledger"></div></details>
+          </div>
+          <span class="fp-resize" aria-hidden="true"></span>
+        </section>
+        <section class="float-panel fp-place" id="fp-place" data-panel="place" aria-label="Selected place">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Selected place</h2><button type="button" class="fp-close" aria-label="Close selected place panel">×</button></header>
+          <div class="fp-body">
+            <div id="place-content" class="place-content"><div class="empty-place"><strong>Select a place on the map</strong><p>Click an area to see its projection, past results, and demographics.</p></div></div>
+          </div>
+          <span class="fp-resize" aria-hidden="true"></span>
+        </section>
       </main>
       <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
     </div>
