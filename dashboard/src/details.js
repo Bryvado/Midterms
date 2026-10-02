@@ -1,5 +1,12 @@
 import { csv, pct, count, escapeHTML } from './data.js';
 
+const levelInfo = {
+  county:{ file:'county_details.csv', kicker:'County' },
+  precinct:{ file:'precinct_details.csv', kicker:'Precinct' },
+  cd:{ file:'cd_details.csv', kicker:'Congressional district (2025 map)', note:'U.S. Senate forecast within each district — not a House forecast.' },
+  cousub:{ file:'cousub_details.csv', kicker:'County subdivision' },
+};
+const splitNote = 'Precincts that cross these lines are divided by 2020 census block population.';
 let bases = [];
 let selected = 0;
 let activeShade = '';
@@ -63,10 +70,10 @@ function renderPlace(unit, props, data) {
     ['Population','population','count'],['Citizen voting-age population','cvap_total','count'],
     ['Hispanic share of CVAP','hisp_cvap_share','bounded'],['White share of CVAP','white_cvap_share','bounded'],
     ['Black share of CVAP','black_cvap_share','bounded'],["Bachelor's degree or higher",'ba_plus_share','bounded'],
-    [unit === 'county' ? 'Average of precinct median incomes' : 'Median income','med_income','money'],
+    [unit === 'precinct' ? 'Median income' : 'Average of precinct median incomes','med_income','money'],
     ['Registered voters, 2024','registered_2024','count'],['Voted in 2022','voted_2022','count'],
   ].map(([name,key,kind]) => [escapeHTML(name),shade(key,name,kind,value(key))]);
-  content.innerHTML = `<div class="place-kicker">${unit === 'county' ? 'County' : 'Precinct'}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>
+  content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
     <p class="shade-hint">Select any underlined number to shade the map by that measure.</p>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
     <p class="actual-result"><strong>2024 Harris:</strong> ${shade('dem_pres24','2024 Harris votes','count',value('dem_pres24'))} actual votes · ${harris + trump > 0 ? shade('base_pres24','2024 Harris two-party share','share',harris/(harris+trump)) : 'n/a'} two-party share</p>
@@ -81,9 +88,9 @@ function renderPlace(unit, props, data) {
 export async function selectPlace(unit, props) {
   const request = ++selected;
   document.querySelector('#tab-place').click();
-  content.innerHTML = `<div class="place-kicker">${escapeHTML(unit)}</div><h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">Loading details…</p>`;
+  content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit]?.kicker || unit)}</div><h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">Loading details…</p>`;
   try {
-    const rows = await csv(unit === 'county' ? 'county_details.csv' : 'precinct_details.csv');
+    const rows = await csv(levelInfo[unit].file);
     if (request !== selected) return;
     const data = rows.find(row => row.region_id === String(props.region_id));
     if (!data) throw new Error('No detail row for this place.');
