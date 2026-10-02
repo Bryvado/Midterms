@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: dashboard/.tile-cache
-          key: tiles-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'scripts/build_tiles.R') }}
+          key: tiles-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'data/published/precinct_details.csv', 'data/published/county_details.csv', 'scripts/build_tiles.R') }}
       - uses: r-lib/actions/setup-r@v2
         if: steps.tile-cache.outputs.cache-hit != 'true'
         with:
@@ -76,7 +76,7 @@ jobs:
           }
           build() {
             local name="$1" geo="$2" csv="$3" unit="$4"
-            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit" "dashboard/.tile-cache/${unit}_density.csv"
+            Rscript scripts/build_tiles.R "$RUNNER_TEMP/${name}_joined.geojson" "$geo" "$csv" "$unit"
             tile "$name" "$([ "$unit" = precinct ] && echo 12 || echo 9)"
           }
           build regions regions.geojson regional_projections.csv precinct
@@ -86,7 +86,6 @@ jobs:
       - name: Copy map tiles into site
         run: |
           cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
-          cp dashboard/.tile-cache/*_density.csv dashboard/dist/data/
       - name: Report largest tile per zoom
         if: hashFiles('data/published/regions.geojson') != ''
         run: |

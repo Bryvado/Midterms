@@ -17,6 +17,10 @@ const confidenceColors = {
   light:['#f0f0f2','#dcdce9','#bcbad8','#9897c2','#7072a7','#494d88'],
   dark:['#48505f','#616a80','#7f86a7','#a3a7cf','#c5c5e7','#e4e1fa'],
 };
+const goldColors = {
+  light:['#fbf6e4','#f1dfa0','#dcbb52','#b98d1c','#7f5d0a'],
+  dark:['#4a4232','#76642f','#a8882c','#d8b23a','#f7dc7a'],
+};
 const neutral = { light:'#efeee8', dark:'#b9c3c4' };
 const divergingPalettes = {
   redblue:{ label:'Red / blue', ...electionColors },
@@ -35,6 +39,7 @@ const sequentialPalettes = {
 const rangeOptions = {
   share:{ values:['.5','.3','.2','.1'], fallback:'.3', center:.5, text:r => r === .5 ? '0–100% (full)' : `${pct(.5 - r,0)}–${pct(.5 + r,0)}` },
   shift:{ values:['.05','.1','.15','.25'], fallback:'.15', center:0, text:r => `±${Math.round(100 * r)} points` },
+  margin:{ values:['.1','.2','.4'], fallback:'.2', center:0, text:r => `±${Math.round(100 * r)} points` },
 };
 const defaults = { dpal:'redblue', spal:'teal', scale:'auto', bins:'cont', range:'', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
 const settings = { ...defaults };
@@ -62,7 +67,7 @@ const tileURL = name => `pmtiles://${new URL(`${base}${name}.pmtiles`, location.
 const layerName = level => `${level}-fill`;
 const isShift = key => key.startsWith('shift_');
 const isCount = key => key === 'dem_pres24';
-const sourceKey = key => key === 'result_confidence' ? 'p_talarico' : key === 'vote_density' ? 'net_votes_per_sqmi' : key;
+const sourceKey = key => key === 'result_confidence' ? 'confidence' : key === 'vote_density' ? 'net_votes_per_sqmi' : key;
 const boundedValue = v => Math.min(1, Math.max(0, +v));
 const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:1 }).format(v)}`;
 
@@ -70,14 +75,17 @@ function metricType(key) {
   if (key === 'vote_density') return 'density';
   if (key === 'result_confidence') return 'confidence';
   if (key === 'p_talarico') return 'prob';
+  if (key === 'margin') return 'margin';
+  if (key === 'brown_share') return 'brown';
   if (isShift(key)) return 'shift';
   if (['count','money','bounded'].includes(metricKinds.get(key)) || isCount(key)) return 'seq';
   return 'share';
 }
-const isDiverging = type => ['density','prob','shift','share'].includes(type);
+const isDiverging = type => ['density','prob','shift','share','margin'].includes(type);
 
 function ramp(type) {
   if (isDiverging(type)) return settings.dpal === 'custom' ? [settings.dlo, neutral[theme], settings.dhi] : divergingPalettes[settings.dpal][theme];
+  if (type === 'brown') return goldColors[theme];
   if (settings.spal !== 'custom') return sequentialPalettes[settings.spal][theme];
   return theme === 'dark' ? [settings.shi, settings.slo] : [settings.slo, settings.shi];
 }
@@ -85,7 +93,8 @@ const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (co
 
 function format(key, v) {
   const type = metricType(key), kind = metricKinds.get(key);
-  if (type === 'shift') return `${v > 0 ? '+' : v < 0 ? '−' : ''}${+Math.abs(100 * v).toFixed(1)}`;
+  if (type === 'shift' || type === 'margin') return `${v > 0 ? '+' : v < 0 ? '−' : ''}${+Math.abs(100 * v).toFixed(1)}`;
+  if (type === 'brown') return pct(v, Number.isInteger(Math.round(1000 * v) / 10) ? 0 : 1);
   if (type === 'density') return v === 0 ? '0' : `${v > 0 ? '+' : '−'}${compact(Math.abs(v))}`;
   if (type === 'seq') return kind === 'bounded' ? pct(v, 0) : compact(v, kind);
   return pct(v, v === 0 || v === 1 || Math.abs(100 * v - Math.round(100 * v)) < 1e-6 ? 0 : 1);
@@ -108,13 +117,17 @@ function scale(key, level = unit) {
   } else if (type === 'prob') {
     lo = 0; hi = 1; center = .5;
     edges = [.1,.2,.3,.4,.5,.6,.7,.8,.9];
-  } else if (type === 'share' || type === 'shift') {
+  } else if (type === 'share' || type === 'shift' || type === 'margin') {
     const opt = rangeOptions[type];
     const r = +(opt.values.includes(settings.range) ? settings.range : opt.fallback);
     center = opt.center; lo = center - r; hi = center + r;
     edges = scaleLinear().domain([lo, hi]).ticks(8).filter(v => v >= lo - 1e-9 && v <= hi + 1e-9);
     if (type === 'share') edges = edges.filter(v => v > 0 && v < 1);
-    note = type === 'shift' ? 'Two-party points; grey areas lack a baseline.' : lo > 0 ? `Colors saturate below ${pct(lo,0)} and above ${pct(hi,0)}.` : '';
+    note = type === 'shift' ? 'Two-party points; grey areas lack a baseline.' : type === 'margin' ? 'Talarico minus Paxton as a share of all ballots, in points.' : lo > 0 ? `Colors saturate below ${pct(lo,0)} and above ${pct(hi,0)}.` : '';
+  } else if (type === 'brown') {
+    lo = 0; hi = .15;
+    edges = [.03,.06,.09,.12];
+    note = 'Brown votes as a share of all ballots. Colors cap at 15%.';
   } else if (type === 'confidence') {
     lo = .5; hi = 1;
     edges = [.6,.7,.8,.9];
@@ -161,9 +174,7 @@ function colorExpression(key, level) {
   const s = scale(key, level);
   const column = sourceKey(key);
   const raw = ['to-number', ['get', column]];
-  let value = key === 'result_confidence'
-    ? ['min', 1, ['max', raw, ['-', 1, raw]]]
-    : metricKinds.get(key) === 'bounded' ? ['min', 1, ['max', 0, raw]] : raw;
+  let value = metricKinds.get(key) === 'bounded' ? ['min', 1, ['max', 0, raw]] : raw;
   if (s.transform === 'log') value = ['ln', ['+', 1, ['max', 0, value]]];
   const paint = s.stepped
     ? ['step', value, s.colors[0], ...s.edges.flatMap((edge, i) => [s.tx(edge), s.colors[i + 1]])]
@@ -176,7 +187,7 @@ function drawLegend() {
   try { s = scale(measure, unit); } catch { return; }
   const select = document.querySelector('#measure');
   const title = select.selectedOptions[0]?.textContent || 'Projected share';
-  const unitText = { shift:' · two-party points', share:' · Talarico two-party share', prob:'', density:'', confidence:'', seq:'' }[s.type];
+  const unitText = { shift:' · two-party points', share:' · Talarico two-party share', margin:' · points of all ballots', brown:' · share of all ballots', prob:'', density:'', confidence:'', seq:'' }[s.type];
   let ramp, labels;
   if (s.stepped) {
     ramp = `<div class="legend-steps">${s.colors.map(color => `<span style="background:${color}"></span>`).join('')}</div>`;
@@ -188,7 +199,7 @@ function drawLegend() {
     const picks = s.type === 'density' ? [0, 3, 6] : s.even ? s.stops.map((_, i) => i) : [0, Math.floor(s.stops.length / 2), s.stops.length - 1];
     labels = `<div class="legend-edges">${picks.map(i => `<span style="left:${(100 * (s.type === 'density' ? i / (s.stops.length - 1) : s.positions[i])).toFixed(2)}%">${escapeHTML(format(measure, s.stops[i]))}</span>`).join('')}</div>`;
   }
-  const ends = s.type === 'prob' || s.type === 'share' || s.type === 'shift' || s.type === 'density' ? '<div class="legend-ends"><span>Paxton</span><span>Talarico</span></div>' : '';
+  const ends = s.type === 'prob' || s.type === 'share' || s.type === 'shift' || s.type === 'margin' || s.type === 'density' ? '<div class="legend-ends"><span>Paxton</span><span>Talarico</span></div>' : '';
   legend.innerHTML = `<div class="legend-title">${escapeHTML(title)}${escapeHTML(unitText)}${measure === 'base_pres24' || isCount(measure) ? ' · 2024 actual' : ''}</div>${ramp}${labels}${ends}<div class="legend-nodata"><span></span>No data</div>${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
   syncControls();
 }
@@ -202,7 +213,8 @@ function syncControls() {
   const pal = panel.querySelector('#color-palette');
   pal.replaceChildren(...Object.entries(palettes).map(([k, v]) => new Option(v.label, k, false, settings[palKey] === k)));
   const custom = settings[palKey] === 'custom';
-  panel.querySelector('#color-custom').hidden = !custom;
+  panel.querySelector('#color-palette-row').hidden = type === 'brown';
+  panel.querySelector('#color-custom').hidden = !custom || type === 'brown';
   panel.querySelector('#color-lo-label').textContent = diverging ? 'Paxton side' : 'Low';
   panel.querySelector('#color-hi-label').textContent = diverging ? 'Talarico side' : 'High';
   panel.querySelector('#color-lo').value = settings[diverging ? 'dlo' : 'slo'];
@@ -252,7 +264,10 @@ function initColorControls() {
 function valueText(props) {
   const v = props[sourceKey(measure)];
   const kind = metricKinds.get(measure);
-  if (measure === 'result_confidence') return +v === .5 ? '50% · even' : `${pct(Math.min(1,Math.max(+v,1 - +v)))} · ${+v > .5 ? 'Talarico' : 'Paxton'} favored`;
+  if (v === '' || v == null) return 'no data';
+  if (measure === 'result_confidence') return +props.p_talarico === .5 ? `${pct(v)} · even` : `${pct(v)} · ${+props.p_talarico > .5 ? 'Talarico' : 'Paxton'} favored`;
+  if (measure === 'margin') return `${signed(v)} (${+v >= 0 ? 'Talarico' : 'Paxton'} ahead)`;
+  if (measure === 'brown_share') return pct(v);
   if (measure === 'vote_density') return `${+v >= 0 ? '+' : '−'}${compact(Math.abs(+v))} votes / sq mi (${+v >= 0 ? 'Talarico' : 'Paxton'} net)`;
   if (kind === 'bounded') return +v > 1 ? '100% (capped)' : pct(boundedValue(v));
   if (kind === 'money') return `$${count(v)}`;
@@ -303,9 +318,15 @@ export async function setMeasure(next, meta) {
     valueCache.set(next, { county:sorted(county), precinct:sorted(precinct) });
   }
   if (type === 'density' && !valueCache.has(next)) {
-    const [county, precinct] = await Promise.all([csv('county_density.csv'),csv('precinct_density.csv')]);
+    const [county, precinct] = await Promise.all([csv('county_details.csv'),csv('precinct_details.csv')]);
     if (request !== measureRequest) return;
-    valueCache.set(next, { county:county.map(row => +row.value), precinct:precinct.map(row => +row.value) });
+    // Colour breaks only: 50th, 80th and 95th percentiles of absolute published density.
+    const breaks = rows => {
+      const abs = rows.map(row => row.net_votes_per_sqmi).filter(v => v !== '' && v != null).map(v => Math.abs(+v)).filter(Number.isFinite).sort((a,b) => a-b);
+      const [b50, b80, b95] = [.5,.8,.95].map(q => abs[Math.floor(q * (abs.length - 1))]);
+      return [-b95,-b80,-b50,0,b50,b80,b95];
+    };
+    valueCache.set(next, { county:breaks(county), precinct:breaks(precinct) });
   }
   if (request !== measureRequest) return;
   drawLegend();
