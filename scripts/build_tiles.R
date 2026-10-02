@@ -16,7 +16,7 @@ regions <- st_read(here::here("data", "published", geo_file), quiet = TRUE) |>
 proj <- read_csv(here::here("data", "published", csv_file),
                  col_types = cols(region_id = col_character(), region_label = col_character(),
                                   profile = col_character(), .default = col_double()))
-details_file <- if (unit == "county") "county_details.csv" else "precinct_details.csv"
+details_file <- paste0(unit, "_details.csv")
 actual <- read_csv(here::here("data", "published", details_file),
                    col_types = cols(region_id = col_character(), .default = col_guess()),
                    show_col_types = FALSE) |>
