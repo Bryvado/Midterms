@@ -8,7 +8,8 @@ import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
 const electionColors = {
   light:['#9f352f','#c86656','#e4ab9c','#f2efe8','#b2d5dc','#609fb5','#1d6483'],
-  dark:['#ee766e','#e58f86','#f0c2b9','#f2efe8','#b8dbe3','#6fb9cf','#26a2d5'],
+  // Dark mode: a charcoal midpoint, brightening toward each end, so close races read dark over the black basemap.
+  dark:['#ff7a6e','#d65a50','#7a3a36','#2b2d31','#2c5868','#3a9cc0','#5fcaf2'],
 };
 const volumeColors = {
   light:['#edf4f2','#c6e4df','#90c9c3','#55a9ac','#2c7b8e','#184c6a'],
@@ -22,12 +23,12 @@ const goldColors = {
   light:['#fbf6e4','#f1dfa0','#dcbb52','#b98d1c','#7f5d0a'],
   dark:['#4a4232','#76642f','#a8882c','#d8b23a','#f7dc7a'],
 };
-const neutral = { light:'#f2efe8', dark:'#f2efe8' };
+const neutral = { light:'#f2efe8', dark:'#2b2d31' };
 const divergingPalettes = {
   redblue:{ label:'Red / blue', ...electionColors },
   orpu:{ label:'Orange / purple (colorblind-safe)',
     light:['#b35806','#e08214','#fdb863','#f2efe8','#b2abd2','#8073ac','#542788'],
-    dark:['#f59b2b','#f0a85a','#f7d1a3','#f2efe8','#cbc5e6','#a597e0','#b7a4ff'] },
+    dark:['#ffad4a','#d9822a','#7a4f25','#2b2d31','#4b4280','#8e7ad8','#c6b6ff'] },
   custom:{ label:'Custom colors' },
 };
 const sequentialPalettes = {
