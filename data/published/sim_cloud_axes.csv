@@ -1,0 +1,6 @@
+axis,label,variable,correlation,other_correlations
+shape_x,South Texas vs state,hispanic_vs_state,0.8314616585249907,hispanic_vs_state +0.83 | rural_vs_state -0.35 | suburbs_vs_state -0.53 | urban_vs_state +0.34 | reversion_rho +0.77
+shape_y,Rural vs state,rural_vs_state,0.5396274193266785,hispanic_vs_state +0.09 | rural_vs_state +0.54 | suburbs_vs_state -0.27 | urban_vs_state -0.06 | reversion_rho +0.00
+talarico_2p,Talarico two-party,talarico_2p,NA,NA
+reversion_rho,Hispanic reversion,reversion_rho,NA,NA
+turnout_rate,Turnout,turnout_rate,NA,NA
