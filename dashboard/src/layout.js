@@ -18,7 +18,7 @@ function save() {
 function defaults() {
   const W = workspace.clientWidth, H = workspace.clientHeight;
   const sideW = Math.min(320, Math.max(260, Math.round(W * .26)));
-  const pollH = Math.round(Math.min(H * .64, 520));
+  const pollH = Math.round(Math.min(H * .66, 640));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
     // Lifted clear of the map's attribution line, which must stay visible.

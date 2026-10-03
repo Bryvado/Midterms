@@ -20,16 +20,16 @@ function showScenario(key) {
   const name = { scen_paxton_p95_2p:'paxton_p95', scen_talarico_p95_2p:'talarico_p95' }[key];
   const row = name && scenarioRows.find(r => r.scenario === name);
   const low = scenarioRows.find(r => r.scenario === 'paxton_p95'), high = scenarioRows.find(r => r.scenario === 'talarico_p95');
-  const range = low && high ? `${pct(low.talarico_2p)}–${pct(high.talarico_2p)}` : 'n/a';
+  const range = low && high ? `${(100 * low.talarico_2p).toFixed(1)}–${pct(high.talarico_2p)}` : 'n/a';
   $('#range-card').classList.toggle('scenario-active', !!row);
   if (row) {
-    $('#range-label').textContent = `Map scenario: ${name === 'talarico_p95' ? 'Talarico' : 'Paxton'} best case`;
+    $('#range-label').textContent = `map scenario, ${name === 'talarico_p95' ? 'Talarico' : 'Paxton'} best case:`;
     $('#range-value').textContent = pct(row.talarico_2p);
-    $('#range-sub').textContent = `Statewide Talarico two-party share at the ${name === 'talarico_p95' ? '95th' : '5th'} percentile · full range ${range}`;
+    $('#range-card').title = `Statewide Talarico two-party share at the ${name === 'talarico_p95' ? '95th' : '5th'} percentile · full range ${range}`;
   } else {
-    $('#range-label').textContent = 'Scenario range';
+    $('#range-label').textContent = 'range';
     $('#range-value').textContent = range;
-    $('#range-sub').textContent = '5th–95th percentile of statewide share';
+    $('#range-card').title = '5th–95th percentile of statewide share';
   }
 }
 
@@ -82,7 +82,7 @@ function renderSummary(headline, scenarios, gates) {
   const combined = headline.find(row => row.component === 'combined');
   if (!combined) throw new Error('Combined headline estimate is missing.');
   $('#share-value').textContent = pct(combined.mean);
-  $('#share-sub').textContent = `± ${pct(combined.sd)} model SD`;
+  $('#share-sub').textContent = `±${(100 * combined.sd).toFixed(1)}`;
   $('#win-value').textContent = pct(combined.p_talarico_win,0);
   scenarioRows = scenarios;
   showScenario(measure.value);
