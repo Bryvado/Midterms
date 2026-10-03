@@ -2,12 +2,13 @@ import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { scaleLinear } from 'd3-scale';
+import { interpolateLab } from 'd3-interpolate';
 import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
 const electionColors = {
-  light:['#9f352f','#c86656','#e4ab9c','#efeee8','#b2d5dc','#609fb5','#1d6483'],
-  dark:['#ee766e','#d97068','#b77976','#b9c3c4','#79b5c2','#4ab0ce','#26a2d5'],
+  light:['#9f352f','#c86656','#e4ab9c','#f2efe8','#b2d5dc','#609fb5','#1d6483'],
+  dark:['#ee766e','#e58f86','#f0c2b9','#f2efe8','#b8dbe3','#6fb9cf','#26a2d5'],
 };
 const volumeColors = {
   light:['#edf4f2','#c6e4df','#90c9c3','#55a9ac','#2c7b8e','#184c6a'],
@@ -21,12 +22,12 @@ const goldColors = {
   light:['#fbf6e4','#f1dfa0','#dcbb52','#b98d1c','#7f5d0a'],
   dark:['#4a4232','#76642f','#a8882c','#d8b23a','#f7dc7a'],
 };
-const neutral = { light:'#efeee8', dark:'#b9c3c4' };
+const neutral = { light:'#f2efe8', dark:'#f2efe8' };
 const divergingPalettes = {
   redblue:{ label:'Red / blue', ...electionColors },
   orpu:{ label:'Orange / purple (colorblind-safe)',
-    light:['#b35806','#e08214','#fdb863','#efeee8','#b2abd2','#8073ac','#542788'],
-    dark:['#f59b2b','#d98b45','#b98f6e','#b9c3c4','#958ec2','#8f78dd','#b7a4ff'] },
+    light:['#b35806','#e08214','#fdb863','#f2efe8','#b2abd2','#8073ac','#542788'],
+    dark:['#f59b2b','#f0a85a','#f7d1a3','#f2efe8','#cbc5e6','#a597e0','#b7a4ff'] },
   custom:{ label:'Custom colors' },
 };
 const sequentialPalettes = {
@@ -105,7 +106,8 @@ const isCount = key => key === 'dem_pres24';
 const sourceKey = key => key === 'result_confidence' ? 'confidence' : key === 'vote_density' ? 'net_votes_per_sqmi' : key;
 const boundedValue = v => Math.min(1, Math.max(0, +v));
 const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:1 }).format(v)}`;
-const levelVisible = level => level === unit || (level === 'county' && unit === 'precinct');
+// Only the active unit's fill draws; county and district outlines are available as line overlays.
+const levelVisible = level => level === unit;
 const fillOpacity = () => +settings.op / 100;
 const outline = () => settings.ln === '1' ? `rgba(${outlineColor[theme]},${+settings.ol / 100})` : 'rgba(0,0,0,0)';
 const quantile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
@@ -181,7 +183,8 @@ function ramp(type) {
   if (type === 'brown' && settings.spal === defaults.spal) return goldColors[theme];
   return sequentialPalettes[settings.spal][theme];
 }
-const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).clamp(true)(t);
+// Interpolate in CIELAB so the ramp passes through a clean light midpoint instead of a muddy RGB mix.
+const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).interpolate(interpolateLab).clamp(true)(t);
 
 function format(key, v) {
   const type = metricType(key), kind = metricKinds.get(key);
@@ -485,7 +488,8 @@ function valueText(props) {
 
 function showTooltip(event, props) {
   const label = props.region_label || props.region_id || 'Selected place';
-  tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(document.querySelector('#measure').selectedOptions[0].textContent)}: ${escapeHTML(valueText(props))}<br>Projected share: ${escapeHTML(pct(props.mean))}<br>90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
+  const showing = document.querySelector('#measure').selectedOptions[0].textContent;
+  tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
   const rect = pane.getBoundingClientRect();
   let x = event.originalEvent.clientX - rect.left + 13;
   let y = event.originalEvent.clientY - rect.top + 13;

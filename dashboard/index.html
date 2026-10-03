@@ -9,9 +9,13 @@
   <body>
     <div id="app">
       <header class="site-header">
-        <div class="identity">
-          <div class="eyebrow">2026 U.S. Senate · Texas</div>
-          <h1>Forecast explorer</h1>
+        <div class="identity"><h1>TX Senate 2026 · Forecast explorer</h1></div>
+        <div class="topstats" aria-label="Statewide forecast" aria-live="polite">
+          <span class="ts-item" title="Talarico two-party share, Election Day estimate, ± model SD">Talarico <strong id="share-value">—</strong> <span id="share-sub"></span></span>
+          <span class="ts-sep">·</span>
+          <span class="ts-item" title="Talarico win probability"><strong id="win-value">—</strong> win</span>
+          <span class="ts-sep ts-sep-range">·</span>
+          <span class="ts-item" id="range-card"><span id="range-label">range</span> <strong id="range-value">—</strong><span id="range-sub" class="visually-hidden"></span></span>
         </div>
         <div class="panel-toggles" role="group" aria-label="Panels">
           <button type="button" data-open-panel="display" aria-pressed="false">Display</button>
@@ -28,11 +32,6 @@
         </div>
       </header>
 
-      <section class="summary" aria-label="Statewide forecast">
-        <div class="summary-item"><span class="summary-label">Talarico two-party share</span><strong id="share-value">—</strong><span id="share-sub" class="summary-sub">Election-day estimate</span></div>
-        <div class="summary-item"><span class="summary-label">Talarico win probability</span><strong id="win-value">—</strong><span class="summary-sub">Model probability</span></div>
-        <div class="summary-item" id="range-card" aria-live="polite"><span class="summary-label" id="range-label">Scenario range</span><strong id="range-value">—</strong><span class="summary-sub" id="range-sub">5th–95th percentile of statewide share</span></div>
-      </section>
 
       <main class="workspace">
         <section class="map-pane" aria-label="Texas forecast map">
