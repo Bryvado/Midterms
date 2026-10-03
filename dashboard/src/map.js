@@ -186,6 +186,12 @@ function ramp(type) {
 }
 // Interpolate in CIELAB so the ramp passes through a clean light midpoint instead of a muddy RGB mix.
 const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).interpolate(interpolateLab).clamp(true)(t);
+// Shared with the poll chart: a margin in points on the active diverging palette, clamped at ±8, neutral at 0.
+export function marginColor(points) {
+  return colorAt(ramp('margin'), .5 + Math.max(-8, Math.min(8, points)) / 16);
+}
+export const partyColor = side => colorAt(ramp('margin'), side === 'D' ? 1 : 0);
+const announce = () => window.dispatchEvent(new Event('display-change'));
 
 function format(key, v) {
   const type = metricType(key), kind = metricKinds.get(key);
@@ -405,6 +411,7 @@ async function ensureValues() {
 }
 
 function paint() {
+  announce();
   writeURL();
   drawLegend();
   if (!map?.getLayer('county-fill')) return;
@@ -549,6 +556,7 @@ export function setTheme(next) {
   pane.dataset.theme = theme;
   pane.style.background = basemapBackground[theme];
   drawLegend();
+  announce();
   if (map) map.setStyle(styles[theme]);
 }
 

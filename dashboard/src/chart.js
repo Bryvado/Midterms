@@ -1,6 +1,7 @@
 import { scaleLinear, scaleTime } from 'd3-scale';
 import { line, area, curveMonotoneX } from 'd3-shape';
 import { pct, signed, escapeHTML } from './data.js';
+import { marginColor, partyColor } from './map.js';
 
 let track = [], polls = [], combined = null, baselines = new Map(), current = 'mean';
 // The chart draws into the panel and, when open, the expanded overlay; both share layer and range state.
@@ -9,6 +10,8 @@ const layerKeys = ['dots','avg','fc','fund','fsens'];
 const layers = { dots:true, avg:true, fc:true, fund:true, fsens:false };
 const defaultFlags = '11110';
 let range = '6m';
+let maxInfluence = 0, hintOpen = false;
+window.addEventListener('display-change', () => drawAll());
 let has = { traj:false, sens:false, approval:false };
 const date = value => new Date(`${value}T00:00:00Z`);
 const dateLabel = value => new Intl.DateTimeFormat('en-US',{ timeZone:'UTC',month:'short',day:'numeric',year:'numeric' }).format(value);
@@ -52,7 +55,12 @@ dialog?.querySelector('.chart-dialog-close')?.addEventListener('click', () => di
 
 export function initChart(trackRows, pollRows, headline, shifts) {
   track = trackRows.map(row => ({ ...row, time:date(row.date) }));
-  polls = pollRows.map(row => ({ ...row, time:date(row.end_date) }));
+  // Each poll sits at the midpoint of its field dates; the whisker spans field_start to end_date.
+  polls = pollRows.map(row => {
+    const s0 = date(row.field_start || row.end_date), e0 = date(row.end_date);
+    return { ...row, start:s0, finish:e0, time:new Date((+s0 + +e0) / 2) };
+  });
+  maxInfluence = Math.max(...polls.map(row => +row.influence).filter(Number.isFinite), 0);
   combined = headline.find(row => row.component === 'combined');
   const cols = trackRows.columns || Object.keys(trackRows[0] || {});
   has = { traj:cols.includes('trajectory_mean'), sens:['fund_appr_mean','fund_appr_lo95','fund_appr_hi95'].every(c => cols.includes(c)), approval:cols.includes('tx_net_approval'), weight:cols.includes('fund_weight'), fund:cols.includes('fund_mean') };
@@ -81,6 +89,19 @@ function drawAll() {
   for (const root of roots) if (root.clientWidth > 100) draw(root);
 }
 
+const has_ = v => v !== '' && v != null && v !== 'NA';
+const shortDate = d => new Intl.DateTimeFormat('en-US',{ timeZone:'UTC', month:'short', day:'numeric' }).format(d);
+function pollTooltip(p) {
+  const dates = +p.finish > +p.start ? `${shortDate(p.start)}–${dateLabel(p.finish)}` : dateLabel(p.finish);
+  const m = +p.margin;
+  const lead = m > 0 ? `Talarico +${+m.toFixed(1)}` : m < 0 ? `Paxton +${+Math.abs(m).toFixed(1)}` : 'Tied';
+  const third = p.brown_named === 'TRUE' ? 'Brown' : 'Other';
+  return `<strong>${escapeHTML(p.pollster)}</strong><br>${escapeHTML(dates)}<br>n=${escapeHTML(p.n)}${has_(p.population) ? ` ${escapeHTML(p.population)}` : ''}${has_(p.mode) ? ` · ${escapeHTML(p.mode)}` : ''}
+    <br>Talarico ${escapeHTML(p.talarico)} · Paxton ${escapeHTML(p.paxton)} · ${third} ${escapeHTML(has_(p.other) ? p.other : '—')}${has_(p.undecided) ? ` · Undecided ${escapeHTML(p.undecided)}` : ''}
+    <br>Margin: ${lead}${p.brown_named === 'TRUE' ? '<br>Brown named on ballot' : ''}
+    ${Number.isFinite(+p.influence) ? `<br>${(100 * +p.influence).toFixed(1)}% of current average` : ''}${p.lean === 'D' || p.lean === 'R' ? `<br>Partisan sponsor (${p.lean === 'D' ? 'Democratic' : 'Republican'})` : ''}`;
+}
+
 // Pick a spot for the Election Day label that stays inside the plot and clear of dots and lines.
 function placeLabel(text, candidates, obstacles, bounds) {
   const w = text.length * 5.7 + 6, h = 13;
@@ -99,7 +120,9 @@ function draw(root) {
   const valid = track.filter(row => finite(row[current]));
   if (!valid.length) { root.textContent = 'No trend available for this measure.'; return; }
   const end = valid.at(-1).time;
-  const start = range === 'all' ? valid[0].time : new Date(Math.max(+valid[0].time, +end - 183 * 864e5));
+  // "All" starts at the earliest poll's field start so every poll is shown, even one fielded before the average begins.
+  const firstPoll = !shift && polls.length ? Math.min(...polls.map(row => +row.start)) : +valid[0].time;
+  const start = range === 'all' ? new Date(Math.min(+valid[0].time, firstPoll)) : new Date(Math.max(+valid[0].time, +end - 183 * 864e5));
   const inView = row => row.time >= start;
   const lastObserved = valid.findLastIndex(row => row.projected !== 'TRUE');
   const observed = valid.slice(0, lastObserved + 1);
@@ -109,7 +132,7 @@ function draw(root) {
   const forecast = shift ? [] : track.filter(row => finite(row[fm]));
   const sens = show.fsens ? track.filter(row => finite(row.fund_appr_mean)) : [];
   const fundMean = track.find(row => finite(row.fund_mean))?.fund_mean;
-  const visiblePolls = show.dots ? polls.filter(inView) : [];
+  const visiblePolls = show.dots ? polls.filter(row => row.finish >= start) : [];
   const x = scaleTime().domain([start, end]).range([margin.left, right]);
   // Fit the y range to what is drawn in the visible window, plus a small margin.
   const edges = [];
@@ -148,8 +171,19 @@ function draw(root) {
     const held = firstHeld < 0 ? [] : sens.slice(Math.max(0, firstHeld - 1));
     fund += `<path class="chart-sens-band" d="${sensBand(sens) || ''}"/><path class="chart-sens-line" d="${sensLine(live) || ''}"/>${held.length ? `<path class="chart-sens-line held" d="${sensLine(held) || ''}"/>` : ''}`;
   }
-  const dotR = row => Math.max(2.4, 9 * Math.sqrt(+row.weight));
-  const dots = visiblePolls.map(row => `<circle class="chart-poll" cx="${x(row.time)}" cy="${y(+row.talarico_2p)}" r="${dotR(row)}"/>`).join('');
+  // Poll marks: colour = margin, area ∝ n, circle = LV / diamond = RV, opacity = influence, dashed ring = partisan sponsor.
+  const dotR = row => 2.6 + 4.4 * (Math.sqrt(Math.min(1800, Math.max(550, +row.n))) - Math.sqrt(550)) / (Math.sqrt(1800) - Math.sqrt(550));
+  const markOpacity = row => maxInfluence > 0 && Number.isFinite(+row.influence) ? Math.max(.2, +row.influence / maxInfluence) : .5;
+  const shape = (cx, cy, rr, rv, attrs) => rv
+    ? `<path ${attrs} d="M${cx},${cy - rr * 1.25}L${cx + rr * 1.25},${cy}L${cx},${cy + rr * 1.25}L${cx - rr * 1.25},${cy}Z"/>`
+    : `<circle ${attrs} cx="${cx}" cy="${cy}" r="${rr}"/>`;
+  const dots = visiblePolls.map((row, i) => {
+    const cx = x(row.time), cy = y(+row.talarico_2p), rr = dotR(row), rv = row.population === 'RV';
+    const fill = marginColor(+row.margin);
+    const whisker = +row.finish > +row.start ? `<line class="poll-whisker" x1="${x(row.start)}" x2="${x(row.finish)}" y1="${cy}" y2="${cy}" stroke="${fill}"/>` : '';
+    const ring = row.lean === 'D' || row.lean === 'R' ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean)}"`) : '';
+    return `<g class="chart-poll" data-i="${i}" data-poll-id="${escapeHTML(row.poll_id || '')}" style="opacity:${markOpacity(row).toFixed(3)}">${whisker}${ring}${shape(cx, cy, rr, rv, `class="poll-mark" fill="${fill}"`)}</g>`;
+  }).join('');
   let fc = '';
   if (show.fc && forecast.length) {
     const last = forecast.at(-1);
@@ -162,6 +196,8 @@ function draw(root) {
       ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
       ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
       { x:ex, y:ey, r:6 },
+      // The "?" legend button sits over the plot's top-right corner.
+      { x:width - 14, y:14, r:12 },
     ];
     const top = y(Math.max(...forecast.map(row => +row[fhi]))), bot = y(Math.min(...forecast.map(row => +row[flo])));
     const candidates = [
@@ -178,13 +214,25 @@ function draw(root) {
   const clip = `clip-${root.id}`;
   root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHTML(document.querySelector('.trend-title-text')?.textContent || 'Polling chart')}">
     <defs><clipPath id="${clip}"><rect x="${margin.left}" y="${margin.top - 6}" width="${right - margin.left + 6}" height="${bottom - margin.top + 6}"/></clipPath></defs>
-    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}${avg}${fc.replace(/<text[\s\S]*$/, '')}${dots}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${timeTicks}
+    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${timeTicks}
     <line class="chart-cursor" x1="0" x2="0" y1="${margin.top}" y2="${bottom}" visibility="hidden"/><circle class="chart-focus" r="4" visibility="hidden"/>
-  </svg><div class="chart-tooltip" hidden></div>`;
+  </svg><div class="chart-tooltip" hidden></div>
+  <button type="button" class="chart-help" aria-expanded="${hintOpen}" aria-label="How to read the poll marks">?</button>
+  <div class="chart-help-pop" ${hintOpen ? '' : 'hidden'}>
+    <div><b>Colour</b> margin, blue Talarico ahead, red Paxton ahead (±8 pts)</div>
+    <div><b>Size</b> sample size</div>
+    <div><b>Circle / diamond</b> likely / registered voters</div>
+    <div><b>Faded</b> less weight in today's average</div>
+    <div><b>Dashed ring</b> partisan sponsor</div>
+    <div><b>Whisker</b> field dates</div>
+  </div>`;
+  const help = root.querySelector('.chart-help'), pop = root.querySelector('.chart-help-pop');
+  help.addEventListener('click', () => { hintOpen = !hintOpen; pop.hidden = !hintOpen; help.setAttribute('aria-expanded', String(hintOpen)); });
   const svg = root.querySelector('svg'), tooltip = root.querySelector('.chart-tooltip');
   const cursor = root.querySelector('.chart-cursor'), focus = root.querySelector('.chart-focus');
   const circles = [...root.querySelectorAll('.chart-poll')];
-  const hide = () => { tooltip.hidden = true; cursor.setAttribute('visibility','hidden'); focus.setAttribute('visibility','hidden'); circles.forEach(c => c.classList.remove('active')); };
+  const marksGroup = root.querySelector('.poll-marks');
+  const hide = () => { tooltip.hidden = true; cursor.setAttribute('visibility','hidden'); focus.setAttribute('visibility','hidden'); circles.forEach(c => c.classList.remove('active')); marksGroup?.classList.remove('dimmed'); };
   svg.addEventListener('pointermove', event => {
     const rect = svg.getBoundingClientRect();
     const px = (event.clientX - rect.left) * width / rect.width;
@@ -192,9 +240,10 @@ function draw(root) {
     if (px < margin.left || px > right || py < margin.top || py > bottom) return hide();
     const candidates = valid.filter(inView);
     const closest = candidates.reduce((a, b) => Math.abs(x(b.time) - px) < Math.abs(x(a.time) - px) ? b : a);
-    const pollIndex = visiblePolls.findIndex(row => Math.hypot(x(row.time) - px, y(+row.talarico_2p) - py) < 8);
+    const pollIndex = visiblePolls.findIndex(row => Math.hypot(x(row.time) - px, y(+row.talarico_2p) - py) < dotR(row) + 4);
     const poll = pollIndex >= 0 ? visiblePolls[pollIndex] : null;
     circles.forEach((c, i) => c.classList.toggle('active', i === pollIndex));
+    marksGroup?.classList.toggle('dimmed', pollIndex >= 0);
     const anchor = poll || closest;
     const inWindow = !shift && finite(closest[fm]);
     const cx = x(anchor.time);
@@ -203,7 +252,7 @@ function draw(root) {
     focus.setAttribute('cx', cx); focus.setAttribute('cy', cy); focus.setAttribute('visibility','visible');
     const avgText = `${shift ? 'Shift' : 'Poll average'}: ${format(+closest[current], shift)} <span class="muted">(95%: ${format(+closest[current] - 1.96 * +closest.se, shift)}–${format(+closest[current] + 1.96 * +closest.se, shift)})</span>`;
     tooltip.innerHTML = poll
-      ? `<strong>${escapeHTML(poll.pollster)}</strong><br>${dateLabel(poll.time)} · n=${escapeHTML(poll.n)}<br>Talarico two-party ${pct(poll.talarico_2p)}<br>Relative weight ${pct(poll.weight)}`
+      ? pollTooltip(poll)
       : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>${has.traj ? `Projected path: ${pct(closest[fm])} <span class="muted">— an assumed glide from the current poll average to the Election Day forecast; only the endpoint is modeled.</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight, 0)} / fundamentals ${pct(closest.fund_weight, 0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${show.fund && finite(fundMean) ? `<br>Fundamentals (adopted): ${pct(fundMean)}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>Fundamentals moved by Texas approval: ${pct(closest.fund_appr_mean)} <span class="muted">(sensitivity)</span>` : ''}`;
     tooltip.hidden = false;
     const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
