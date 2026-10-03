@@ -38,7 +38,7 @@ const sequentialPalettes = {
   custom:{ label:'Custom colors' },
 };
 // Basemap background colours; the map pane uses the same colour so unpainted canvas pixels never show as a block.
-const basemapBackground = { light:'#fafaf8', dark:'#0e0e0e' };
+const basemapBackground = { light:'rgb(242,243,240)', dark:'rgb(12,12,12)' };
 const ratings = {
   margin:{ edges:[-.2,-.1,-.05,-.02,.02,.05,.1,.2], labels:['Safe Paxton (20+)','Likely Paxton (10–20)','Lean Paxton (5–10)','Tilt Paxton (2–5)','Tossup (under 2)','Tilt Talarico (2–5)','Lean Talarico (5–10)','Likely Talarico (10–20)','Safe Talarico (20+)'] },
   prob:{ edges:[.05,.2,.35,.45,.55,.65,.8,.95], labels:['Safe Paxton (Talarico <5%)','Likely Paxton (5–20%)','Lean Paxton (20–35%)','Tilt Paxton (35–45%)','Tossup (45–55%)','Tilt Talarico (55–65%)','Lean Talarico (65–80%)','Likely Talarico (80–95%)','Safe Talarico (≥95%)'] },
@@ -82,7 +82,7 @@ const levels = {
 };
 const levelKeys = Object.keys(levels);
 const overlayStyle = {
-  county:{ label:'County lines', light:'#8a5a19', dark:'#f0c674', width:.9, dash:[2,1.5] },
+  county:{ label:'County lines', light:'#d29b1f', dark:'#f0c674', width:1.2, dash:[2,1.5] },
   cd:{ label:'2025 congressional district lines', light:'#141414', dark:'#ffffff', width:1.8, dash:null },
 };
 const outlineColor = { light:'40,60,65', dark:'240,247,247' };
@@ -94,8 +94,9 @@ const metricKinds = new Map();
 const stateValues = new Map();
 
 const styles = {
-  light:'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  dark:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  // OpenFreeMap styles, no API key. Positron is on the quick-start guide; Dark is listed in the openfreemap-styles README.
+  light:'https://tiles.openfreemap.org/styles/positron',
+  dark:'https://tiles.openfreemap.org/styles/dark',
 };
 const tileURL = name => `pmtiles://${new URL(`${base}${name}.pmtiles`, location.href).href}`;
 const layerName = level => `${level}-fill`;
@@ -552,20 +553,30 @@ export function initMap(select) {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
+  // Attribution first so it takes the bottom line of the corner, below the zoom buttons and clear of the legend.
+  map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.on('style.load', () => {
-    // Fills and overlays go beneath the basemap's first label layer so place names stay readable.
-    const labels = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
+    // Fills and overlays go beneath the basemap's labels so place names stay readable. Styles differ
+    // (OpenFreeMap Dark has a water-label layer before its roads), so insert below the trailing run of
+    // symbol layers and lift any earlier symbol layer above our layers.
+    const styleLayers = map.getStyle().layers;
+    let start = styleLayers.length;
+    while (start > 0 && styleLayers[start - 1].type === 'symbol') start--;
+    const labels = styleLayers[start]?.id;
+    const earlyLabels = styleLayers.slice(0, start).filter(layer => layer.type === 'symbol').map(layer => layer.id);
     const bg = map.getStyle().layers.find(layer => layer.type === 'background')?.paint?.['background-color'];
     if (typeof bg === 'string') pane.style.background = bg;
     for (const level of levelKeys) {
-      map.addSource(level, { type:'vector', url:tileURL(levels[level].tiles), promoteId:'region_id' });
+      if (map.getLayer(layerName(level))) continue;
+      if (!map.getSource(level)) map.addSource(level, { type:'vector', url:tileURL(levels[level].tiles), promoteId:'region_id' });
       map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':outline() } }, labels);
     }
     for (const [level, style] of Object.entries(overlayStyle)) {
+      if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
     }
+    for (const id of earlyLabels) map.moveLayer(id, labels);
     message.hidden = true;
     scheduleFit();
   });

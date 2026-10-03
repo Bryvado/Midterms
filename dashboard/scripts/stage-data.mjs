@@ -11,6 +11,9 @@ const files = [
   'cd_details.csv', 'cousub_details.csv',
   'county_projections.csv', 'regional_projections.csv', 'cd_projections.csv', 'cousub_projections.csv',
 ];
+// Optional files: copied when published, skipped (and their controls hidden) when not.
+const optional = ['sensitivities.csv'];
 await mkdir(target, { recursive: true });
 await Promise.all(files.map(file => copyFile(path.join(source, file), path.join(target, file))));
+await Promise.all(optional.map(file => copyFile(path.join(source, file), path.join(target, file)).catch(() => {})));
 console.log(`Staged ${files.length} published data files.`);

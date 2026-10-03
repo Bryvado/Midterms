@@ -133,6 +133,20 @@ function renderLedger(rows) {
   });
 }
 
+// Sensitivity scenarios are shown beside the forecast, never in place of it. A missing file hides the table.
+async function renderSensitivities() {
+  const box = $('#sensitivity-table');
+  let rows;
+  try { rows = await csv('sensitivities.csv'); } catch { box.hidden = true; return; }
+  const need = ['scenario','adopted','fund_mean','combined_mean','combined_sd','p_talarico_win'];
+  if (!rows.length || !need.every(c => rows.columns.includes(c))) { box.hidden = true; return; }
+  box.innerHTML = `<table class="sens"><thead><tr><th>Scenario</th><th title="Fundamentals estimate">Fund.</th><th title="Combined Talarico two-party share">Combined</th><th title="Talarico win probability">Win</th></tr></thead><tbody>${rows.map(row => {
+    const adopted = String(row.adopted).toUpperCase() === 'TRUE';
+    return `<tr class="${adopted ? 'adopted' : 'sensitivity'}"><td>${escapeHTML(row.scenario)}${adopted ? ' <span class="tag">forecast</span>' : ' <span class="tag warn">sensitivity, not the forecast</span>'}</td><td>${escapeHTML(pct(row.fund_mean))}</td><td>${escapeHTML(pct(row.combined_mean))} <span class="muted">±${escapeHTML(pct(row.combined_sd))}</span></td><td>${escapeHTML(pct(row.p_talarico_win,0))}</td></tr>`;
+  }).join('')}</tbody></table>`;
+  box.hidden = false;
+}
+
 try {
   const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([
     'headline.csv','kalman_track.csv','poll_ledger.csv','gates.csv','uniform_shift.csv','scenarios.csv',
@@ -148,6 +162,7 @@ try {
   renderLedger(ledger);
   setBaselines(shifts);
   initChart(track,ledger,headline,shifts);
+  renderSensitivities();
 } catch (error) {
   console.error(error);
   $('#run-date').textContent = 'Published data unavailable';

@@ -114,3 +114,20 @@
 .legend-cats{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:2px;font-size:10.5px;color:#334a52}
 .legend-cats li{display:flex;align-items:center;gap:6px}
 .legend-cats span{width:14px;height:10px;border-radius:2px;flex:none}
+
+.chart-line.projected{opacity:.45}
+.chart-band.projected{opacity:.06}
+.chart-fc-band{fill:#7a4fa3;opacity:.12}
+.chart-fund{stroke:#8d7a58;stroke-width:1.1;stroke-dasharray:5 4}
+.chart-sens-band{fill:#2f8a6b;opacity:.1}
+.chart-sens-line{fill:none;stroke:#2f8a6b;stroke-width:1.6}
+.chart-sens-line.held{stroke-dasharray:1.5 3;stroke-linecap:round;stroke-width:2}
+.chart-sens-label{fill:#2a6f57;font:600 9px 'DM Sans',system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.fund-weight{margin:5px 0 4px;font-size:10.5px;color:#4b6067;font-weight:600}
+.sensitivity-table table.sens{table-layout:fixed;width:100%;font-size:10px;margin:4px 0 6px}
+.sensitivity-table th,.sensitivity-table td{padding:3px 3px;white-space:normal;vertical-align:top}
+.sensitivity-table th:first-child{width:46%}
+.sensitivity-table .muted{color:#7a8b90}
+.sensitivity-table .tag{display:inline-block;margin-top:2px;padding:0 4px;border-radius:3px;font-size:9px;font-weight:700;background:#ece5f3;color:#4d2a6d}
+.sensitivity-table .tag.warn{background:#fff1d6;color:#7a4f0e}
+.sensitivity-table tr.sensitivity td{color:#5d6f75}
