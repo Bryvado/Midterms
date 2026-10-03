@@ -151,3 +151,45 @@
 @media(max-width:1380px){.site-header .run-date{display:none}}
 @media(max-width:1180px){.topstats .ts-sep-range,.topstats #range-card{display:none}}
 @media(max-width:700px){.site-header{height:auto;flex-wrap:wrap;padding:8px 12px}.topstats{order:2;width:100%;flex-basis:100%}}
+
+/* Polling panel: the chart dominates and grows with the panel. */
+.fp-polling .fp-body{display:flex;flex-direction:column;container-type:normal;gap:0}
+.fp-polling .trend-title{flex:none;font-size:14px;margin:0 0 2px}
+.fp-polling #trend-chart{flex:1 1 280px;min-height:280px;height:auto;position:relative}
+.fp-polling .chart-chips,.fp-polling .chart-summary,.fp-polling .chart-more,.fp-polling .panel-details{flex:none}
+.chart-root{position:relative}
+.chart-root svg{display:block;width:100%;height:100%}
+.chart-chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin:4px 0 2px}
+.chart-chips .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #d3dcdc;background:#fff;border-radius:12px;padding:2px 8px 2px 6px;font-size:10.5px;font-weight:600;color:#2f454c;white-space:nowrap}
+.chart-chips .chip[aria-pressed=false]{color:#8a989c;background:#f6f8f8;border-style:dashed}
+.chart-chips .chip[aria-pressed=false] .sw{opacity:.3}
+.chart-chips .chip:disabled{opacity:.4;cursor:default}
+.chart-chips .chip[hidden]{display:none}
+.sw{display:inline-block;width:14px;height:8px;border-radius:2px;flex:none}
+.sw-dots{width:8px;height:8px;border-radius:50%;background:#243e49;opacity:.6}
+.sw-avg{background:linear-gradient(#5b9ab03d,#5b9ab03d),#fff;border-top:2px solid #246c89;border-bottom:0;height:7px}
+.sw-fc{background:#7a4fa31f;border-top:2px solid #6b3d96;height:7px}
+.sw-fund{height:0;border-top:2px dashed #8d7a58;border-radius:0}
+.sw-sens{background:#2f8a6b14;border-top:2px solid #2f8a6b;height:7px}
+.chart-summary{margin:3px 0 4px;font-size:10.5px;color:#4b6067;font-weight:600;display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.chart-summary .caret{border:0;background:none;color:#315e70;font-size:11px;padding:0 4px}
+.chart-more .chart-note{margin:4px 0 8px}
+.range-switch{display:inline-flex;border:1px solid #d3dcdc;border-radius:5px;overflow:hidden;flex:none}
+.range-switch button{border:0;background:#fff;color:#536369;font-size:10px;font-weight:700;padding:2px 7px}
+.range-switch button[aria-pressed=true]{background:#203b43;color:#fff}
+.fp-icon{flex:none;border:0;background:none;color:#5b6f75;font-size:14px;line-height:1;padding:1px 5px;border-radius:4px}
+.fp-icon:hover{background:#e7eded}
+.chart-grid.center{stroke:#9eadae;stroke-width:1.2}
+.chart-reference{stroke:#7f9294;stroke-width:1.3;stroke-dasharray:none}
+.chart-band{opacity:.23}
+.chart-band.projected{opacity:.08}
+.chart-fc-band{opacity:.11}
+.chart-sens-band{opacity:.05}
+.chart-poll{opacity:.5;transition:opacity .1s}
+.chart-poll:hover,.chart-poll.active{opacity:1}
+.chart-dialog{width:min(80vw,1500px);height:min(80vh,1000px);max-height:none;padding:14px 18px 12px;display:none;flex-direction:column}
+.chart-dialog[open]{display:flex}
+.chart-dialog-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.chart-dialog-head h2{font:600 18px 'Source Serif 4',Georgia,serif;margin:0;flex:1}
+.chart-dialog-close{border:0;background:none;font-size:24px;line-height:1;color:#536b70}
+.chart-dialog #trend-chart-big{flex:1 1 auto;min-height:300px}

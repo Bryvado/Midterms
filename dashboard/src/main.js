@@ -145,7 +145,15 @@ async function renderSensitivities() {
     return `<tr class="${adopted ? 'adopted' : 'sensitivity'}"><td>${escapeHTML(row.scenario)}${adopted ? ' <span class="tag">forecast</span>' : ' <span class="tag warn">sensitivity, not the forecast</span>'}</td><td>${escapeHTML(pct(row.fund_mean))}</td><td>${escapeHTML(pct(row.combined_mean))} <span class="muted">±${escapeHTML(pct(row.combined_sd))}</span></td><td>${escapeHTML(pct(row.p_talarico_win,0))}</td></tr>`;
   }).join('')}</tbody></table>`;
   box.hidden = false;
+  const alt = rows.find(row => String(row.adopted).toUpperCase() !== 'TRUE');
+  if (alt) $('#sens-summary').textContent = ` · Approval sensitivity: ${pct(alt.p_talarico_win,0)} win (not the forecast)`;
 }
+$('#chart-more-toggle').addEventListener('click', event => {
+  const open = event.currentTarget.getAttribute('aria-expanded') !== 'true';
+  event.currentTarget.setAttribute('aria-expanded', String(open));
+  event.currentTarget.textContent = open ? '▾' : '▸';
+  $('#chart-more').hidden = !open;
+});
 
 try {
   const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([

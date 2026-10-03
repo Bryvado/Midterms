@@ -99,20 +99,22 @@
           <span class="fp-resize" aria-hidden="true"></span>
         </section>
         <section class="float-panel fp-polling" id="fp-polling" data-panel="polling" aria-label="Polling">
-          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Polling</h2><button type="button" class="fp-close" aria-label="Close polling panel">×</button></header>
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Polling</h2><span class="range-switch" role="group" aria-label="Time range"><button type="button" data-chart-range="6m">6 mo</button><button type="button" data-chart-range="all">All</button></span><button type="button" id="chart-expand" class="fp-icon" aria-label="Expand chart" title="Expand chart">⤢</button><button type="button" class="fp-close" aria-label="Close polling panel">×</button></header>
           <div class="fp-body">
-            <h3 id="trend-title" class="trend-title">Polling average</h3>
-            <div class="chart-toggles" role="group" aria-label="Chart layers">
-              <label><input type="checkbox" data-chart-layer="dots"> Polls</label>
-              <label><input type="checkbox" data-chart-layer="avg"> Poll average, 95% band</label>
-              <label><input type="checkbox" data-chart-layer="fc"> Projected path, 95% band</label>
-              <label><input type="checkbox" data-chart-layer="fund"> Fundamentals (adopted)</label>
-              <label><input type="checkbox" data-chart-layer="fsens"> Fundamentals moved by Texas approval (sensitivity)</label>
+            <h3 id="trend-title" class="trend-title trend-title-text">Polling average and forecast</h3>
+            <div id="trend-chart" class="chart-root" aria-label="Polling trend chart"></div>
+            <div class="chart-chips" role="group" aria-label="Chart layers">
+              <button type="button" class="chip" data-chart-layer="dots"><span class="sw sw-dots"></span>Polls</button>
+              <button type="button" class="chip" data-chart-layer="avg"><span class="sw sw-avg"></span>Poll average</button>
+              <button type="button" class="chip" data-chart-layer="fc"><span class="sw sw-fc"></span>Projection</button>
+              <button type="button" class="chip" data-chart-layer="fund"><span class="sw sw-fund"></span>Fundamentals</button>
+              <button type="button" class="chip" data-chart-layer="fsens"><span class="sw sw-sens"></span>Approval sensitivity</button>
             </div>
-            <div id="trend-chart" aria-label="Polling trend chart"></div>
-            <p class="fund-weight" id="fund-weight-readout" hidden></p>
-            <div id="sensitivity-table" class="sensitivity-table" hidden></div>
-            <p class="chart-note" id="chart-note">The forecast pulls the poll average toward the fundamentals estimate and accounts for Brown's expected fade, which is why it sits below the polls. Fundamentals gain only a little weight before Election Day because historical polling error, not time, dominates poll uncertainty.</p>
+            <p class="chart-summary"><span id="fund-weight-readout"></span><span id="sens-summary"></span><button type="button" id="chart-more-toggle" class="caret" aria-expanded="false" aria-controls="chart-more" title="Show sensitivities and notes">▸</button></p>
+            <div id="chart-more" class="chart-more" hidden>
+              <div id="sensitivity-table" class="sensitivity-table" hidden></div>
+              <p class="chart-note" id="chart-note">The forecast pulls the poll average toward the fundamentals estimate and accounts for Brown's expected fade, which is why it sits below the polls. Fundamentals gain only a little weight before Election Day because historical polling error, not time, dominates poll uncertainty.</p>
+            </div>
             <details class="panel-details"><summary id="poll-summary">Poll ledger</summary><div id="poll-ledger"></div></details>
           </div>
           <span class="fp-resize" aria-hidden="true"></span>
@@ -128,6 +130,17 @@
       <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
     </div>
 
+    <dialog id="chart-dialog" class="chart-dialog" aria-label="Polling chart, expanded">
+      <div class="chart-dialog-head"><h2 class="trend-title-text">Polling average and forecast</h2><span class="range-switch" role="group" aria-label="Time range"><button type="button" data-chart-range="6m">6 mo</button><button type="button" data-chart-range="all">All</button></span><button type="button" class="chart-dialog-close" aria-label="Close expanded chart">×</button></div>
+      <div id="trend-chart-big" class="chart-root" aria-label="Polling trend chart, expanded"></div>
+      <div class="chart-chips" role="group" aria-label="Chart layers">
+        <button type="button" class="chip" data-chart-layer="dots"><span class="sw sw-dots"></span>Polls</button>
+        <button type="button" class="chip" data-chart-layer="avg"><span class="sw sw-avg"></span>Poll average</button>
+        <button type="button" class="chip" data-chart-layer="fc"><span class="sw sw-fc"></span>Projection</button>
+        <button type="button" class="chip" data-chart-layer="fund"><span class="sw sw-fund"></span>Fundamentals</button>
+        <button type="button" class="chip" data-chart-layer="fsens"><span class="sw sw-sens"></span>Approval sensitivity</button>
+            </div>
+    </dialog>
     <dialog id="methods-dialog" aria-labelledby="methods-title">
       <div class="dialog-head"><div><div class="eyebrow">Documentation</div><h2 id="methods-title">Methods & model checks</h2></div><button class="dialog-close" type="button" aria-label="Close methods">×</button></div>
       <div class="dialog-body">
