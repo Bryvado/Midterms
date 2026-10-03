@@ -129,48 +129,49 @@ integer statewide Brown share tracks sampled level,PASS,regional,max absolute ga
 integer-count plurality reproduces 06,PASS,regional,count 0.6814 | 06 0.6814 | 4 SE 0.0059,07_vote_counts.R,2026-10-02T03:21:29Z
 06 statewide 2P draws retained,PASS,regional,mean 0.507113,07_vote_counts.R,2026-10-02T03:21:29Z
 07 county two-party geography matches 06,PASS,regional,max |07 - 06| 0.0048 over 28 counties with >= 50k midterm electorate (Hidalgo 07 0.6000 vs 06 0.5997),07_vote_counts.R,2026-10-02T03:21:29Z
-headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-10-02T04:01:21Z
-headline_p_consistent,PASS,publish,"mean 0.5071, P 0.680",08_publish.R,2026-10-02T04:01:21Z
-track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-10-02T04:01:21Z
-track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-10-02T04:01:21Z
-forecast_path_reaches_headline,PASS,publish,Election Day 0.507069 vs headline 0.507069 | sd 0.015141 vs 0.015141 | fundamentals weight 0.295 at last poll -> 0.318 on Election Day,08_publish.R,2026-10-02T04:01:21Z
-ledger_count,PASS,publish,43 ledger rows vs 43 pooled,08_publish.R,2026-10-02T04:01:21Z
-ledger_repools_to_obs,PASS,publish,"39/39 dates matched, max diff 1.11e-16",08_publish.R,2026-10-02T04:01:21Z
-vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-10-02T04:01:21Z
-vtd_built_on_current_draws,PASS,publish,"06's 100000 target draws are identical to 05's joint draws (06 saved 10-01 22:39, 05 saved 10-01 22:17)",08_publish.R,2026-10-02T04:01:21Z
-vtd_draws_center,PASS,publish,draw mean gap 4.45e-05,08_publish.R,2026-10-02T04:01:21Z
-vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-02T04:01:21Z
-baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-02T04:01:21Z
-pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-10-02T04:01:21Z
-vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-10-02T04:01:21Z
-vtd_draws_after_forecast,PASS,publish,07 2026-10-01 23:17:03.037826 vs 06 2026-10-01 22:39:02.955517,08_publish.R,2026-10-02T04:01:21Z
-scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5322, VTD draws aggregate 0.5322, window gap 0.0016",08_publish.R,2026-10-02T04:01:21Z
-scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4821, VTD draws aggregate 0.4822, window gap 0.0015",08_publish.R,2026-10-02T04:01:21Z
-vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-10-02T04:01:21Z
-geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-10-02T04:01:21Z
-county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-10-02T04:01:21Z
-county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-10-02T04:01:21Z
-shading_columns_valid,PASS,publish,319 precincts blank (< 0.5 expected ballots) | Texas 268596 sq mi | precinct vs county net-vote gap 3.8e-08 of ballots,08_publish.R,2026-10-02T04:01:21Z
-detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-10-02T04:01:21Z
-unit_xwalk_complete,PASS,publish,"668757 blocks | 38 districts | 862 subdivisions | 0 VTDs placed by point (no blocks) | nearest-polygon blocks: VTD 0, subdivision 0",08_publish.R,2026-10-02T04:01:21Z
-planc2333_population_balance,PASS,publish,2020 population per district 766986-766987 (ideal 766987),08_publish.R,2026-10-02T04:01:21Z
-congressional_district_allocation_exact,PASS,publish,"38 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-02T04:01:21Z
-congressional_district_split_precincts,UNGATED,publish,427 precincts cross congressional_district lines; their 6.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-02T04:01:21Z
-county_subdivision_allocation_exact,PASS,publish,"862 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-02T04:01:21Z
-county_subdivision_split_precincts,UNGATED,publish,1703 precincts cross county_subdivision lines; their 16.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-02T04:01:21Z
-district_subdivision_geometry_match,PASS,publish,"38 district polygons | 862 subdivision polygons (0 TIGER subdivisions hold no blocks, dropped)",08_publish.R,2026-10-02T04:01:21Z
+headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-10-03T01:52:29Z
+headline_p_consistent,PASS,publish,"mean 0.5071, P 0.680",08_publish.R,2026-10-03T01:52:29Z
+track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-10-03T01:52:29Z
+track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-10-03T01:52:29Z
+forecast_path_reaches_headline,PASS,publish,Election Day 0.507069 vs headline 0.507069 | sd 0.015141 vs 0.015141 | fundamentals weight 0.295 at last poll -> 0.318 on Election Day,08_publish.R,2026-10-03T01:52:29Z
+trajectory_endpoints,PASS,publish,"starts at poll average 0.5121 on 2026-09-28, ends at headline 0.5071 on Election Day",08_publish.R,2026-10-03T01:52:29Z
+ledger_count,PASS,publish,43 ledger rows vs 43 pooled,08_publish.R,2026-10-03T01:52:29Z
+ledger_repools_to_obs,PASS,publish,"39/39 dates matched, max diff 1.11e-16",08_publish.R,2026-10-03T01:52:29Z
+vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-10-03T01:52:29Z
+vtd_built_on_current_draws,PASS,publish,"06's 100000 target draws are identical to 05's joint draws (06 saved 10-01 22:39, 05 saved 10-01 22:17)",08_publish.R,2026-10-03T01:52:29Z
+vtd_draws_center,PASS,publish,draw mean gap 4.45e-05,08_publish.R,2026-10-03T01:52:29Z
+vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-03T01:52:29Z
+baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T01:52:29Z
+pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-10-03T01:52:29Z
+vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-10-03T01:52:29Z
+vtd_draws_after_forecast,PASS,publish,07 2026-10-01 23:17:03.037826 vs 06 2026-10-01 22:39:02.955517,08_publish.R,2026-10-03T01:52:29Z
+scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5322, VTD draws aggregate 0.5322, window gap 0.0016",08_publish.R,2026-10-03T01:52:29Z
+scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4821, VTD draws aggregate 0.4822, window gap 0.0015",08_publish.R,2026-10-03T01:52:29Z
+vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-10-03T01:52:29Z
+geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-10-03T01:52:29Z
+county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-10-03T01:52:29Z
+county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-10-03T01:52:29Z
+shading_columns_valid,PASS,publish,319 precincts blank (< 0.5 expected ballots) | Texas 268596 sq mi | precinct vs county net-vote gap 3.8e-08 of ballots,08_publish.R,2026-10-03T01:52:29Z
+detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-10-03T01:52:29Z
+unit_xwalk_complete,PASS,publish,"668757 blocks | 38 districts | 862 subdivisions | 0 VTDs placed by point (no blocks) | nearest-polygon blocks: VTD 0, subdivision 0",08_publish.R,2026-10-03T01:52:29Z
+planc2333_population_balance,PASS,publish,2020 population per district 766986-766987 (ideal 766987),08_publish.R,2026-10-03T01:52:29Z
+congressional_district_allocation_exact,PASS,publish,"38 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-03T01:52:29Z
+congressional_district_split_precincts,UNGATED,publish,427 precincts cross congressional_district lines; their 6.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-03T01:52:29Z
+county_subdivision_allocation_exact,PASS,publish,"862 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-03T01:52:29Z
+county_subdivision_split_precincts,UNGATED,publish,1703 precincts cross county_subdivision lines; their 16.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-03T01:52:29Z
+district_subdivision_geometry_match,PASS,publish,"38 district polygons | 862 subdivision polygons (0 TIGER subdivisions hold no blocks, dropped)",08_publish.R,2026-10-03T01:52:29Z
