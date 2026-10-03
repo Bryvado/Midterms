@@ -4,22 +4,24 @@ import { pct, signed, escapeHTML } from './data.js';
 
 let track = [], polls = [], combined = null, baselines = new Map(), current = 'mean';
 const root = document.querySelector('#trend-chart');
-const layerKeys = ['dots','avg','fc','fund'];
-const layers = { dots:true, avg:true, fc:true, fund:false };
+const layerKeys = ['dots','avg','fc','fund','fsens'];
+const layers = { dots:true, avg:true, fc:true, fund:true, fsens:false };
+const defaultFlags = '11110';
+let has = { traj:false, sens:false, approval:false };
 const date = value => new Date(`${value}T00:00:00Z`);
 const dateLabel = value => new Intl.DateTimeFormat('en-US',{ timeZone:'UTC',month:'short',day:'numeric',year:'numeric' }).format(value);
 const axisDate = value => new Intl.DateTimeFormat('en-US',{ timeZone:'UTC',month:'short',year:'2-digit' }).format(value);
 const format = (value, shift) => shift ? signed(value) : pct(value);
 const finite = v => v !== '' && v != null && v !== 'NA' && Number.isFinite(+v);
 
-// Chart layer state lives in the URL as four 0/1 flags (dots, average, forecast, fundamentals).
+// Chart layer state lives in the URL as 0/1 flags (dots, average, forecast, adopted fundamentals, approval sensitivity).
 const flags = new URLSearchParams(location.search).get('ct');
-if (flags && /^[01]{4}$/.test(flags)) layerKeys.forEach((key, i) => { layers[key] = flags[i] === '1'; });
+if (flags && /^[01]{4,5}$/.test(flags)) layerKeys.forEach((key, i) => { if (i < flags.length) layers[key] = flags[i] === '1'; });
 
 function writeFlags() {
   const url = new URL(location.href);
   const value = layerKeys.map(key => layers[key] ? '1' : '0').join('');
-  if (value === '1110') url.searchParams.delete('ct'); else url.searchParams.set('ct', value);
+  if (value === defaultFlags) url.searchParams.delete('ct'); else url.searchParams.set('ct', value);
   history.replaceState(null, '', url);
 }
 
@@ -36,6 +38,16 @@ export function initChart(trackRows, pollRows, headline, shifts) {
   track = trackRows.map(row => ({ ...row, time:date(row.date) }));
   polls = pollRows.map(row => ({ ...row, time:date(row.end_date) }));
   combined = headline.find(row => row.component === 'combined');
+  const cols = trackRows.columns || Object.keys(trackRows[0] || {});
+  has = { traj:cols.includes('trajectory_mean'), sens:['fund_appr_mean','fund_appr_lo95','fund_appr_hi95'].every(c => cols.includes(c)), approval:cols.includes('tx_net_approval'), weight:cols.includes('fund_weight'), fund:cols.includes('fund_mean') };
+  document.querySelector('[data-chart-layer="fsens"]')?.closest('label')?.toggleAttribute('hidden', !has.sens);
+  document.querySelector('[data-chart-layer="fund"]')?.closest('label')?.toggleAttribute('hidden', !has.fund);
+  const weights = track.filter(row => finite(row.fund_weight));
+  const readout = document.querySelector('#fund-weight-readout');
+  if (readout) {
+    readout.hidden = !weights.length;
+    if (weights.length) readout.textContent = `Fundamentals weight ${pct(weights[0].fund_weight,0)} → ${pct(weights.at(-1).fund_weight,0)} (last poll date → Election Day)`;
+  }
   baselines = new Map(shifts.filter(row => row.component === 'combined').map(row => [row.baseline,row.label]));
   document.querySelector('#poll-summary').textContent = `Poll ledger · ${polls.length} polls`;
   renderChart('mean');
@@ -46,7 +58,7 @@ export function renderChart(measure) {
   current = measure.startsWith('shift_') ? measure : 'mean';
   const title = current === 'mean' ? 'Polling average and forecast' : `Shift vs ${baselines.get(current.slice(6)) || current.slice(6)}`;
   document.querySelector('#trend-title').textContent = title;
-  for (const input of document.querySelectorAll('[data-chart-layer="fc"],[data-chart-layer="fund"],[data-chart-layer="dots"]')) input.disabled = current !== 'mean';
+  for (const input of document.querySelectorAll('[data-chart-layer="fc"],[data-chart-layer="fund"],[data-chart-layer="fsens"],[data-chart-layer="dots"]')) input.disabled = current !== 'mean';
   document.querySelector('#chart-note').hidden = current !== 'mean';
   if (root.clientWidth > 100 && track.length) draw();
 }
@@ -56,27 +68,33 @@ function draw() {
   const margin = { top:14,right:10,bottom:24,left:36 };
   const right = width-margin.right, bottom = height-margin.bottom;
   const shift = current !== 'mean';
-  const show = { dots:layers.dots && !shift, avg:layers.avg, fc:layers.fc && !shift, fund:layers.fund && !shift };
+  const show = { dots:layers.dots && !shift, avg:layers.avg, fc:layers.fc && !shift, fund:layers.fund && !shift && has.fund, fsens:layers.fsens && !shift && has.sens };
   const valid = track.filter(row => finite(row[current]));
   if (!valid.length) { root.textContent = 'No trend available for this measure.'; return; }
   const lastObserved = valid.findLastIndex(row => row.projected !== 'TRUE');
   const observed = valid.slice(0,lastObserved+1);
   const projected = valid.slice(Math.max(0,lastObserved));
-  const forecast = shift ? [] : track.filter(row => finite(row.forecast_mean));
+  // The projected path: the published trajectory if present, otherwise the older forecast columns.
+  const [fm, flo, fhi] = has.traj ? ['trajectory_mean','trajectory_lo95','trajectory_hi95'] : ['forecast_mean','forecast_lo95','forecast_hi95'];
+  const forecast = shift ? [] : track.filter(row => finite(row[fm]));
+  const sens = show.fsens ? track.filter(row => finite(row.fund_appr_mean)) : [];
   const fundMean = track.find(row => finite(row.fund_mean))?.fund_mean;
   const x = scaleTime().domain([valid[0].time,valid.at(-1).time]).range([margin.left,right]);
   const edges = [shift ? 0 : .5];
   if (show.avg) edges.push(...valid.flatMap(row => [+row[current]-1.96*+row.se,+row[current]+1.96*+row.se]));
   else edges.push(...valid.map(row => +row[current]));
   if (show.dots) edges.push(...polls.map(row => +row.talarico_2p));
-  if (show.fc) edges.push(...forecast.flatMap(row => [+row.forecast_lo95,+row.forecast_hi95]));
+  if (show.fc) edges.push(...forecast.flatMap(row => [+row[flo],+row[fhi]]));
+  if (show.fsens) edges.push(...sens.flatMap(row => [+row.fund_appr_lo95,+row.fund_appr_hi95]));
   if (show.fund && finite(fundMean)) edges.push(+fundMean);
   const low = Math.min(...edges), high = Math.max(...edges), pad = Math.max(.006,(high-low)*.08);
   const y = scaleLinear().domain([low-pad,high+pad]).range([bottom,margin.top]);
   const avgLine = line().x(row => x(row.time)).y(row => y(+row[current])).curve(curveMonotoneX);
   const band = area().x(row => x(row.time)).y0(row => y(+row[current]-1.96*+row.se)).y1(row => y(+row[current]+1.96*+row.se)).curve(curveMonotoneX);
-  const fcLine = line().x(row => x(row.time)).y(row => y(+row.forecast_mean)).curve(curveMonotoneX);
-  const fcBand = area().x(row => x(row.time)).y0(row => y(+row.forecast_lo95)).y1(row => y(+row.forecast_hi95)).curve(curveMonotoneX);
+  const fcLine = line().x(row => x(row.time)).y(row => y(+row[fm])).curve(curveMonotoneX);
+  const fcBand = area().x(row => x(row.time)).y0(row => y(+row[flo])).y1(row => y(+row[fhi])).curve(curveMonotoneX);
+  const sensLine = line().x(row => x(row.time)).y(row => y(+row.fund_appr_mean));
+  const sensBand = area().x(row => x(row.time)).y0(row => y(+row.fund_appr_lo95)).y1(row => y(+row.fund_appr_hi95));
   const reference = shift ? 0 : .5;
   const ticks = y.ticks(4).map(value => `<g><line class="chart-grid" x1="${margin.left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"/><text class="chart-axis" x="${margin.left-6}" y="${y(value)+3}" text-anchor="end">${escapeHTML(shift ? `${value>=0?'+':''}${Math.round(value*100)}%` : `${Math.round(value*100)}%`)}</text></g>`).join('');
   const timeTicks = x.ticks(width < 330 ? 3 : 4).map(value => `<text class="chart-axis" x="${x(value)}" y="${height-6}" text-anchor="middle">${axisDate(value)}</text>`).join('');
@@ -91,9 +109,17 @@ function draw() {
     const label = combined ? `Forecast ${pct(combined.mean)} · ${pct(combined.p_talarico_win,0)} win prob` : '';
     fc = `<path class="chart-fc-band" d="${fcBand(forecast) || ''}"/><path class="chart-fc-line" d="${fcLine(forecast) || ''}"/>
       <circle class="chart-fc-marker" cx="${ex}" cy="${ey}" r="4.5"/>
-      <text class="chart-fc-label" x="${ex-2}" y="${Math.max(margin.top + 9, y(Math.max(...forecast.map(row => +row.forecast_hi95))) - 5)}" text-anchor="end">${escapeHTML(label)}</text>`;
+      <text class="chart-fc-label" x="${ex-2}" y="${Math.max(margin.top + 9, y(Math.max(...forecast.map(row => +row[fhi]))) - 5)}" text-anchor="end">${escapeHTML(label)}</text>`;
   }
-  const fund = show.fund && finite(fundMean) ? `<line class="chart-fund" x1="${margin.left}" x2="${right}" y1="${y(+fundMean)}" y2="${y(+fundMean)}"/><text class="chart-fund-label" x="${margin.left+4}" y="${y(+fundMean)-4}">Fundamentals ${pct(fundMean)}</text>` : '';
+  let fund = show.fund && finite(fundMean) ? `<line class="chart-fund" x1="${margin.left}" x2="${right}" y1="${y(+fundMean)}" y2="${y(+fundMean)}"/><text class="chart-fund-label" x="${margin.left+4}" y="${y(+fundMean)-4}">Fundamentals (adopted) ${pct(fundMean)}</text>` : '';
+  if (sens.length) {
+    // Dotted where approval_held is true: the last Civiqs reading carried forward.
+    const firstHeld = sens.findIndex(row => row.approval_held === 'TRUE');
+    const live = firstHeld < 0 ? sens : sens.slice(0, firstHeld + 1);
+    const held = firstHeld < 0 ? [] : sens.slice(Math.max(0, firstHeld - 1));
+    fund += `<path class="chart-sens-band" d="${sensBand(sens) || ''}"/><path class="chart-sens-line" d="${sensLine(live) || ''}"/>${held.length ? `<path class="chart-sens-line held" d="${sensLine(held) || ''}"/>` : ''}
+      <text class="chart-sens-label" x="${margin.left+4}" y="${Math.min(bottom - 4, y(+sens[0].fund_appr_mean) + 12)}">Fundamentals moved by Texas approval (sensitivity)</text>`;
+  }
   const dots = show.dots ? polls.map((row,i) => `<circle class="chart-poll" data-poll="${i}" cx="${x(row.time)}" cy="${y(+row.talarico_2p)}" r="${Math.max(2.3,10*Math.sqrt(+row.weight))}"/>`).join('') : '';
   root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHTML(document.querySelector('#trend-title').textContent)}">
     ${shade}${ticks}<line class="chart-reference" x1="${margin.left}" x2="${right}" y1="${y(reference)}" y2="${y(reference)}"/>
@@ -110,15 +136,15 @@ function draw() {
     const closest = valid.reduce((a,b) => Math.abs(x(b.time)-px) < Math.abs(x(a.time)-px) ? b : a);
     const poll = show.dots && polls.find(row => Math.hypot(x(row.time)-px,y(+row.talarico_2p)-py) < 8);
     const anchor = poll || closest;
-    const inWindow = !shift && finite(closest.forecast_mean);
+    const inWindow = !shift && finite(closest[fm]);
     const cx = x(anchor.time);
-    const cy = poll ? y(+poll.talarico_2p) : inWindow && show.fc ? y(+closest.forecast_mean) : y(+closest[current]);
+    const cy = poll ? y(+poll.talarico_2p) : inWindow && show.fc ? y(+closest[fm]) : y(+closest[current]);
     cursor.setAttribute('x1',cx); cursor.setAttribute('x2',cx); cursor.setAttribute('visibility','visible');
     focus.setAttribute('cx',cx); focus.setAttribute('cy',cy); focus.setAttribute('visibility','visible');
     const avgText = `${shift ? 'Shift' : 'Poll average'}: ${format(+closest[current],shift)} <span class="muted">(95%: ${format(+closest[current]-1.96*+closest.se,shift)}–${format(+closest[current]+1.96*+closest.se,shift)})</span>`;
     tooltip.innerHTML = poll
       ? `<strong>${escapeHTML(poll.pollster)}</strong><br>${dateLabel(poll.time)} · n=${escapeHTML(poll.n)}<br>Talarico two-party ${pct(poll.talarico_2p)}<br>Relative weight ${pct(poll.weight)}`
-      : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>Forecast: ${pct(closest.forecast_mean)} <span class="muted">(95%: ${pct(closest.forecast_lo95)}–${pct(closest.forecast_hi95)})</span><br>Weight: polls ${pct(1 - +closest.fund_weight,0)} / fundamentals ${pct(closest.fund_weight,0)}<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}`;
+      : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>${has.traj ? `Projected path: ${pct(closest[fm])} <span class="muted">— an assumed glide from the current poll average to the Election Day forecast; only the endpoint is modeled.</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight,0)} / fundamentals ${pct(closest.fund_weight,0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>Fundamentals moved by approval: ${pct(closest.fund_appr_mean)} <span class="muted">(sensitivity)</span>` : ''}`;
     tooltip.hidden = false;
     const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
     tooltip.style.left = `${cx + 10 + tw > width ? Math.max(4, cx - tw - 10) : cx + 10}px`;

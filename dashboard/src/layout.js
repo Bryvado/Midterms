@@ -21,7 +21,8 @@ function defaults() {
   const pollH = Math.round(Math.min(H * .64, 520));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
-    legend:{ x:52, y:null, w:250, h:null, open:true },
+    // Lifted clear of the map's attribution line, which must stay visible.
+    legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - sideW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - sideW - GAP, y:GAP, w:sideW, h:pollH, open:true },
     place:{ x:W - sideW - GAP, y:pollH + GAP * 2, w:sideW, h:Math.max(MIN.h, H - pollH - GAP * 3), open:true },
@@ -48,7 +49,7 @@ function apply() {
       // Bottom-anchored until moved, so a legend that grows stays on screen.
       el.style.left = `${box.x}px`;
       el.style.top = '';
-      el.style.bottom = `${GAP}px`;
+      el.style.bottom = `${GAP + (box.lift || 0)}px`;
       continue;
     }
     el.style.bottom = '';
