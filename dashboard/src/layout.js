@@ -19,7 +19,7 @@ function defaults() {
   const W = workspace.clientWidth, H = workspace.clientHeight;
   const sideW = Math.min(320, Math.max(260, Math.round(W * .26)));
   // The polling chart is the panel's main element, so it gets a wider default.
-  const pollW = Math.min(440, Math.max(sideW, Math.round(W * .34)));
+  const pollW = Math.min(480, Math.max(sideW, Math.round(W * .34)));
   const pollH = Math.round(Math.min(H * .66, 640));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },

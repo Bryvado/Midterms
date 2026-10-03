@@ -7,11 +7,11 @@ let track = [], polls = [], combined = null, baselines = new Map(), current = 'm
 // The chart draws into the panel and, when open, the expanded overlay; both share layer and range state.
 const roots = ['#trend-chart', '#trend-chart-big'].map(s => document.querySelector(s)).filter(Boolean);
 const layerKeys = ['dots','avg','fc','fund','fsens'];
-const layers = { dots:true, avg:true, fc:true, fund:true, fsens:false };
-const defaultFlags = '11110';
+const layers = { dots:true, avg:true, fc:true, fund:false, fsens:false };
+const defaultFlags = '11100';
 let range = '6m';
-let maxInfluence = 0;
-// Each poll-mark encoding can be switched off from the legend; off falls back to a plain grey dot.
+let maxInfluence = 0, scenario = null, captionText = '';
+// "Show polls as plain dots" switches every encoding off at once, leaving grey dots of one size and opacity.
 const encKeys = ['color','size','shape','fade','ring','whisker'];
 const enc = Object.fromEntries(encKeys.map(key => [key, true]));
 const plainFill = '#7f9196';
@@ -28,16 +28,15 @@ const params = new URLSearchParams(location.search);
 const flags = params.get('ct');
 if (flags && /^[01]{4,5}$/.test(flags)) layerKeys.forEach((key, i) => { if (i < flags.length) layers[key] = flags[i] === '1'; });
 if (params.get('cx') === 'all') range = 'all';
-const marks = params.get('pm');
-if (marks && /^[01]{6}$/.test(marks)) encKeys.forEach((key, i) => { enc[key] = marks[i] === '1'; });
+if (params.get('pd') === '1') encKeys.forEach(key => { enc[key] = false; });
 
 function writeState() {
   const url = new URL(location.href);
   const value = layerKeys.map(key => layers[key] ? '1' : '0').join('');
   if (value === defaultFlags) url.searchParams.delete('ct'); else url.searchParams.set('ct', value);
   if (range === 'all') url.searchParams.set('cx', 'all'); else url.searchParams.delete('cx');
-  const pm = encKeys.map(key => enc[key] ? '1' : '0').join('');
-  if (pm === '111111') url.searchParams.delete('pm'); else url.searchParams.set('pm', pm);
+  url.searchParams.delete('pm');
+  if (enc.color) url.searchParams.delete('pd'); else url.searchParams.set('pd', '1');
   history.replaceState(null, '', url);
 }
 
@@ -54,13 +53,39 @@ for (const button of document.querySelectorAll('[data-chart-range]')) button.add
   range = button.dataset.chartRange;
   writeState(); syncControls(); drawAll();
 });
-for (const box of document.querySelectorAll('.poll-legend')) box.addEventListener('click', event => {
-  const button = event.target.closest('button');
-  if (!button) return;
-  if (button.dataset.enc) enc[button.dataset.enc] = !enc[button.dataset.enc];
-  else { const on = !encKeys.some(key => enc[key]); encKeys.forEach(key => { enc[key] = on; }); }
-  writeState(); drawAll();
+let hintOpen = false;
+const helpLines = [
+  ['Color', 'who led the poll, from blue (Talarico) to red (Paxton). Deeper color means a bigger lead, capped at 8 points.'],
+  ['Size', 'sample size.'],
+  ['Circle', 'likely voters. <b>Diamond</b> registered voters.'],
+  ['Faded', "counts less in today's average (older or smaller polls)."],
+  ['Dashed ring', 'sponsored by a campaign or party-aligned group.'],
+  ['Horizontal line through a dot', 'the days the poll was in the field.'],
+];
+const helpHTML = `${helpLines.map(([key, text]) => `<div><b>${key}</b> ${text}</div>`).join('')}<label class="plain-opt"><input type="checkbox" class="plain-dots"> Show polls as plain dots</label>`;
+for (const pop of document.querySelectorAll('.chart-help-pop')) pop.innerHTML = helpHTML;
+function syncHelp() {
+  for (const pop of document.querySelectorAll('.chart-help-pop')) { pop.hidden = !hintOpen; pop.querySelector('.plain-dots').checked = !enc.color; }
+  for (const button of document.querySelectorAll('.chart-help')) button.setAttribute('aria-expanded', String(hintOpen));
+}
+document.addEventListener('click', event => {
+  if (event.target.closest('.chart-help')) hintOpen = !hintOpen;
+  else if (hintOpen && !event.target.closest('.chart-help-pop')) hintOpen = false;
+  else return;
+  syncHelp();
 });
+document.addEventListener('change', event => {
+  if (!event.target.matches('.plain-dots')) return;
+  encKeys.forEach(key => { enc[key] = !event.target.checked; });
+  writeState(); syncHelp(); drawAll();
+});
+for (const button of document.querySelectorAll('.layers-toggle')) button.addEventListener('click', () => {
+  const toolbar = button.closest('.chart-toolbar');
+  const open = !toolbar.classList.contains('open');
+  toolbar.classList.toggle('open', open);
+  button.setAttribute('aria-expanded', String(open));
+});
+syncHelp();
 syncControls();
 
 const dialog = document.querySelector('#chart-dialog');
@@ -82,10 +107,13 @@ export function initChart(trackRows, pollRows, headline, shifts) {
   for (const chip of document.querySelectorAll('[data-chart-layer="fsens"]')) chip.hidden = !has.sens;
   for (const chip of document.querySelectorAll('[data-chart-layer="fund"]')) chip.hidden = !has.fund;
   const weights = track.filter(row => finite(row.fund_weight));
-  const readout = document.querySelector('#fund-weight-readout');
-  if (readout) readout.textContent = weights.length ? `Fundamentals weight ${pct(weights[0].fund_weight,0)} → ${pct(weights.at(-1).fund_weight,0)}` : '';
+  if (weights.length) {
+    const first = +weights[0].fund_weight, last = +weights.at(-1).fund_weight;
+    const trend = last > first ? 'rising to' : last < first ? 'falling to' : 'holding at';
+    captionText = `The forecast leans on polls; fundamentals carry ${pct(first, 0)} of the weight today, ${trend} ${pct(last, 0)} by Election Day.`;
+  }
   baselines = new Map(shifts.filter(row => row.component === 'combined').map(row => [row.baseline,row.label]));
-  document.querySelector('#poll-summary').textContent = `Poll ledger · ${polls.length} polls`;
+  document.querySelector('#poll-summary').textContent = `Poll ledger (${polls.length} polls)`;
   renderChart('mean');
   const observer = new ResizeObserver(entries => { for (const entry of entries) if (entry.target.clientWidth > 100) draw(entry.target); });
   for (const root of roots) observer.observe(root);
@@ -95,31 +123,15 @@ export function renderChart(measure) {
   current = measure.startsWith('shift_') ? measure : 'mean';
   const title = current === 'mean' ? 'Polling average and forecast' : `Shift vs ${baselines.get(current.slice(6)) || current.slice(6)}`;
   for (const el of document.querySelectorAll('.trend-title-text')) el.textContent = title;
+  for (const el of document.querySelectorAll('.chart-caption')) { el.textContent = current === 'mean' ? captionText : ''; el.hidden = current !== 'mean' || !captionText; }
   for (const chip of document.querySelectorAll('[data-chart-layer="fc"],[data-chart-layer="fund"],[data-chart-layer="fsens"],[data-chart-layer="dots"]')) chip.disabled = current !== 'mean';
   drawAll();
 }
 
-// The legend doubles as the on/off control for each encoding. Swatches use the live ramp, so they follow the theme and palette.
-function renderLegend() {
-  const visible = layers.dots && current === 'mean';
-  const ramp = [-8, -4, 0, 4, 8].map((v, i) => `<rect x="${i * 6}" y="1" width="6" height="7" fill="${marginColor(v)}"/>`).join('');
-  const sw = body => `<svg class="pl-sw" viewBox="0 0 30 10" width="30" height="10" aria-hidden="true">${body}</svg>`;
-  const items = [
-    ['color', sw(ramp), 'Margin ±8'],
-    ['size', sw(`<circle cx="5" cy="5" r="2.4" class="pl-dot"/><circle cx="19" cy="5" r="4.6" class="pl-dot"/>`), 'Sample size'],
-    ['shape', sw(`<circle cx="5" cy="5" r="3.4" class="pl-dot"/><path d="M19,0.8L23.2,5L19,9.2L14.8,5Z" class="pl-dot"/>`), 'LV / RV'],
-    ['fade', sw(`<circle cx="4" cy="5" r="3.4" class="pl-dot"/><circle cx="13" cy="5" r="3.4" class="pl-dot" opacity=".55"/><circle cx="22" cy="5" r="3.4" class="pl-dot" opacity=".2"/>`), 'Weight in average'],
-    ['ring', sw(`<circle cx="9" cy="5" r="2.6" class="pl-dot"/><circle cx="9" cy="5" r="4.4" class="pl-ring" stroke="${partyColor('R')}"/>`), 'Partisan sponsor'],
-    ['whisker', sw(`<line x1="2" x2="22" y1="5" y2="5" class="pl-line"/><circle cx="12" cy="5" r="3" class="pl-dot"/>`), 'Field dates'],
-  ];
-  const allOff = !encKeys.some(key => enc[key]);
-  const html = `<span class="pl-title">Poll marks</span>${items.map(([key, swatch, label]) => `<button type="button" class="pl-item" data-enc="${key}" aria-pressed="${enc[key]}">${swatch}${label}</button>`).join('')}<button type="button" class="pl-all">${allOff ? 'All marks' : 'Plain dots'}</button>`;
-  for (const box of document.querySelectorAll('.poll-legend')) { box.hidden = !visible; box.innerHTML = html; }
-}
+export function setScenario(row) { scenario = row || null; drawAll(); }
 
 function drawAll() {
   if (!track.length) return;
-  renderLegend();
   for (const root of roots) if (root.clientWidth > 100) draw(root);
 }
 
@@ -130,15 +142,19 @@ function pollTooltip(p) {
   const m = +p.margin;
   const lead = m > 0 ? `Talarico +${+m.toFixed(1)}` : m < 0 ? `Paxton +${+Math.abs(m).toFixed(1)}` : 'Tied';
   const third = p.brown_named === 'TRUE' ? 'Brown' : 'Other';
-  return `<strong>${escapeHTML(p.pollster)}</strong><br>${escapeHTML(dates)}<br>n=${escapeHTML(p.n)}${has_(p.population) ? ` ${escapeHTML(p.population)}` : ''}${has_(p.mode) ? ` · ${escapeHTML(p.mode)}` : ''}
-    <br>Talarico ${escapeHTML(p.talarico)} · Paxton ${escapeHTML(p.paxton)} · ${third} ${escapeHTML(has_(p.other) ? p.other : '—')}${has_(p.undecided) ? ` · Undecided ${escapeHTML(p.undecided)}` : ''}
+  const people = { LV:'likely voters', RV:'registered voters' }[p.population] || '';
+  const sample = [`${p.n}${people ? ` ${people}` : ''}`, has_(p.mode) ? p.mode : ''].filter(Boolean).join(', ');
+  const shares = [`Talarico ${p.talarico}`, `Paxton ${p.paxton}`, has_(p.other) ? `${third} ${p.other}` : '', has_(p.undecided) ? `Undecided ${p.undecided}` : ''].filter(Boolean).join(', ');
+  return `<strong>${escapeHTML(p.pollster)}</strong><br>${escapeHTML(dates)}<br>${escapeHTML(sample)}
+    <br>${escapeHTML(shares)}
     <br>Margin: ${lead}${p.brown_named === 'TRUE' ? '<br>Brown named on ballot' : ''}
     ${Number.isFinite(+p.influence) ? `<br>${(100 * +p.influence).toFixed(1)}% of current average` : ''}${p.lean === 'D' || p.lean === 'R' ? `<br>Partisan sponsor (${p.lean === 'D' ? 'Democratic' : 'Republican'})` : ''}`;
 }
 
 // Pick a spot for the Election Day label that stays inside the plot and clear of dots and lines.
 function placeLabel(text, candidates, obstacles, bounds) {
-  const w = text.length * 5.7 + 6, h = 13;
+  const lines = [].concat(text);
+  const w = Math.max(...lines.map(line => line.length)) * 5.7 + 6, h = 13 * lines.length;
   const box = c => c.anchor === 'end' ? [c.x - w, c.y - h + 3, c.x, c.y + 3] : [c.x, c.y - h + 3, c.x + w, c.y + 3];
   const fits = ([l, t, r, b]) => l >= bounds.left && r <= bounds.right && t >= bounds.top && b <= bounds.bottom;
   const clear = ([l, t, r, b]) => !obstacles.some(o => o.x + (o.r || 1) >= l && o.x - (o.r || 1) <= r && o.y + (o.r || 1) >= t && o.y - (o.r || 1) <= b);
@@ -218,19 +234,19 @@ function draw(root) {
     const ring = enc.ring && (row.lean === 'D' || row.lean === 'R') ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean)}"`) : '';
     return `<g class="chart-poll" data-i="${i}" data-poll-id="${escapeHTML(row.poll_id || '')}" style="opacity:${markOpacity(row).toFixed(3)}">${whisker}${ring}${shape(cx, cy, rr, rv, `class="poll-mark" fill="${fill}"`)}</g>`;
   }).join('');
-  let fc = '';
+  const baseObstacles = [
+    ...visiblePolls.map(row => ({ x:x(row.time), y:y(+row.talarico_2p), r:dotR(row) + 1 })),
+    ...(show.avg ? shown : []).map(row => ({ x:x(row.time), y:y(+row[current]), r:2 })),
+    ...forecast.map(row => ({ x:x(row.time), y:y(+row[fm]), r:2 })),
+    ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
+    ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
+  ];
+  let fc = '', scenarioLabel = '';
   if (show.fc && forecast.length) {
     const last = forecast.at(-1);
     const ex = x(last.time), ey = combined ? y(+combined.mean) : y(+last[fm]);
-    const text = combined ? `Forecast ${pct(combined.mean)} · ${pct(combined.p_talarico_win, 0)} win prob` : '';
-    const obstacles = [
-      ...visiblePolls.map(row => ({ x:x(row.time), y:y(+row.talarico_2p), r:dotR(row) + 1 })),
-      ...(show.avg ? shown : []).map(row => ({ x:x(row.time), y:y(+row[current]), r:2 })),
-      ...forecast.map(row => ({ x:x(row.time), y:y(+row[fm]), r:2 })),
-      ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
-      ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
-      { x:ex, y:ey, r:6 },
-    ];
+    const text = combined ? `Forecast ${pct(combined.mean)}, ${pct(combined.p_talarico_win, 0)} chance of winning` : '';
+    const obstacles = [...baseObstacles, { x:ex, y:ey, r:6 }];
     const top = y(Math.max(...forecast.map(row => +row[fhi]))), bot = y(Math.min(...forecast.map(row => +row[flo])));
     const candidates = [
       { x:ex - 8, y:Math.min(top - 6, ey - 10), anchor:'end' }, { x:ex - 8, y:Math.max(bot + 14, ey + 18), anchor:'end' },
@@ -239,14 +255,26 @@ function draw(root) {
       { x:margin.left + 4, y:margin.top + 11, anchor:'start' }, { x:margin.left + 4, y:bottom - 6, anchor:'start' },
     ];
     const at = placeLabel(text, candidates, obstacles, { left:margin.left, right, top:margin.top, bottom });
+    const textWidth = text.length * 5.7 + 6;
+    for (let px = at.anchor === 'end' ? at.x - textWidth : at.x; px <= (at.anchor === 'end' ? at.x : at.x + textWidth); px += 8) baseObstacles.push({ x:px, y:at.y - 4, r:7 });
     fc = `<path class="chart-fc-band" d="${fcBand(forecast) || ''}"/><path class="chart-fc-line" d="${fcLine(forecast) || ''}"/>
       <circle class="chart-fc-marker" cx="${ex}" cy="${ey}" r="4.5"/>
       <text class="chart-fc-label" x="${at.x}" y="${at.y}" text-anchor="${at.anchor}">${escapeHTML(text)}</text>`;
   }
+  if (show.fsens && scenario && sens.length) {
+    // The scenario's own endpoint is labelled directly; the label sits at the right edge, above or below the line.
+    const last = sens.at(-1), ex = x(last.time), ey = y(+last.fund_appr_mean);
+    const full = `If fundamentals used Texas Trump approval: Talarico ${pct(scenario.p_talarico_win, 0)}`;
+    const lines = (right - margin.left) * .95 > full.length * 5.7 + 6 ? [full] : ['If fundamentals used Texas Trump approval:', `Talarico ${pct(scenario.p_talarico_win, 0)}`];
+    const rows = lines.length;
+    const candidates = [{ x:right - 4, y:ey - 6 - 13 * (rows - 1), anchor:'end' }, { x:right - 4, y:ey + 14 + 13 * (rows - 1), anchor:'end' }, { x:margin.left + 4, y:ey - 6 - 13 * (rows - 1), anchor:'start' }, { x:margin.left + 4, y:ey + 14 + 13 * (rows - 1), anchor:'start' }];
+    const at = placeLabel(lines, candidates, baseObstacles, { left:margin.left, right, top:margin.top, bottom });
+    scenarioLabel = `<text class="chart-sens-label" x="${at.x}" y="${at.y - 13 * (rows - 1)}" text-anchor="${at.anchor}">${lines.map((line, i) => `<tspan x="${at.x}" dy="${i ? 13 : 0}">${escapeHTML(line)}</tspan>`).join('')}</text>`;
+  }
   const clip = `clip-${root.id}`;
   root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHTML(document.querySelector('.trend-title-text')?.textContent || 'Polling chart')}">
     <defs><clipPath id="${clip}"><rect x="${margin.left}" y="${margin.top - 6}" width="${right - margin.left + 6}" height="${bottom - margin.top + 6}"/></clipPath></defs>
-    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${timeTicks}
+    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${scenarioLabel}${timeTicks}
     <line class="chart-cursor" x1="0" x2="0" y1="${margin.top}" y2="${bottom}" visibility="hidden"/><circle class="chart-focus" r="4" visibility="hidden"/>
   </svg><div class="chart-tooltip" hidden></div>`;
   const svg = root.querySelector('svg'), tooltip = root.querySelector('.chart-tooltip');
@@ -274,7 +302,7 @@ function draw(root) {
     const avgText = `${shift ? 'Shift' : 'Poll average'}: ${format(+closest[current], shift)} <span class="muted">(95%: ${format(+closest[current] - 1.96 * +closest.se, shift)}–${format(+closest[current] + 1.96 * +closest.se, shift)})</span>`;
     tooltip.innerHTML = poll
       ? pollTooltip(poll)
-      : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>${has.traj ? `Projected path: ${pct(closest[fm])} <span class="muted">— an assumed glide from the current poll average to the Election Day forecast; only the endpoint is modeled.</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight, 0)} / fundamentals ${pct(closest.fund_weight, 0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${show.fund && finite(fundMean) ? `<br>Fundamentals (adopted): ${pct(fundMean)}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>Fundamentals moved by Texas approval: ${pct(closest.fund_appr_mean)} <span class="muted">(sensitivity)</span>` : ''}`;
+      : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>${has.traj ? `Forecast path: ${pct(closest[fm])} <span class="muted">— an assumed glide from the current poll average to the Election Day forecast; only the endpoint is modeled.</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight, 0)} / fundamentals ${pct(closest.fund_weight, 0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${show.fund && finite(fundMean) ? `<br>Fundamentals (adopted): ${pct(fundMean)}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>If fundamentals used Texas Trump approval: Talarico ${pct(closest.fund_appr_mean)} <span class="muted">(not the forecast)</span>` : ''}`;
     tooltip.hidden = false;
     const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
     tooltip.style.left = `${cx + 10 + tw > width ? Math.max(4, cx - tw - 10) : cx + 10}px`;

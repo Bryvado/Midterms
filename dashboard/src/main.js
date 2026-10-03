@@ -2,7 +2,7 @@ import './style.css';
 import './layout.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure } from './map.js';
-import { initChart, renderChart } from './chart.js';
+import { initChart, renderChart, setScenario } from './chart.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
 const $ = selector => document.querySelector(selector);
@@ -133,27 +133,13 @@ function renderLedger(rows) {
   });
 }
 
-// Sensitivity scenarios are shown beside the forecast, never in place of it. A missing file hides the table.
-async function renderSensitivities() {
-  const box = $('#sensitivity-table');
+// The Texas-approval scenario is a layer on the chart, never a replacement for the forecast. A missing file leaves the layer without its label.
+async function loadScenario() {
   let rows;
-  try { rows = await csv('sensitivities.csv'); } catch { box.hidden = true; return; }
-  const need = ['scenario','adopted','fund_mean','combined_mean','combined_sd','p_talarico_win'];
-  if (!rows.length || !need.every(c => rows.columns.includes(c))) { box.hidden = true; return; }
-  box.innerHTML = `<table class="sens"><thead><tr><th>Scenario</th><th title="Fundamentals estimate">Fund.</th><th title="Combined Talarico two-party share">Combined</th><th title="Talarico win probability">Win</th></tr></thead><tbody>${rows.map(row => {
-    const adopted = String(row.adopted).toUpperCase() === 'TRUE';
-    return `<tr class="${adopted ? 'adopted' : 'sensitivity'}"><td>${escapeHTML(row.scenario)}${adopted ? ' <span class="tag">forecast</span>' : ' <span class="tag warn">sensitivity, not the forecast</span>'}</td><td>${escapeHTML(pct(row.fund_mean))}</td><td>${escapeHTML(pct(row.combined_mean))} <span class="muted">±${escapeHTML(pct(row.combined_sd))}</span></td><td>${escapeHTML(pct(row.p_talarico_win,0))}</td></tr>`;
-  }).join('')}</tbody></table>`;
-  box.hidden = false;
-  const alt = rows.find(row => String(row.adopted).toUpperCase() !== 'TRUE');
-  if (alt) $('#sens-summary').textContent = ` · Approval sensitivity: ${pct(alt.p_talarico_win,0)} win (not the forecast)`;
+  try { rows = await csv('sensitivities.csv'); } catch { return; }
+  if (!rows.length || !['adopted','p_talarico_win'].every(c => rows.columns.includes(c))) return;
+  setScenario(rows.find(row => String(row.adopted).toUpperCase() !== 'TRUE'));
 }
-$('#chart-more-toggle').addEventListener('click', event => {
-  const open = event.currentTarget.getAttribute('aria-expanded') !== 'true';
-  event.currentTarget.setAttribute('aria-expanded', String(open));
-  event.currentTarget.textContent = open ? '▾' : '▸';
-  $('#chart-more').hidden = !open;
-});
 
 try {
   const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([
@@ -170,7 +156,7 @@ try {
   renderLedger(ledger);
   setBaselines(shifts);
   initChart(track,ledger,headline,shifts);
-  renderSensitivities();
+  loadScenario();
 } catch (error) {
   console.error(error);
   $('#run-date').textContent = 'Published data unavailable';
