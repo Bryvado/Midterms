@@ -156,7 +156,7 @@
 .fp-polling .fp-body{display:flex;flex-direction:column;container-type:normal;gap:0}
 .fp-polling .trend-title{flex:none;font-size:14px;margin:0 0 2px}
 .fp-polling #trend-chart{flex:1 1 280px;min-height:280px;height:auto;position:relative}
-.fp-polling .chart-chips,.fp-polling .chart-summary,.fp-polling .chart-more,.fp-polling .panel-details{flex:none}
+.fp-polling .chart-chips,.fp-polling .poll-legend,.fp-polling .chart-summary,.fp-polling .chart-more,.fp-polling .panel-details{flex:none}
 .chart-root{position:relative}
 .chart-root svg{display:block;width:100%;height:100%}
 .chart-chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin:4px 0 2px}
@@ -202,8 +202,15 @@
 .poll-marks.dimmed .chart-poll:not(.active){opacity:.12 !important}
 .chart-poll.active{opacity:1 !important}
 .chart-poll.active .poll-mark{stroke:#1b282d;stroke-width:1.4}
-.chart-help{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:1px solid #c9d4d5;background:#fff;color:#3f565d;font:700 11px 'DM Sans',system-ui,sans-serif;line-height:1;padding:0;z-index:4}
-.chart-help-pop{position:absolute;top:28px;right:4px;z-index:5;width:min(250px,calc(100% - 8px));background:#fff;border:1px solid #d8e1e0;border-radius:6px;box-shadow:0 4px 14px #243b4326;padding:7px 9px;font-size:10.5px;line-height:1.45;color:#40565e;display:grid;gap:2px}
-.chart-help-pop[hidden]{display:none}
-.chart-help-pop b{color:#213b44}
 .sw-dots{background:#6f8f9a}
+.poll-legend{display:flex;flex-wrap:wrap;align-items:center;gap:3px 4px;margin:0 0 4px;font-size:10px;color:#40565e}
+.poll-legend[hidden]{display:none}
+.pl-title{font-weight:700;color:#213b44;margin-right:2px}
+.pl-item,.pl-all{display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;background:none;border-radius:10px;padding:1px 6px 1px 3px;font:inherit;color:inherit;cursor:pointer;white-space:nowrap}
+.pl-item:hover,.pl-all:hover{border-color:#d3dcdc}
+.pl-item[aria-pressed=false]{color:#9aa7aa;text-decoration:line-through}
+.pl-item[aria-pressed=false] .pl-sw{opacity:.3}
+.pl-all{padding:1px 6px;border-color:#d3dcdc;font-weight:600}
+.pl-dot{fill:#7f9196}
+.pl-ring{fill:none;stroke-width:1.1;stroke-dasharray:1.8 1.4}
+.pl-line{stroke:#7f9196;stroke-width:1.3;stroke-linecap:round}

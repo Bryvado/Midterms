@@ -10,7 +10,11 @@ const layerKeys = ['dots','avg','fc','fund','fsens'];
 const layers = { dots:true, avg:true, fc:true, fund:true, fsens:false };
 const defaultFlags = '11110';
 let range = '6m';
-let maxInfluence = 0, hintOpen = false;
+let maxInfluence = 0;
+// Each poll-mark encoding can be switched off from the legend; off falls back to a plain grey dot.
+const encKeys = ['color','size','shape','fade','ring','whisker'];
+const enc = Object.fromEntries(encKeys.map(key => [key, true]));
+const plainFill = '#7f9196';
 window.addEventListener('display-change', () => drawAll());
 let has = { traj:false, sens:false, approval:false };
 const date = value => new Date(`${value}T00:00:00Z`);
@@ -24,12 +28,16 @@ const params = new URLSearchParams(location.search);
 const flags = params.get('ct');
 if (flags && /^[01]{4,5}$/.test(flags)) layerKeys.forEach((key, i) => { if (i < flags.length) layers[key] = flags[i] === '1'; });
 if (params.get('cx') === 'all') range = 'all';
+const marks = params.get('pm');
+if (marks && /^[01]{6}$/.test(marks)) encKeys.forEach((key, i) => { enc[key] = marks[i] === '1'; });
 
 function writeState() {
   const url = new URL(location.href);
   const value = layerKeys.map(key => layers[key] ? '1' : '0').join('');
   if (value === defaultFlags) url.searchParams.delete('ct'); else url.searchParams.set('ct', value);
   if (range === 'all') url.searchParams.set('cx', 'all'); else url.searchParams.delete('cx');
+  const pm = encKeys.map(key => enc[key] ? '1' : '0').join('');
+  if (pm === '111111') url.searchParams.delete('pm'); else url.searchParams.set('pm', pm);
   history.replaceState(null, '', url);
 }
 
@@ -45,6 +53,13 @@ for (const chip of document.querySelectorAll('[data-chart-layer]')) chip.addEven
 for (const button of document.querySelectorAll('[data-chart-range]')) button.addEventListener('click', () => {
   range = button.dataset.chartRange;
   writeState(); syncControls(); drawAll();
+});
+for (const box of document.querySelectorAll('.poll-legend')) box.addEventListener('click', event => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  if (button.dataset.enc) enc[button.dataset.enc] = !enc[button.dataset.enc];
+  else { const on = !encKeys.some(key => enc[key]); encKeys.forEach(key => { enc[key] = on; }); }
+  writeState(); drawAll();
 });
 syncControls();
 
@@ -84,8 +99,27 @@ export function renderChart(measure) {
   drawAll();
 }
 
+// The legend doubles as the on/off control for each encoding. Swatches use the live ramp, so they follow the theme and palette.
+function renderLegend() {
+  const visible = layers.dots && current === 'mean';
+  const ramp = [-8, -4, 0, 4, 8].map((v, i) => `<rect x="${i * 6}" y="1" width="6" height="7" fill="${marginColor(v)}"/>`).join('');
+  const sw = body => `<svg class="pl-sw" viewBox="0 0 30 10" width="30" height="10" aria-hidden="true">${body}</svg>`;
+  const items = [
+    ['color', sw(ramp), 'Margin ±8'],
+    ['size', sw(`<circle cx="5" cy="5" r="2.4" class="pl-dot"/><circle cx="19" cy="5" r="4.6" class="pl-dot"/>`), 'Sample size'],
+    ['shape', sw(`<circle cx="5" cy="5" r="3.4" class="pl-dot"/><path d="M19,0.8L23.2,5L19,9.2L14.8,5Z" class="pl-dot"/>`), 'LV / RV'],
+    ['fade', sw(`<circle cx="4" cy="5" r="3.4" class="pl-dot"/><circle cx="13" cy="5" r="3.4" class="pl-dot" opacity=".55"/><circle cx="22" cy="5" r="3.4" class="pl-dot" opacity=".2"/>`), 'Weight in average'],
+    ['ring', sw(`<circle cx="9" cy="5" r="2.6" class="pl-dot"/><circle cx="9" cy="5" r="4.4" class="pl-ring" stroke="${partyColor('R')}"/>`), 'Partisan sponsor'],
+    ['whisker', sw(`<line x1="2" x2="22" y1="5" y2="5" class="pl-line"/><circle cx="12" cy="5" r="3" class="pl-dot"/>`), 'Field dates'],
+  ];
+  const allOff = !encKeys.some(key => enc[key]);
+  const html = `<span class="pl-title">Poll marks</span>${items.map(([key, swatch, label]) => `<button type="button" class="pl-item" data-enc="${key}" aria-pressed="${enc[key]}">${swatch}${label}</button>`).join('')}<button type="button" class="pl-all">${allOff ? 'All marks' : 'Plain dots'}</button>`;
+  for (const box of document.querySelectorAll('.poll-legend')) { box.hidden = !visible; box.innerHTML = html; }
+}
+
 function drawAll() {
   if (!track.length) return;
+  renderLegend();
   for (const root of roots) if (root.clientWidth > 100) draw(root);
 }
 
@@ -172,16 +206,16 @@ function draw(root) {
     fund += `<path class="chart-sens-band" d="${sensBand(sens) || ''}"/><path class="chart-sens-line" d="${sensLine(live) || ''}"/>${held.length ? `<path class="chart-sens-line held" d="${sensLine(held) || ''}"/>` : ''}`;
   }
   // Poll marks: colour = margin, area ∝ n, circle = LV / diamond = RV, opacity = influence, dashed ring = partisan sponsor.
-  const dotR = row => 2.6 + 4.4 * (Math.sqrt(Math.min(1800, Math.max(550, +row.n))) - Math.sqrt(550)) / (Math.sqrt(1800) - Math.sqrt(550));
-  const markOpacity = row => maxInfluence > 0 && Number.isFinite(+row.influence) ? Math.max(.2, +row.influence / maxInfluence) : .5;
+  const dotR = row => !enc.size ? 3.6 : 2.6 + 4.4 * (Math.sqrt(Math.min(1800, Math.max(550, +row.n))) - Math.sqrt(550)) / (Math.sqrt(1800) - Math.sqrt(550));
+  const markOpacity = row => !enc.fade ? .6 : maxInfluence > 0 && Number.isFinite(+row.influence) ? Math.max(.2, +row.influence / maxInfluence) : .5;
   const shape = (cx, cy, rr, rv, attrs) => rv
     ? `<path ${attrs} d="M${cx},${cy - rr * 1.25}L${cx + rr * 1.25},${cy}L${cx},${cy + rr * 1.25}L${cx - rr * 1.25},${cy}Z"/>`
     : `<circle ${attrs} cx="${cx}" cy="${cy}" r="${rr}"/>`;
   const dots = visiblePolls.map((row, i) => {
-    const cx = x(row.time), cy = y(+row.talarico_2p), rr = dotR(row), rv = row.population === 'RV';
-    const fill = marginColor(+row.margin);
-    const whisker = +row.finish > +row.start ? `<line class="poll-whisker" x1="${x(row.start)}" x2="${x(row.finish)}" y1="${cy}" y2="${cy}" stroke="${fill}"/>` : '';
-    const ring = row.lean === 'D' || row.lean === 'R' ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean)}"`) : '';
+    const cx = x(row.time), cy = y(+row.talarico_2p), rr = dotR(row), rv = enc.shape && row.population === 'RV';
+    const fill = enc.color ? marginColor(+row.margin) : plainFill;
+    const whisker = enc.whisker && +row.finish > +row.start ? `<line class="poll-whisker" x1="${x(row.start)}" x2="${x(row.finish)}" y1="${cy}" y2="${cy}" stroke="${fill}"/>` : '';
+    const ring = enc.ring && (row.lean === 'D' || row.lean === 'R') ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean)}"`) : '';
     return `<g class="chart-poll" data-i="${i}" data-poll-id="${escapeHTML(row.poll_id || '')}" style="opacity:${markOpacity(row).toFixed(3)}">${whisker}${ring}${shape(cx, cy, rr, rv, `class="poll-mark" fill="${fill}"`)}</g>`;
   }).join('');
   let fc = '';
@@ -196,8 +230,6 @@ function draw(root) {
       ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
       ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
       { x:ex, y:ey, r:6 },
-      // The "?" legend button sits over the plot's top-right corner.
-      { x:width - 14, y:14, r:12 },
     ];
     const top = y(Math.max(...forecast.map(row => +row[fhi]))), bot = y(Math.min(...forecast.map(row => +row[flo])));
     const candidates = [
@@ -216,18 +248,7 @@ function draw(root) {
     <defs><clipPath id="${clip}"><rect x="${margin.left}" y="${margin.top - 6}" width="${right - margin.left + 6}" height="${bottom - margin.top + 6}"/></clipPath></defs>
     ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${timeTicks}
     <line class="chart-cursor" x1="0" x2="0" y1="${margin.top}" y2="${bottom}" visibility="hidden"/><circle class="chart-focus" r="4" visibility="hidden"/>
-  </svg><div class="chart-tooltip" hidden></div>
-  <button type="button" class="chart-help" aria-expanded="${hintOpen}" aria-label="How to read the poll marks">?</button>
-  <div class="chart-help-pop" ${hintOpen ? '' : 'hidden'}>
-    <div><b>Colour</b> margin, blue Talarico ahead, red Paxton ahead (±8 pts)</div>
-    <div><b>Size</b> sample size</div>
-    <div><b>Circle / diamond</b> likely / registered voters</div>
-    <div><b>Faded</b> less weight in today's average</div>
-    <div><b>Dashed ring</b> partisan sponsor</div>
-    <div><b>Whisker</b> field dates</div>
-  </div>`;
-  const help = root.querySelector('.chart-help'), pop = root.querySelector('.chart-help-pop');
-  help.addEventListener('click', () => { hintOpen = !hintOpen; pop.hidden = !hintOpen; help.setAttribute('aria-expanded', String(hintOpen)); });
+  </svg><div class="chart-tooltip" hidden></div>`;
   const svg = root.querySelector('svg'), tooltip = root.querySelector('.chart-tooltip');
   const cursor = root.querySelector('.chart-cursor'), focus = root.querySelector('.chart-focus');
   const circles = [...root.querySelectorAll('.chart-poll')];
