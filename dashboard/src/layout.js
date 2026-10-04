@@ -21,7 +21,8 @@ function defaults() {
   // The polling chart is the panel's main element, so it gets a wider default.
   const pollW = Math.min(480, Math.max(sideW, Math.round(W * .34)));
   // Leave room for readable place rows and comparison controls.
-  const placeW = Math.min(420, Math.max(sideW, Math.round(W * .3)));
+  const placeW = Math.max(260, Math.round(W * .25));
+  const placeH = Math.max(MIN.h, Math.round(H / 3));
   const pollH = Math.round(Math.min(H * .52, 560));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
@@ -29,7 +30,7 @@ function defaults() {
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:true },
-    place:{ x:W - placeW - GAP, y:pollH + GAP * 2, w:placeW, h:Math.max(MIN.h, H - pollH - GAP * 3), open:true },
+    place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:true },
   };
 }
 
@@ -82,15 +83,40 @@ function raise(el) { if (el) el.style.zIndex = String(++top); }
 
 function track(event, onMove, onEnd) {
   event.preventDefault();
-  const move = e => onMove(e.clientX - event.clientX, e.clientY - event.clientY);
-  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); onEnd(); };
+  const move = e => { if (e.pointerId === event.pointerId) onMove(e.clientX - event.clientX, e.clientY - event.clientY); };
+  const up = e => {
+    if (e.type !== 'blur' && e.pointerId !== event.pointerId) return;
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+    window.removeEventListener('blur', up);
+    onEnd();
+  };
+  event.currentTarget.setPointerCapture(event.pointerId);
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+  window.addEventListener('blur', up);
+}
+
+const boxOf = el => ({ x:el.offsetLeft, y:el.offsetTop, w:el.offsetWidth, h:el.offsetHeight });
+function resizeBox(box, edge, dx, dy) {
+  let left = box.x, right = box.x + box.w, top = box.y, bottom = box.y + box.h;
+  if (edge.includes('w')) left = Math.max(0, Math.min(right - MIN.w, left + dx));
+  if (edge.includes('e')) right = Math.min(workspace.clientWidth, Math.max(left + MIN.w, right + dx));
+  if (edge.includes('n')) top = Math.max(0, Math.min(bottom - MIN.h, top + dy));
+  if (edge.includes('s')) bottom = Math.min(workspace.clientHeight, Math.max(top + MIN.h, bottom + dy));
+  return { x:left, y:top, w:right - left, h:bottom - top };
+}
+function preview(el, box) {
+  el.style.bottom = '';
+  el.style.left = `${box.x}px`; el.style.top = `${box.y}px`;
+  el.style.width = `${box.w}px`; el.style.height = `${box.h}px`;
 }
 
 for (const [id, el] of panels) {
   const grip = el.querySelector('.fp-head');
-  const handle = el.querySelector('.fp-resize');
+  el.querySelector('.fp-resize')?.remove();
   const name = el.getAttribute('aria-label');
   el.addEventListener('pointerdown', () => raise(el));
   el.querySelector('.fp-close').addEventListener('click', () => update(id, { open:false }));
@@ -98,9 +124,6 @@ for (const [id, el] of panels) {
   mover.setAttribute('role', 'button');
   mover.tabIndex = 0;
   mover.setAttribute('aria-label', `Move ${name} panel with arrow keys`);
-  handle.setAttribute('role', 'button');
-  handle.tabIndex = 0;
-  handle.setAttribute('aria-label', `Resize ${name} panel with arrow keys`);
   grip.addEventListener('pointerdown', event => {
     if (phone.matches || event.button !== 0 || event.target.closest('button:not(.fp-grip)')) return;
     const x0 = el.offsetLeft, y0 = el.offsetTop;
@@ -110,12 +133,6 @@ for (const [id, el] of panels) {
     track(event, (dx, dy) => { el.style.left = `${x0 + dx}px`; el.style.top = `${y0 + dy}px`; },
       () => { el.classList.remove('dragging'); update(id, { x:el.offsetLeft, y:el.offsetTop }); });
   });
-  handle.addEventListener('pointerdown', event => {
-    if (phone.matches || event.button !== 0) return;
-    const w0 = el.offsetWidth, h0 = el.offsetHeight;
-    track(event, (dx, dy) => { el.style.width = `${Math.max(MIN.w, w0 + dx)}px`; el.style.height = `${Math.max(MIN.h, h0 + dy)}px`; },
-      () => update(id, { w:el.offsetWidth, h:el.offsetHeight }));
-  });
   const keys = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
   mover.addEventListener('keydown', e => {
     if (!keys[e.key] || phone.matches) return;
@@ -123,12 +140,28 @@ for (const [id, el] of panels) {
     const [dx, dy] = keys[e.key].map(v => v * (e.shiftKey ? 50 : 10));
     update(id, { x:el.offsetLeft + dx, y:el.offsetTop + dy });
   });
-  handle.addEventListener('keydown', e => {
-    if (!keys[e.key] || phone.matches) return;
-    e.preventDefault();
-    const [dx, dy] = keys[e.key].map(v => v * (e.shiftKey ? 50 : 10));
-    update(id, { w:Math.max(MIN.w, el.offsetWidth + dx), h:Math.max(MIN.h, el.offsetHeight + dy) });
-  });
+  const edges = { n:'top edge', e:'right edge', s:'bottom edge', w:'left edge', nw:'top-left corner', ne:'top-right corner', sw:'bottom-left corner', se:'bottom-right corner' };
+  for (const [edge, label] of Object.entries(edges)) {
+    const handle = document.createElement('div');
+    handle.className = 'fp-resize'; handle.dataset.edge = edge;
+    handle.setAttribute('role', 'button'); handle.tabIndex = 0;
+    handle.setAttribute('aria-label', `Resize ${name} from ${label} with arrow keys`);
+    el.append(handle);
+    handle.addEventListener('pointerdown', event => {
+      if (phone.matches || event.button !== 0) return;
+      const box = boxOf(el);
+      el.classList.add('resizing');
+      track(event, (dx, dy) => preview(el, resizeBox(box, edge, dx, dy)), () => {
+        el.classList.remove('resizing'); update(id, boxOf(el));
+      });
+    });
+    handle.addEventListener('keydown', e => {
+      if (!keys[e.key] || phone.matches) return;
+      e.preventDefault();
+      const [dx, dy] = keys[e.key].map(v => v * (e.shiftKey ? 50 : 10));
+      update(id, resizeBox(boxOf(el), edge, dx, dy));
+    });
+  }
 }
 
 for (const button of document.querySelectorAll('[data-open-panel]')) button.addEventListener('click', () => {
