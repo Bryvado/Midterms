@@ -1,3 +1,4 @@
+import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
@@ -50,10 +51,11 @@ const ratings = {
 };
 
 // Global display settings: palette, custom colours, opacity and boundary lines.
-const defaults = { op:'87', ol:'30', ln:'1', oc:'0', od:'0', dpal:'redblue', spal:'teal', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
+const defaults = { bw:'0.7', op:'87', ol:'30', ln:'1', oc:'0', od:'0', dpal:'redblue', spal:'teal', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
 const settings = { ...defaults };
 const hex = /^#[0-9a-f]{6}$/i;
 const valid = {
+  bw:v => Number.isFinite(+v) && +v >= 0 && +v <= 5,
   dpal:v => v in divergingPalettes, spal:v => v in sequentialPalettes,
   op:v => /^\d{1,3}$/.test(v) && +v <= 100, ol:v => /^\d{1,3}$/.test(v) && +v <= 100,
   ln:v => v === '0' || v === '1', oc:v => v === '0' || v === '1', od:v => v === '0' || v === '1',
@@ -66,10 +68,11 @@ for (const key of Object.keys(defaults)) if (params.has(key) && valid[key](param
 const scaleState = new Map();
 const parseScales = text => {
   for (const entry of (text || '').split(';')) {
-    const [key, rest] = entry.split(':');
+    const split = entry.indexOf(':');
+    const key = entry.slice(0, split), rest = entry.slice(split + 1);
     if (!key || !rest || !/^[\w]+$/.test(key)) continue;
     const s = {};
-    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
+    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log','k'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
     scaleState.set(key, s);
   }
 };
@@ -92,6 +95,26 @@ const overlayStyle = {
 };
 const outlineColor = { light:'40,60,65', dark:'240,247,247' };
 let map, unit = levels[params.get('u')] ? params.get('u') : 'county', measure = 'mean', theme = 'light', onSelect = () => {};
+const levelSettings = new Map();
+let savedDisplay;
+try { savedDisplay = JSON.parse(params.get('ds') || localStorage.getItem('midterms-display-levels-v1') || '{}'); } catch { savedDisplay = {}; }
+for (const level of levelKeys) {
+  const saved = savedDisplay.levels?.[level] || {};
+  const clean = { ...defaults };
+  for (const key of Object.keys(defaults)) if (saved[key] != null && valid[key](String(saved[key]))) clean[key] = String(saved[key]);
+  levelSettings.set(level, clean);
+}
+if (!params.has('sc')) for (const [key, value] of Object.entries(savedDisplay.scales || {})) {
+  if (/^(county|precinct|cd|cousub)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
+}
+const scaleKey = key => `${unit}__${key}`;
+for (const [key, value] of [...scaleState]) if (!key.includes('__')) { scaleState.set(scaleKey(key), value); scaleState.delete(key); }
+for (const key of Object.keys(defaults)) if (params.has(key) && valid[key](params.get(key))) levelSettings.get(unit)[key] = params.get(key);
+Object.assign(settings, levelSettings.get(unit));
+function saveDisplay() {
+  levelSettings.set(unit, { ...settings });
+  try { localStorage.setItem('midterms-display-levels-v1', JSON.stringify({levels:Object.fromEntries(levelSettings),scales:Object.fromEntries(scaleState)})); } catch {}
+}
 let measureRequest = 0;
 let reference = { stateShare:null, baselines:[] };
 let viewRange = null;
@@ -154,18 +177,19 @@ function options(key) {
   else if (type === 'prob') { ranges = [['full','0–100%']]; range = 'full'; }
   else if (type === 'confidence') { ranges = [['full','50–100%'],...fits,['custom','Custom']]; range = 'full'; }
   else { ranges = [...fits,['custom','Custom']]; range = 'state'; }
-  const bins = [['cont','Continuous'],['step','Round-number steps']];
+  const bins = [['cont','Continuous'],['step','Round-number steps'],...Object.entries(classificationMethods)];
   if (type === 'margin' || type === 'prob') bins.push(['rat','Ratings categories']);
   const log = type === 'seq' && ['count','money'].includes(metricKinds.get(key) || (isCount(key) ? 'count' : ''));
-  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
+  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', k:'6', log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
 }
 
 function current(key = measure) {
   const opt = options(key);
-  const s = { ...opt.defaults, ...(scaleState.get(key) || {}) };
+  const s = { ...opt.defaults, ...(scaleState.get(scaleKey(key)) || {}) };
   if (!opt.centers.some(([v]) => v === s.c)) s.c = opt.defaults.c;
   if (!opt.ranges.some(([v]) => v === s.r)) s.r = opt.defaults.r;
   if (!opt.bins.some(([v]) => v === s.b)) s.b = opt.defaults.b;
+  s.k = /^[3-9]$/.test(String(s.k)) ? String(s.k) : '6';
   if (!opt.log) s.log = '0';
   return { opt, s };
 }
@@ -247,6 +271,18 @@ function scale(key, level = unit) {
   const log = s.log === '1';
   const levelName = levels[level].plural;
   let lo, hi, center = diverging ? centerValue(key, s.c) : null, rangeNote = '';
+  if (s.b in classificationMethods) {
+    const values = stateValues.get(`${key}|${level}`) || [];
+    if (values.length) {
+      lo = values[0]; hi = values.at(-1);
+      let edges = classify(values, s.b, +s.k);
+      if (diverging && center > lo && center < hi) edges = [...new Set([...edges, center])].sort((a,b)=>a-b);
+      const limits = [lo,...edges,hi];
+      const position = v => diverging ? (v <= center ? .5-.5*(center-v)/Math.max(1e-9,center-lo) : .5+.5*(v-center)/Math.max(1e-9,hi-center)) : (v-lo)/Math.max(1e-9,hi-lo);
+      const classColors = limits.slice(0,-1).map((v,i)=>mapColorAt(colors,position((v+limits[i+1])/2),type));
+      return {kind:'step',type,edges,colors:classColors,lo,hi,note:`${classificationMethods[s.b]}; ${classColors.length} classes across all ${levelName}, one observation per area. Breaks use raw values. ${diverging ? 'The selected center is retained as a boundary; this can add a class. ' : ''}Tied values stay together. These are display classes, not confidence categories.`};
+    }
+  }
   if (s.b === 'rat') {
     const r = ratings[type];
     return { kind:'ratings', type, edges:r.edges, labels:r.labels, colors:r.labels.map((_, i) => mapColorAt(colors, i / (r.labels.length - 1), type)),
@@ -361,13 +397,14 @@ function writeURL() {
   }
   for (const old of ['scale','bins','range']) url.searchParams.delete(old);
   const entries = [...scaleState].map(([key, s]) => {
-    const d = options(key).defaults;
+    const d = options(key.split('__').at(-1)).defaults;
     const pairs = Object.entries(s).filter(([k, v]) => v !== '' && v != null && v !== d[k]).map(([k, v]) => `${k}=${v}`);
     return pairs.length ? `${key}:${pairs.join(',')}` : '';
   }).filter(Boolean);
   if (entries.length) url.searchParams.set('sc', entries.join(';')); else url.searchParams.delete('sc');
   if (measure !== 'mean') url.searchParams.set('m', measure); else url.searchParams.delete('m');
   if (unit !== 'county') url.searchParams.set('u', unit); else url.searchParams.delete('u');
+  url.searchParams.set('ds', JSON.stringify({levels:Object.fromEntries(levelSettings)}));
   history.replaceState(null, '', url);
 }
 
@@ -392,8 +429,8 @@ function syncControls() {
   panel.querySelector('#scale-center-row').hidden = opt.centers.length < 2;
   setOptions(panel.querySelector('#scale-center'), opt.centers, s.c);
   setOptions(panel.querySelector('#scale-range'), opt.ranges, s.r);
-  panel.querySelector('#scale-range').disabled = opt.ranges.length < 2 || s.b === 'rat';
-  const custom = s.r === 'custom' && s.b !== 'rat';
+  panel.querySelector('#scale-range').disabled = opt.ranges.length < 2 || (s.b === 'rat' || s.b in classificationMethods);
+  const custom = s.r === 'custom' && s.b !== 'rat' && !(s.b in classificationMethods);
   panel.querySelector('#scale-custom').hidden = !custom;
   if (custom) {
     const units = percentUnits(measure) ? (['margin','shift'].includes(opt.type) ? 'pts' : '%') : '';
@@ -404,7 +441,12 @@ function syncControls() {
     if (document.activeElement !== hi) hi.value = s.hi !== undefined && s.hi !== '' ? s.hi : +(sc.hi * k).toFixed(2);
   }
   setOptions(panel.querySelector('#scale-bins'), opt.bins, s.b);
-  panel.querySelector('#scale-log-row').hidden = !opt.log;
+  panel.querySelector('#scale-classes-row').hidden = !(s.b in classificationMethods);
+  panel.querySelector('#scale-classes').value = s.k;
+  panel.querySelector('#scale-log-row').hidden = !opt.log || s.b in classificationMethods;
+  panel.querySelector('#outline-width').value = settings.bw;
+  panel.querySelector('#outline-width-value').textContent = `${settings.bw}px`;
+  panel.querySelector('#outline-width').disabled = settings.ln !== '1';
   panel.querySelector('#scale-log').checked = s.log === '1';
   panel.querySelector('#fill-opacity').value = settings.op;
   panel.querySelector('#fill-opacity-value').textContent = `${settings.op}%`;
@@ -418,10 +460,11 @@ function syncControls() {
 
 async function ensureValues() {
   const { s } = current();
-  if (['view','state'].includes(s.r) && s.b !== 'rat') await loadStateValues(measure, unit);
+  if ((['view','state'].includes(s.r) && s.b !== 'rat') || s.b in classificationMethods) await loadStateValues(measure, unit);
 }
 
 function paint() {
+  saveDisplay();
   announce();
   writeURL();
   drawLegend();
@@ -429,7 +472,9 @@ function paint() {
   for (const level of levelKeys) {
     map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
     map.setPaintProperty(layerName(level), 'fill-opacity', fillOpacity());
-    map.setPaintProperty(layerName(level), 'fill-outline-color', outline());
+    map.setPaintProperty(`border-${level}`, 'line-color', outline());
+    map.setPaintProperty(`border-${level}`, 'line-width', +settings.bw);
+    map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
   }
   for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
@@ -444,7 +489,7 @@ async function applyDisplay(signal) {
 // Fit to view: recompute the 5th–95th percentile of rendered areas once the map stops moving.
 function refitView() {
   const { opt, s } = current();
-  if (s.r !== 'view' || s.b === 'rat' || !map) return;
+  if (s.r !== 'view' || s.b === 'rat' || s.b in classificationMethods || !map) return;
   const values = viewValues();
   if (values.length < 3) return;
   const center = isDiverging(opt.type) ? centerValue(measure, s.c) : null;
@@ -461,8 +506,8 @@ function refitView() {
 function scheduleFit() { if (map) map.once('idle', refitView); }
 
 function updateScale(patch, signal) {
-  const prev = scaleState.get(measure) || {};
-  scaleState.set(measure, { ...prev, ...patch });
+  const prev = scaleState.get(scaleKey(measure)) || {};
+  scaleState.set(scaleKey(measure), { ...prev, ...patch });
   viewRange = null;
   return applyDisplay(signal);
 }
@@ -487,10 +532,11 @@ function initDisplayControls() {
   on('#scale-min', 'change', (e, signal) => updateScale({ lo:e.target.value }, signal));
   on('#scale-max', 'change', (e, signal) => updateScale({ hi:e.target.value }, signal));
   on('#scale-bins', 'change', (e, signal) => updateScale({ b:e.target.value }, signal));
+  on('#scale-classes', 'change', (e, signal) => updateScale({ k:e.target.value }, signal));
   on('#scale-log', 'change', (e, signal) => updateScale({ log:e.target.checked ? '1' : '0' }, signal));
-  for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol' })) on(id, 'change', e => { settings[key] = String(e.target.value); paint(); });
+  for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol', '#outline-width':'bw' })) on(id, 'change', e => { settings[key] = String(e.target.value); paint(); });
   for (const [id, key] of Object.entries({ '#outline-on':'ln', '#overlay-county':'oc', '#overlay-cd':'od' })) on(id, 'change', e => { settings[key] = e.target.checked ? '1' : '0'; paint(); });
-  on('#display-reset', 'click', (_, signal) => { Object.assign(settings, defaults); scaleState.clear(); viewRange = null; return applyDisplay(signal); });
+  on('#display-reset', 'click', (_, signal) => { Object.assign(settings, defaults); for (const key of [...scaleState.keys()]) if (key.startsWith(`${unit}__`)) scaleState.delete(key); viewRange = null; return applyDisplay(signal); });
 }
 
 function valueText(props) {
@@ -554,7 +600,9 @@ window.addEventListener('zoom-place', ({ detail:{ level, id } }) => runMapUpdate
 export const initialMeasure = () => params.get('m');
 
 function syncUnit(next) {
+  levelSettings.set(unit, { ...settings });
   unit = next;
+  Object.assign(settings, levelSettings.get(unit));
   if (isMapBusy()) showTileProgress();
   document.querySelectorAll('[data-unit]').forEach(button => {
     const active = button.dataset.unit === unit;
@@ -562,7 +610,10 @@ function syncUnit(next) {
     button.setAttribute('aria-pressed', String(active));
   });
   if (map?.getLayer('county-fill')) {
-    for (const level of levelKeys) map.setLayoutProperty(layerName(level), 'visibility', levelVisible(level) ? 'visible' : 'none');
+    for (const level of levelKeys) {
+      map.setLayoutProperty(layerName(level), 'visibility', levelVisible(level) ? 'visible' : 'none');
+      map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
+    }
   }
   const note = document.querySelector('#level-note');
   if (note) note.hidden = unit !== 'cd';
@@ -674,8 +725,9 @@ export function initMap(select) {
     for (const level of levelKeys) {
       if (map.getLayer(layerName(level))) continue;
       if (!map.getSource(level)) map.addSource(level, { type:'vector', url:tileURL(levels[level].tiles), promoteId:'region_id' });
-      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':outline() } }, labels);
+      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':'rgba(0,0,0,0)' } }, labels);
     }
+    for (const level of levelKeys) map.addLayer({id:`border-${level}`,type:'line',source:level,'source-layer':'regions',layout:{visibility:levelVisible(level)?'visible':'none'},paint:{'line-color':outline(),'line-width':+settings.bw}},labels);
     for (const [level, style] of Object.entries(overlayStyle)) {
       if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
