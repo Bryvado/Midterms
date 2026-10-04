@@ -26,7 +26,7 @@ const columns = [
   { key:'shift_pres24', label:'Shift vs 2024 President', show:signed },
 ];
 const pageSize = 50;
-const state = { level:'', sort:'population', metric:'population', dir:-1, query:'', inView:false, full:false, page:0 };
+const state = { level:'', sort:'population', metric:'population', dir:-1, query:'', inView:false, full:false, page:0, filters:[] };
 const boxes = new Map();
 const boxesFor = level => {
   if (!boxes.has(level)) boxes.set(level, fetch(`${base}data/bounds_${level}.json`).then(r => r.ok ? r.json() : null).catch(() => null));
@@ -57,6 +57,69 @@ async function load(level) {
 }
 
 export const listLevel = mapUnit => state.level || mapUnit;
+const filterScale = key => key === 'mean' || key.endsWith('_share') || key.startsWith('shift_') ? 100 : 1;
+const filterUnit = key => key.startsWith('shift_') ? 'pts' : filterScale(key) === 100 ? '%' : key === 'med_income' ? '$' : '';
+function editFilters(level, onApply) {
+  const draft = state.filters.map(f => ({ ...f }));
+  const choices = columns.filter(c => !c.text);
+  const label = c => c.key === 'med_income' && level === 'precinct' ? 'Median income' : c.label;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'list-filter-dialog';
+  dialog.innerHTML = `<form><div class="filter-heading"><h2>Filter places</h2><button type="button" class="filter-close" aria-label="Close filters">×</button></div>
+    <p class="note">Places must match every range. Ranges use published values, including estimates above display caps. Missing values are excluded when a range is set.</p>
+    <div class="filter-rows"></div><button type="button" class="filter-add">Add filter</button>
+    <div class="filter-actions"><button type="button" class="filter-clear">Clear all</button><button type="button" class="filter-cancel">Cancel</button><button type="submit" class="filter-apply">Apply filters</button></div></form>`;
+  const rows = dialog.querySelector('.filter-rows');
+  const draw = () => {
+    rows.innerHTML = draft.map((f, i) => `<fieldset class="filter-row" data-index="${i}"><legend>Filter ${i + 1}</legend>
+      <label class="filter-field">Measure <select>${choices.filter(c => c.key === f.key || !draft.some(other => other.key === c.key)).map(c => `<option value="${c.key}"${c.key === f.key ? ' selected' : ''}>${escapeHTML(label(c))}</option>`).join('')}</select></label>
+      <label>At least ${filterUnit(f.key)}<input type="number" step="any" data-bound="min" value="${f.min ?? ''}"></label>
+      <label>At most ${filterUnit(f.key)}<input type="number" step="any" data-bound="max" value="${f.max ?? ''}"></label>
+      <button type="button" class="filter-remove" aria-label="Remove filter ${i + 1}">Remove</button></fieldset>`).join('') || '<p class="note">No numeric filters. Add a measure to set its range.</p>';
+    dialog.querySelector('.filter-add').disabled = draft.length >= choices.length;
+    rows.querySelectorAll('select').forEach(select => select.addEventListener('change', event => {
+      const i = +event.target.closest('[data-index]').dataset.index;
+      draft[i] = { key:event.target.value, min:'', max:'' };
+      draw();
+      rows.querySelector(`[data-index="${i}"] select`).focus();
+    }));
+    rows.querySelectorAll('input').forEach(input => input.addEventListener('input', event => {
+      const row = event.target.closest('[data-index]');
+      draft[+row.dataset.index][event.target.dataset.bound] = event.target.value;
+      row.querySelectorAll('input').forEach(el => el.setCustomValidity(''));
+    }));
+    rows.querySelectorAll('.filter-remove').forEach(button => button.addEventListener('click', event => {
+      draft.splice(+event.target.closest('[data-index]').dataset.index, 1); draw(); dialog.querySelector('.filter-add').focus();
+    }));
+  };
+  dialog.querySelector('.filter-add').addEventListener('click', () => {
+    const key = [state.metric, ...choices.map(c => c.key)].find(key => !draft.some(f => f.key === key));
+    if (key) { draft.push({ key, min:'', max:'' }); draw(); rows.lastElementChild.querySelector('select').focus(); }
+  });
+  dialog.querySelector('.filter-clear').addEventListener('click', () => { draft.length = 0; draw(); });
+  dialog.querySelectorAll('.filter-close,.filter-cancel').forEach(button => button.addEventListener('click', () => dialog.close()));
+  dialog.querySelector('form').addEventListener('submit', event => {
+    event.preventDefault();
+    for (let i = 0; i < draft.length; i++) {
+      const f = draft[i];
+      if (f.min !== '' && f.max !== '' && +f.min > +f.max) {
+        const input = rows.querySelector(`[data-index="${i}"] [data-bound="max"]`);
+        input.setCustomValidity('The upper bound must be at least the lower bound.'); input.reportValidity(); return;
+      }
+    }
+    state.filters = draft.filter(f => f.min !== '' || f.max !== '').map(f => ({ ...f }));
+    state.page = 0;
+    dialog.close();
+    onApply();
+  });
+  dialog.addEventListener('close', () => { dialog.remove(); document.querySelector('.list-filters')?.focus(); }, { once:true });
+  document.body.append(dialog); draw(); dialog.showModal();
+}
+const matchesFilters = row => state.filters.every(f => {
+  const v = row[f.key];
+  return valid(v) && (f.min === '' || +v >= +f.min / filterScale(f.key)) && (f.max === '' || +v <= +f.max / filterScale(f.key));
+});
+
 
 export async function renderList(host, mapUnit, pick) {
   cancelList(host);
@@ -86,7 +149,7 @@ export async function renderList(host, mapUnit, pick) {
   const col = columns.find(c => c.key === state.sort) || columns[1];
   const metric = columns.find(c => c.key === state.metric) || columns[1];
   const needle = state.query.trim().toLowerCase();
-  const shown = rows.filter(row => (!inView || inView(row.region_id)) && (!needle || `${row.display} ${row.region_label} ${row.region_id}`.toLowerCase().includes(needle)));
+  const shown = rows.filter(row => matchesFilters(row) && (!inView || inView(row.region_id)) && (!needle || `${row.display} ${row.region_label} ${row.region_id}`.toLowerCase().includes(needle)));
   const value = row => col.text ? row[col.key].toLowerCase() : valid(row[col.key]) ? +row[col.key] : null;
   shown.sort((a, b) => {
     const x = value(a), y = value(b);
@@ -111,11 +174,11 @@ export async function renderList(host, mapUnit, pick) {
       <input type="search" class="list-search" placeholder="Search name or code" value="${escapeHTML(state.query)}" aria-label="Search the list by name or code">
       <label class="list-measure">Compare <select class="list-metric">${columns.filter(c => !c.text).map(c => `<option value="${c.key}"${c.key === metric.key ? ' selected' : ''}>${escapeHTML(label(c))}</option>`).join('')}</select></label>
       <button type="button" class="list-direction" aria-label="Reverse sort by ${escapeHTML(label(col))}" title="${escapeHTML(label(col))}: ${col.text ? (state.dir > 0 ? 'A to Z' : 'Z to A') : (state.dir > 0 ? 'Lowest first' : 'Highest first')}">${col.text ? (state.dir > 0 ? 'A–Z' : 'Z–A') : (state.dir > 0 ? '↑' : '↓')}</button>
-      <div class="list-options"><label class="list-view"><input type="checkbox" class="list-inview"${state.inView ? ' checked' : ''}> In map view</label><button type="button" class="list-full" aria-pressed="${state.full}">Full table</button></div>
+      <div class="list-options"><label class="list-view"><input type="checkbox" class="list-inview"${state.inView ? ' checked' : ''}> In map view</label><button type="button" class="list-filters" aria-haspopup="dialog">Filters${state.filters.length ? ` (${state.filters.length})` : ''}</button><button type="button" class="list-full" aria-pressed="${state.full}">Full table</button></div>
     </div>
     ${level === 'cd' ? '<p class="note list-disclaimer">U.S. Senate forecast within each district.</p>' : ''}
     ${boundsUnavailable ? '<p class="note">Map bounds unavailable; showing all matching places.</p>' : ''}
-    <div class="list-scroll"><table class="place-list${state.full ? ' full' : ' compact'}"><thead><tr>${head}</tr></thead><tbody>${body || `<tr class="list-empty"><td colspan="${displayed.length}">No places match. Try another search or turn off “In map view”.</td></tr>`}</tbody></table></div>
+    <div class="list-scroll"><table class="place-list${state.full ? ' full' : ' compact'}"><thead><tr>${head}</tr></thead><tbody>${body || `<tr class="list-empty"><td colspan="${displayed.length}">No places match. Adjust the search, filters, or map view.</td></tr>`}</tbody></table></div>
     <div class="list-footer"><p class="note list-count" role="status">${shown.length ? `${count(start + 1)}–${count(start + visible.length)} of` : ''} ${count(shown.length)} ${escapeHTML(levels[level].label.toLowerCase())}</p>
       <nav class="list-pagination" aria-label="Place list pages">
         <button type="button" data-page="0" aria-label="First page"${state.page === 0 ? ' disabled' : ''}>«</button><button type="button" data-page="${state.page - 1}" aria-label="Previous page"${state.page === 0 ? ' disabled' : ''}>‹</button>
@@ -130,6 +193,7 @@ export async function renderList(host, mapUnit, pick) {
   host.querySelector('.list-inview').addEventListener('change', event => { state.inView = event.target.checked; reset(); redraw('.list-inview'); });
   host.querySelector('.list-metric').addEventListener('change', event => { state.metric = state.sort = event.target.value; state.dir = -1; reset(); redraw('.list-metric'); });
   host.querySelector('.list-direction').addEventListener('click', () => { state.dir = -state.dir; reset(); redraw('.list-direction'); });
+  host.querySelector('.list-filters').addEventListener('click', () => editFilters(level, () => redraw('.list-filters')));
   host.querySelector('.list-full').addEventListener('click', () => { state.full = !state.full; redraw('.list-full'); });
   host.querySelector('.list-search').addEventListener('input', event => {
     state.query = event.target.value;
