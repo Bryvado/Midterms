@@ -140,9 +140,9 @@
     </div>
 
     <dialog id="map-loading" class="map-loading" aria-labelledby="map-loading-label" aria-modal="true" tabindex="-1">
-      <span class="map-spinner" aria-hidden="true"></span>
       <p id="map-loading-label" role="status" aria-live="polite">Updating map…</p>
-      <p class="note">Please wait for this change to finish.</p>
+      <span id="map-loading-percent" aria-hidden="true"></span>
+      <progress id="map-loading-progress" max="100" aria-labelledby="map-loading-label"></progress>
     </dialog>
     <dialog id="chart-dialog" class="chart-dialog" aria-label="Polling chart, expanded">
       <div class="chart-dialog-head"><h2 class="trend-title-text">Polling average and forecast</h2><span class="range-switch" role="group" aria-label="Time range"><button type="button" data-chart-range="6m">6 mo</button><button type="button" data-chart-range="all">All</button></span><button type="button" class="chart-dialog-close" aria-label="Close expanded chart">×</button></div>
