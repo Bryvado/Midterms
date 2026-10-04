@@ -1,3 +1,4 @@
+import { placeMeasures, measureLabel } from './metrics.js';
 import { csv, pct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
 import { renderList, listFiltersByView, cancelList } from './list.js';
@@ -90,13 +91,10 @@ function renderPlace(unit, props, data, counties) {
       shade(`rep_${key}`,`${race}: Republican votes`,'count',value(`rep_${key}`)),
       dem + rep > 0 ? shade(`base_${key}`,`${race}: Democratic two-party share`,'share',dem/(dem+rep)) : 'n/a'];
   });
-  const demographics = [
-    ['Population','population','count'],['Citizen voting-age population','cvap_total','count'],
-    ['Hispanic share of CVAP','hisp_cvap_share','bounded'],['White share of CVAP','white_cvap_share','bounded'],
-    ['Black share of CVAP','black_cvap_share','bounded'],["Bachelor's degree or higher",'ba_plus_share','bounded'],
-    [unit === 'precinct' ? 'Median income' : 'Average of precinct median incomes','med_income','money'],
-    ['Registered voters, 2024','registered_2024','count'],['Voted in 2022','voted_2022','count'],
-  ].map(([name,key,kind]) => [escapeHTML(name),shade(key,name,kind,value(key))]);
+  const demographics = placeMeasures.map(metric => {
+    const name = measureLabel(metric, unit);
+    return [escapeHTML(name), shade(metric.key, name, metric.kind, value(metric.key))];
+  });
   content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2 title="${escapeHTML(label)}">${escapeHTML(heading)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
     <p class="shade-hint">Select any underlined number to shade the map by that measure.</p>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
