@@ -54,7 +54,7 @@
               </label>
             </div>
             <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
-            <div class="map-buttons"><button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button><button id="map-theme" class="map-theme" type="button" aria-pressed="false" title="Switch map background">Dark map</button></div>
+            <div class="map-buttons"><button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button><button id="appearance-toggle" class="appearance-toggle" type="button" popovertarget="appearance-menu" aria-expanded="false" aria-label="Appearance: map and data displays" title="Map and data appearance"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c-5 2-11-3-9-9Z"/><path d="M12 8a4 4 0 0 0 0 8M3 12H1M5.6 5.6 4.2 4.2M5.6 18.4l-1.4 1.4M12 21v2"/></svg></button></div>
           </div>
           <span class="fp-resize" aria-hidden="true"></span>
         </section>
@@ -128,6 +128,14 @@
           <span class="fp-resize" aria-hidden="true"></span>
         </section>
       </main>
+      <div id="appearance-menu" class="appearance-menu" popover="auto" aria-label="Appearance settings">
+        <h2>Appearance</h2>
+        <label for="basemap-theme">Map background</label>
+        <select id="basemap-theme"><option value="light">Light map</option><option value="dark">Dark map</option></select>
+        <label for="layout-theme">Data displays</label>
+        <select id="layout-theme"><option value="light">Light panels</option><option value="dark">Dark panels</option></select>
+        <p>Map and panel themes are independent.</p>
+      </div>
       <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
     </div>
 
@@ -154,7 +162,7 @@
         <p>The headline combines an election-day polling average with a fundamentals prior. The polling average uses a Kalman filter; its dashed segment projects beyond the last observed poll. Polling-bias variance is added to the poll term in the combined estimate.</p>
         <p>Map shares are Talarico's share of votes for the two major candidates, D/(D+R). Scenario maps use joint simulation draws near the statewide 5th and 95th percentiles. Precinct and county vote counts come from a separate vote-count simulation and may imply a two-party share that differs from the map by up to about half a point.</p>
         <p>The actual 2024 Harris result is the model's reference baseline for geographic shifts. “Reference baseline” describes its role in the model, not how the 2024 votes were obtained.</p>
-        <p>Click a number in the selected-place panel to shade every county or precinct by that measure. Red and blue map colors represent Republican and Democratic outcomes. Result confidence uses one purple scale from 50% (even) to 100% (certain), regardless of which candidate is favored; it is the published larger of the two candidates' modeled chances of leading. Projected margin is Talarico minus Paxton as a share of all ballots, and Brown share is Brown's share of all ballots, both as published by the model. Net vote density is the published net Talarico minus Paxton votes per square mile of full-resolution area: blue is a Talarico lead, red is a Paxton lead. Areas expected to cast under half a ballot have no margin, Brown share or density and are drawn as no data. The Display panel sets how each metric is colored: a center (an even 50%, the statewide forecast or a baseline race's statewide result), a range (fit to the areas in view, fit to all areas at the current level, a fixed width or custom bounds) and continuous, stepped or ratings-style bins. These settings change only the coloring; the legend states the active center and range. Estimated demographic percentages are capped at 100% for display and shading; the published CSVs retain the original estimates. Use Dark map or Light map to change the background without changing the selected measure or location.</p>
+        <p>Click a number in the selected-place panel to shade every county or precinct by that measure. Red and blue map colors represent Republican and Democratic outcomes. Result confidence uses one purple scale from 50% (even) to 100% (certain), regardless of which candidate is favored; it is the published larger of the two candidates' modeled chances of leading. Projected margin is Talarico minus Paxton as a share of all ballots, and Brown share is Brown's share of all ballots, both as published by the model. Net vote density is the published net Talarico minus Paxton votes per square mile of full-resolution area: blue is a Talarico lead, red is a Paxton lead. Areas expected to cast under half a ballot have no margin, Brown share or density and are drawn as no data. The Display panel sets how each metric is colored: a center (an even 50%, the statewide forecast or a baseline race's statewide result), a range (fit to the areas in view, fit to all areas at the current level, a fixed width or custom bounds) and continuous, stepped or ratings-style bins. These settings change only the coloring; the legend states the active center and range. Estimated demographic percentages are capped at 100% for display and shading; the published CSVs retain the original estimates. Choose demographics directly from Show or click a demographic value in a place’s details. These sequential colors describe areas, not individual voter behavior. The sun/moon Appearance button sets the map background and the data-panel theme independently, while preserving the selected measure and location.</p>
         <h3>Statewide shift from past races</h3><div id="shift-table" class="table-scroll"></div>
         <h3>Model checks</h3><p id="gate-summary"></p><div id="gate-list" class="gate-list"></div>
       </div>

@@ -14,7 +14,8 @@ let maxInfluence = 0, scenario = null, captionText = '';
 // "Show polls as plain dots" switches every encoding off at once, leaving grey dots of one size and opacity.
 const encKeys = ['color','size','shape','fade','ring','whisker'];
 const enc = Object.fromEntries(encKeys.map(key => [key, true]));
-const plainFill = '#7f9196';
+const displayTheme = () => document.documentElement.dataset.layout === 'dark' ? 'dark' : 'light';
+const plainFill = () => displayTheme() === 'dark' ? '#b9ccd4' : '#7f9196';
 window.addEventListener('display-change', () => drawAll());
 let has = { traj:false, sens:false, approval:false };
 const date = value => new Date(`${value}T00:00:00Z`);
@@ -229,9 +230,9 @@ function draw(root) {
     : `<circle ${attrs} cx="${cx}" cy="${cy}" r="${rr}"/>`;
   const dots = visiblePolls.map((row, i) => {
     const cx = x(row.time), cy = y(+row.talarico_2p), rr = dotR(row), rv = enc.shape && row.population === 'RV';
-    const fill = enc.color ? marginColor(+row.margin) : plainFill;
+    const fill = enc.color ? marginColor(+row.margin, displayTheme()) : plainFill();
     const whisker = enc.whisker && +row.finish > +row.start ? `<line class="poll-whisker" x1="${x(row.start)}" x2="${x(row.finish)}" y1="${cy}" y2="${cy}" stroke="${fill}"/>` : '';
-    const ring = enc.ring && (row.lean === 'D' || row.lean === 'R') ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean)}"`) : '';
+    const ring = enc.ring && (row.lean === 'D' || row.lean === 'R') ? shape(cx, cy, rr + 2.6, rv, `class="poll-ring" stroke="${partyColor(row.lean, displayTheme())}"`) : '';
     return `<g class="chart-poll" data-i="${i}" data-poll-id="${escapeHTML(row.poll_id || '')}" style="opacity:${markOpacity(row).toFixed(3)}">${whisker}${ring}${shape(cx, cy, rr, rv, `class="poll-mark" fill="${fill}"`)}</g>`;
   }).join('');
   const baseObstacles = [

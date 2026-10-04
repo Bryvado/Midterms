@@ -1,3 +1,4 @@
+import { placeMeasures } from './metrics.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -92,7 +93,8 @@ let map, unit = levels[params.get('u')] ? params.get('u') : 'county', measure = 
 let measureRequest = 0;
 let reference = { stateShare:null, baselines:[] };
 let viewRange = null;
-const metricKinds = new Map();
+const metricKinds = new Map(placeMeasures.map(metric => [metric.key, metric.kind]));
+export const currentUnit = () => unit;
 const stateValues = new Map();
 
 const styles = {
@@ -178,19 +180,22 @@ function centerText(key, c) {
   return options(key).centers.find(([v]) => v === c)?.[1] || '';
 }
 
-function ramp(type) {
-  if (isDiverging(type)) return settings.dpal === 'custom' ? [settings.dlo, neutral[theme], settings.dhi] : divergingPalettes[settings.dpal][theme];
-  if (settings.spal === 'custom') return theme === 'dark' ? [settings.shi, settings.slo] : [settings.slo, settings.shi];
-  if (type === 'brown' && settings.spal === defaults.spal) return goldColors[theme];
-  return sequentialPalettes[settings.spal][theme];
+function ramp(type, surfaceTheme = theme) {
+  if (isDiverging(type)) return settings.dpal === 'custom' ? [settings.dlo, neutral[surfaceTheme], settings.dhi] : divergingPalettes[settings.dpal][surfaceTheme];
+  if (settings.spal === 'custom') return surfaceTheme === 'dark' ? [settings.shi, settings.slo] : [settings.slo, settings.shi];
+  if (type === 'brown' && settings.spal === defaults.spal) return goldColors[surfaceTheme];
+  return sequentialPalettes[settings.spal][surfaceTheme];
 }
 // Interpolate in CIELAB so the ramp passes through a clean light midpoint instead of a muddy RGB mix.
 const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).interpolate(interpolateLab).clamp(true)(t);
-// Shared with the poll chart: a margin in points on the active diverging palette, clamped at ±8, neutral at 0.
-export function marginColor(points) {
-  return colorAt(ramp('margin'), .5 + Math.max(-8, Math.min(8, points)) / 16);
+// Shared with the poll chart: a margin in points on the requested surface’s diverging palette, clamped at ±8, neutral at 0.
+export function marginColor(points, surfaceTheme = theme) {
+  const colors = [...ramp('margin', surfaceTheme)];
+  // Close-race charcoal works on the basemap; a light neutral keeps tied polls visible on dark panels.
+  if (surfaceTheme === 'dark') colors[Math.floor(colors.length / 2)] = '#becbd5';
+  return colorAt(colors, .5 + Math.max(-8, Math.min(8, points)) / 16);
 }
-export const partyColor = side => colorAt(ramp('margin'), side === 'D' ? 1 : 0);
+export const partyColor = (side, surfaceTheme = theme) => colorAt(ramp('margin', surfaceTheme), side === 'D' ? 1 : 0);
 const announce = () => window.dispatchEvent(new Event('display-change'));
 
 function format(key, v) {
@@ -570,9 +575,6 @@ export async function setMeasure(next, meta) {
 export function setTheme(next) {
   if (!styles[next] || theme === next) return;
   theme = next;
-  const button = document.querySelector('#map-theme');
-  button.textContent = theme === 'light' ? 'Dark map' : 'Light map';
-  button.setAttribute('aria-pressed', String(theme === 'dark'));
   pane.dataset.theme = theme;
   pane.style.background = basemapBackground[theme];
   drawLegend();
@@ -582,6 +584,7 @@ export function setTheme(next) {
 
 export function initMap(select) {
   onSelect = select;
+  pane.dataset.theme = theme;
   pane.style.background = basemapBackground[theme];
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
@@ -638,7 +641,6 @@ export function initMap(select) {
     console.error('Map error:', e.error);
   });
   document.querySelector('#reset-map').addEventListener('click', () => map.fitBounds(bounds, { padding: 28, duration: 450 }));
-  document.querySelector('#map-theme').addEventListener('click', () => setTheme(theme === 'light' ? 'dark' : 'light'));
   initDisplayControls();
   setUnit(unit);
   return map;

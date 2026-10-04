@@ -1,7 +1,9 @@
 import './style.css';
 import './layout.js';
+import { initAppearance } from './appearance.js';
+import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
-import { initMap, setUnit, setMeasure, setReference, initialMeasure } from './map.js';
+import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario } from './chart.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
@@ -62,12 +64,21 @@ setShadeHandler(meta => {
   applyMeasure(meta.key, meta);
 });
 
+optionGroup('Demographics', demographicMeasures.map(metric => [metric.key, measureLabel(metric, currentUnit())]));
+optionGroup('Electorate counts', electorateMeasures.map(metric => [metric.key, metric.label]));
+window.addEventListener('unit-change', ({ detail:unit }) => {
+  for (const option of measure.options) {
+    const metric = placeMeasures.find(metric => metric.key === option.value);
+    if (metric) option.textContent = measureLabel(metric, unit);
+  }
+});
+initAppearance();
 try {
   initMap(selectPlace);
 } catch (error) {
   console.error('Map initialization failed:', error);
   $('#map-message').textContent = 'This browser could not display the map. The forecast and polling data remain available.';
-  $('#map-theme').disabled = true;
+  $('#basemap-theme').disabled = true;
   $('#reset-map').disabled = true;
 }
 
