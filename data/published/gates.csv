@@ -74,118 +74,118 @@ enthusiasm moves P in the direction of the gap,PASS,fundamentals,P no-enthusiasm
 "enthusiasm sensitivity: pooled FE transfer, even allocation",INFO,fundamentals,beta 0.1158 -> mean 0.5007 sd 0.0164 P 0.5176,05_fundamentals.R,2026-10-03T20:04:18Z
 polling-bias sensitivities (not adopted),INFO,combined,"C all cycles (bias_sd 0.0219): P 0.6498 | D midterm out-party lean, all 7 (+0.0024, se 0.0113): P 0.6720 | E midterm lean 2006+ 5 (+0.0194, se 0.0028, start chosen post hoc): P 0.8769",05_fundamentals.R,2026-10-03T20:04:18Z
 change vs previous combined_estimate,INFO,combined,mean 0.506532 -> 0.507194 (+0.0007) | sd 0.016561 -> 0.016460 | P 0.6534 -> 0.6690 (prev saved 2026-10-03 02:58),05_fundamentals.R,2026-10-03T20:04:18Z
-statewide anchor (05 combined_estimate),INFO,regional,mean 0.507194 | sd 0.016460 | P 0.6690 | saved 2026-10-03 16:04,06_vtd_model.R,2026-10-03T20:24:51Z
-major-party fraction for VTDs without 2024 votes,INFO,regional,364 VTDs use their county's major-party fraction to convert the predicted Trump share,06_vtd_model.R,2026-10-03T20:24:51Z
-"regional profiles (from 05, spatially corrected)",INFO,regional,hispanic 2010 | rural 2751 | suburbs 2436 | urban 2515 | 135 reassigned rural -> urban,06_vtd_model.R,2026-10-03T20:24:51Z
-electorate weights,INFO,regional,"general24_scaled=25 midterm22=9328 none=317 pres24_scaled=42 | midterm/general ratio 0.718 | 317 VTDs with zero electorate (predicted, carry no votes)",06_vtd_model.R,2026-10-03T20:24:51Z
-portal race on model keys: statewide_President_Vice-President_2020,PASS,regional,9712 VTDs | D 5257513 | R 5889022,06_vtd_model.R,2026-10-03T20:24:51Z
-portal race on model keys: statewide_U.S._Senator_2018,PASS,regional,9712 VTDs | D 4044073 | R 4259630,06_vtd_model.R,2026-10-03T20:24:51Z
-portal race on model keys: statewide_Governor_2022,PASS,regional,9712 VTDs | D 3554772 | R 4437097,06_vtd_model.R,2026-10-03T20:24:51Z
-reference: county and local shock sd,PASS,regional,county 0.1040 / local 0.2050 | blessed 09-29: county 0.1040 / local 0.2050 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T20:24:51Z
-variance components by pair,INFO,regional,county 0.0911/0.1121/0.1075 | local 0.1779/0.2380/0.1944 | single-cycle 2020->22 raw 0.0955 / 0.1791,06_vtd_model.R,2026-10-03T20:24:51Z
-"variance components: three cycles, Hispanic composition removed",UNGATED,regional,"pooled root-mean-variance over 2020->22, 2018->22 and 2022->24, all on current VTD keys (Capitol Portal + VEST 2024); college/other trends stay in the random shocks",06_vtd_model.R,2026-10-03T20:24:51Z
-reference: baseline blend,PASS,regional,w 0.40 / small_v 118.73 | blessed 09-29: w 0.40 / small_v 118.73 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T20:24:51Z
-baseline blend bin optima,INFO,regional,weight on actual 2024 by bin 0.55/0.35/0.40/0.45/0.45/0.50/0.25/0.40/0.30/0.40 (adopted: median of bins 2-10),06_vtd_model.R,2026-10-03T20:24:51Z
-baseline blend weight,UNGATED,regional,"chosen on 2022 governor; the crossover fit saw 2022 AG as a covariate, so the weight on actual 2024 is conservative",06_vtd_model.R,2026-10-03T20:24:51Z
-two-party baseline,INFO,regional,"4 fitted values clamped | cor with actual 2024: blended 0.9756, fitted 0.9701 | 1194 VTDs fitted-only",06_vtd_model.R,2026-10-03T20:24:51Z
-logit swing from blended 2024 baseline,INFO,regional,uniform shift + calibrated 2024-swing reversion + county/local shocks,06_vtd_model.R,2026-10-03T20:24:51Z
-deterministic shift by electorate (sensitivity),INFO,regional,midterm22 0.3581 | pres24_major 0.3660 | general24_L2 0.3587,06_vtd_model.R,2026-10-03T20:24:51Z
-"Brown level (joint with two-party, from 05)",INFO,regional,"final Brown median 0.0438 [0.0319, 0.0591] | polled 0.0581 | keep 0.58-0.93 | P without fade link 0.7011",06_vtd_model.R,2026-10-03T20:24:51Z
-Libertarian geography from portal 'other' votes,UNGATED,regional,AG 2022 other = Libertarian only; GOV 2022 other also includes the Green candidate; replaces VEST 2022 Libertarian columns (retired precinct vintage),06_vtd_model.R,2026-10-03T20:24:51Z
-Libertarian pseudo-count selected by AG <-> GOV cross-prediction,PASS,regional,M 20 expected-L votes (interior) | cross-race mse 0.1056 | slopes AG 0.855 GOV 0.788,06_vtd_model.R,2026-10-03T20:24:51Z
-down-ballot Libertarian races excluded (lower salience; candidate-specific geography),INFO,regional,analog-race mse: AG+GOV only 0.1056 | +COM 0.1199 | +LTG 0.0927,06_vtd_model.R,2026-10-03T20:24:51Z
-Brown allocation: 2022 AG + GOV Libertarian geography,INFO,regional,k p05 0.71 med 0.98 p95 1.28 max 1.91 | max Brown at median level 0.0834 | 0 VTDs without 2022 L data set to 1 | Webb 1.089 Brazos 1.202 Harris 0.969,06_vtd_model.R,2026-10-03T20:24:51Z
-retired: composition-spec allocation (0.196 / 0.715),INFO,regional,failed historical check (L-ratio slope on k 0.08-0.24) | cor with adopted k 0.062 | VTDs with Brown > 0.10: comp 144 -> adopted 0,06_vtd_model.R,2026-10-03T20:24:51Z
-2026 crosstab group gains vs CCES 2024,INFO,regional,readings black 13 hispanic 13 white 14 | gains black +0.082 hispanic +0.126 white +0.064 | Hispanic-minus-white target +0.0614 (se 0.0319),06_vtd_model.R,2026-10-03T20:24:51Z
-swing variance fit: relative-error weighting,INFO,regional,bins weighted by n / var^2 | smallest bin observed var 0.587 vs fitted 0.395 (ratio 1.5),06_vtd_model.R,2026-10-03T20:24:51Z
-reference: swing shrinkage split,PASS,regional,tau2 0.0037 / s 27.5555 | blessed 09-29: tau2 0.0037 / s 27.5555 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T20:24:51Z
-swing shrinkage,INFO,regional,"local sd 0.061 | half-weight 7488 votes | bin R2 0.856 | targets: 9197 cell, 515 county | 721 vote-ratio anomalies to target",06_vtd_model.R,2026-10-03T20:24:51Z
-drift: reversion rho,INFO,regional,rho 0.444 / se 0.373 | previous run 10-03 01:50: rho 0.401 / se 0.374 | change rho +0.0435 / se -0.0009 | moves as crosstabs are added | sweep slope 0.0856 | statewide 2020->24 swing -0.1350 | 1135 VTDs with CVAP sums > 1 normalized,06_vtd_model.R,2026-10-03T20:24:51Z
-2024-swing reversion drawn per simulation,UNGATED,regional,"rho ~ N(0.444, 0.373), untruncated: negative draws = 2024 swing continues (as 2020's did in 2022); calibrated on Hispanic-minus-white differential, CVAP ecological mapping",06_vtd_model.R,2026-10-03T20:24:51Z
-per-draw shift converged (Newton),PASS,regional,max |statewide 2P - target| 1.11e-16,06_vtd_model.R,2026-10-03T20:24:51Z
-shared regional-profile shock,UNGATED,regional,"sd 0.078 logit per profile per draw (hispanic/rural/suburbs/urban), re-anchored statewide each draw | from 9 profile-minus-state swing gaps; 10-03 test: profile 90% widths +0.9 to +2.1 pts, county P moves <= 0.04",06_vtd_model.R,2026-10-03T20:24:51Z
-MC statewide 2P mean reproduces anchor,PASS,regional,0.507242 vs 0.507194 (4 SE = 0.000208),06_vtd_model.R,2026-10-03T20:24:51Z
-MC P(Talarico plurality) reproduces analytic P(2P > 0.5),PASS,regional,0.6697 vs 0.6690 (4 SE = 0.0060),06_vtd_model.R,2026-10-03T20:24:51Z
-precincts forecast > 15 pts above their 2024 result,INFO,regional,"307 VTDs, 104,696 2024 votes (pre-correction preflight: 599 VTDs, 410,358 votes)",06_vtd_model.R,2026-10-03T20:24:51Z
-soft turnout targets computed in 07,PASS,regional,8734 direct | 978 county fallbacks | K 50 on 2022 registrants | county rate from direct VTDs,07_vote_counts.R,2026-10-03T21:06:13Z
-soft turnout logit shift,UNGATED,regional,"0.117841633783 carried forward from the retired K50 CSV (generator never saved); its level is absorbed by soft_scale, its curvature shapes the relative pattern",07_vote_counts.R,2026-10-03T21:06:13Z
-soft targets vs retired CSV on shared direct VTDs,INFO,regional,8631 shared | median |d| 0.00000 | p99 0.00812 | exact (<1e-9) 4479,07_vote_counts.R,2026-10-03T21:06:13Z
-06 draw reuse,PASS,regional,100000 target/Brown draws | sigma county 0.1040 local 0.2050 profile 0.0780 (hispanic/rural/suburbs/urban),07_vote_counts.R,2026-10-03T21:06:13Z
-06 2024-swing reversion reused per draw,PASS,regional,rho mean 0.441 sd 0.374 | swing_dev -0.421..0.204,07_vote_counts.R,2026-10-03T21:06:13Z
-2022 turnout reference,UNGATED,regional,0.4597 from the approved preflight; ratio basis for 2022 L2 ballots,07_vote_counts.R,2026-10-03T21:06:13Z
-soft turnout preserves baseline and fallbacks,PASS,regional,scale 1.00016864 | baseline 9102832 | fallback 14988 | 317 zero-electorate VTDs,07_vote_counts.R,2026-10-03T21:06:13Z
-reference: central statewide ballots,PASS,regional,ballots 9102832 | blessed 09-29: ballots 9102832 | max diff 0 | inputs not fingerprinted: tol 91000,07_vote_counts.R,2026-10-03T21:06:13Z
-2022 electorate fallbacks,INFO,regional,l2_2022=9328 | l2_2024_scaled=25 | none=317 | pres_2024_scaled=42,07_vote_counts.R,2026-10-03T21:06:13Z
-registration growth,INFO,regional,state 1.0782 | VTD p05 0.992 med 1.057 p95 1.223 | direct=9362 county=350 state=0,07_vote_counts.R,2026-10-03T21:06:13Z
-portal race on model keys: statewide_U.S._Senator_2018,PASS,regional,9712 VTDs,07_vote_counts.R,2026-10-03T21:06:13Z
-portal race on model keys: statewide_Governor_2022,PASS,regional,9712 VTDs,07_vote_counts.R,2026-10-03T21:06:13Z
-turnout variance components,UNGATED,regional,single cycle: state -0.0383 | county 0.0829 | local all 0.1893 | local t18>=500 0.1761 adopted,07_vote_counts.R,2026-10-03T21:06:13Z
-reference: turnout decomposition,PASS,regional,state -0.0383 / county 0.0829 / local_all 0.1893 / local_500 0.1761 | blessed 09-29: state -0.0383 / county 0.0829 / local_all 0.1893 / local_500 0.1761 | max diff 0 | inputs unchanged: exact match required,07_vote_counts.R,2026-10-03T21:06:13Z
-registration growth signal,INFO,regional,cor log turnout change with log growth 0.191 | within-county 0.170,07_vote_counts.R,2026-10-03T21:06:13Z
-reference: turnout-preference shock correlation,PASS,regional,county +0.307 / local +0.144 | blessed 09-29: county +0.307 / local +0.144 | max diff 0 | inputs unchanged: exact match required,07_vote_counts.R,2026-10-03T21:06:13Z
-turnout-preference correlation sample,INFO,regional,"250 counties, 5576 VTDs >= 500 votes",07_vote_counts.R,2026-10-03T21:06:13Z
-turnout and preference shocks correlated,UNGATED,regional,single cycle (2018 Senate -> 2022 Governor); statewide turnout rate still independent of the statewide target,07_vote_counts.R,2026-10-03T21:06:13Z
-turnout-rate truncation,INFO,regional,"0 of 100000 draws clipped into (0,1)",07_vote_counts.R,2026-10-03T21:06:13Z
-turnout draws reproduce fundamentals center,PASS,regional,0.485904 vs 0.485780 | 4 SE 0.000440,07_vote_counts.R,2026-10-03T21:06:13Z
-integer statewide ballots reproduce implied totals,PASS,regional,max absolute rounding gap 123.3 votes | max relative 1.99e-05,07_vote_counts.R,2026-10-03T21:06:13Z
-continuous statewide Brown share equals sampled level,PASS,regional,max residual 2.78e-17 | max VTD Brown share 0.1636,07_vote_counts.R,2026-10-03T21:06:13Z
-per-draw two-party shift converged,PASS,regional,max residual 2.22e-16,07_vote_counts.R,2026-10-03T21:06:13Z
-integer vote identities,PASS,regional,max |T+P+B-ballots| 0 | invalid counts 0,07_vote_counts.R,2026-10-03T21:06:13Z
-integer statewide 2P tracks sampled target,PASS,regional,max absolute gap 1.47e-05,07_vote_counts.R,2026-10-03T21:06:13Z
-integer statewide Brown share tracks sampled level,PASS,regional,max absolute gap 1.82e-05,07_vote_counts.R,2026-10-03T21:06:13Z
-07 target draws reproduce 06 plurality probability,PASS,regional,target 0.6697 | 06 0.6697,07_vote_counts.R,2026-10-03T21:06:13Z
-integer-count plurality reproduces 06,PASS,regional,count 0.6697 | 06 0.6697 | 4 SE 0.0059,07_vote_counts.R,2026-10-03T21:06:13Z
-06 statewide 2P draws retained,PASS,regional,mean 0.507242,07_vote_counts.R,2026-10-03T21:06:13Z
-07 county two-party geography matches 06,PASS,regional,max |07 - 06| 0.0048 over 28 counties with >= 50k midterm electorate (Hidalgo 07 0.6028 vs 06 0.6025),07_vote_counts.R,2026-10-03T21:06:13Z
-headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-10-03T23:18:32Z
-headline_p_consistent,PASS,publish,"mean 0.5072, P 0.669",08_publish.R,2026-10-03T23:18:32Z
-track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-10-03T23:18:32Z
-track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-10-03T23:18:32Z
-forecast_path_reaches_headline,PASS,publish,Election Day 0.507194 vs headline 0.507194 | sd 0.016460 vs 0.016460 | fundamentals weight 0.359 at last poll -> 0.375 on Election Day,08_publish.R,2026-10-03T23:18:32Z
-trajectory_endpoints,PASS,publish,"starts at poll average 0.5131 on 2026-09-30, ends at headline 0.5072 on Election Day",08_publish.R,2026-10-03T23:18:32Z
-approval_sensitivity_covers_track,PASS,publish,406 days | slope -1.05 pts per 10 net pts | Election Day fundamentals 0.5145 vs adopted 0.5012,08_publish.R,2026-10-03T23:18:32Z
-ledger_count,PASS,publish,44 ledger rows vs 44 pooled,08_publish.R,2026-10-03T23:18:32Z
-ledger_repools_to_obs,PASS,publish,"40/40 dates matched, max diff 1.11e-16",08_publish.R,2026-10-03T23:18:32Z
-ledger_influence_complete,PASS,publish,44 polls | influence sums to 1.0000 | top: Barbara Jordan Public Policy Research and Survey Center 0.095,08_publish.R,2026-10-03T23:18:32Z
-vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-10-03T23:18:32Z
-vtd_built_on_current_draws,PASS,publish,"06's 100000 target draws are identical to 05's joint draws (06 saved 10-03 16:24, 05 saved 10-03 16:04)",08_publish.R,2026-10-03T23:18:32Z
-vtd_draws_center,PASS,publish,draw mean gap 4.84e-05,08_publish.R,2026-10-03T23:18:32Z
-vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-03T23:18:32Z
-baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-03T23:18:32Z
-pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-10-03T23:18:32Z
-vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-10-03T23:18:32Z
-vtd_draws_after_forecast,PASS,publish,07 2026-10-03 17:00:40.345426 vs 06 2026-10-03 16:24:50.673215,08_publish.R,2026-10-03T23:18:32Z
-scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5345, VTD draws aggregate 0.5345, window gap 0.0017",08_publish.R,2026-10-03T23:18:32Z
-scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4800, VTD draws aggregate 0.4801, window gap 0.0016",08_publish.R,2026-10-03T23:18:32Z
-vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-10-03T23:18:32Z
-geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-10-03T23:18:32Z
-county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-10-03T23:18:32Z
-county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-10-03T23:18:32Z
-shading_columns_valid,PASS,publish,319 precincts blank (< 0.5 expected ballots) | Texas 268596 sq mi | precinct vs county net-vote gap 3.8e-08 of ballots,08_publish.R,2026-10-03T23:18:32Z
-detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-10-03T23:18:32Z
-unit_xwalk_complete,PASS,publish,"668757 blocks | 38 districts | 862 subdivisions | 0 VTDs placed by point (no blocks) | nearest-polygon blocks: VTD 0, subdivision 0",08_publish.R,2026-10-03T23:18:32Z
-planc2333_population_balance,PASS,publish,2020 population per district 766986-766987 (ideal 766987),08_publish.R,2026-10-03T23:18:32Z
-congressional_district_allocation_exact,PASS,publish,"38 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-03T23:18:32Z
-congressional_district_split_precincts,UNGATED,publish,427 precincts cross congressional_district lines; their 6.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-03T23:18:32Z
-county_subdivision_allocation_exact,PASS,publish,"862 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 1.1e-16)",08_publish.R,2026-10-03T23:18:32Z
-county_subdivision_split_precincts,UNGATED,publish,1703 precincts cross county_subdivision lines; their 16.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-03T23:18:32Z
-sim_cloud_draws_aligned,PASS,publish,5000 draws | county-summed 2P vs stored statewide 2P max gap 0.0e+00,08_publish.R,2026-10-03T23:18:32Z
-sim_cloud_complete,PASS,publish,5000 rows | PCA var first 3 0.120/0.093/0.072 | axes: shape_x = South Texas vs state (0.83); shape_y = Rural vs state (0.54),08_publish.R,2026-10-03T23:18:32Z
-sim_cloud_center,PASS,publish,cloud mean 0.5073 vs headline 0.5072 (4 SE 0.0009) | P(Talarico) cloud 0.674 vs 0.669,08_publish.R,2026-10-03T23:18:32Z
-sim_cloud_density,PASS,publish,"13824 grid cells per view | shell levels shape 0.557/0.207, drivers 0.358/0.069 (50%/90%)",08_publish.R,2026-10-03T23:18:32Z
-district_subdivision_geometry_match,PASS,publish,"38 district polygons | 862 subdivision polygons (0 TIGER subdivisions hold no blocks, dropped)",08_publish.R,2026-10-03T23:18:32Z
+statewide anchor (05 combined_estimate),INFO,regional,mean 0.507194 | sd 0.016460 | P 0.6690 | saved 2026-10-03 16:04,06_vtd_model.R,2026-10-03T23:42:36Z
+major-party fraction for VTDs without 2024 votes,INFO,regional,364 VTDs use their county's major-party fraction to convert the predicted Trump share,06_vtd_model.R,2026-10-03T23:42:36Z
+"regional profiles (from 05, spatially corrected)",INFO,regional,hispanic 2010 | rural 2751 | suburbs 2436 | urban 2515 | 135 reassigned rural -> urban,06_vtd_model.R,2026-10-03T23:42:36Z
+electorate weights,INFO,regional,"general24_scaled=25 midterm22=9328 none=317 pres24_scaled=42 | midterm/general ratio 0.718 | 317 VTDs with zero electorate (predicted, carry no votes)",06_vtd_model.R,2026-10-03T23:42:36Z
+portal race on model keys: statewide_President_Vice-President_2020,PASS,regional,9712 VTDs | D 5257513 | R 5889022,06_vtd_model.R,2026-10-03T23:42:36Z
+portal race on model keys: statewide_U.S._Senator_2018,PASS,regional,9712 VTDs | D 4044073 | R 4259630,06_vtd_model.R,2026-10-03T23:42:36Z
+portal race on model keys: statewide_Governor_2022,PASS,regional,9712 VTDs | D 3554772 | R 4437097,06_vtd_model.R,2026-10-03T23:42:36Z
+reference: county and local shock sd,PASS,regional,county 0.1040 / local 0.2050 | blessed 09-29: county 0.1040 / local 0.2050 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T23:42:36Z
+variance components by pair,INFO,regional,county 0.0911/0.1121/0.1075 | local 0.1779/0.2380/0.1944 | single-cycle 2020->22 raw 0.0955 / 0.1791,06_vtd_model.R,2026-10-03T23:42:36Z
+"variance components: three cycles, Hispanic composition removed",UNGATED,regional,"pooled root-mean-variance over 2020->22, 2018->22 and 2022->24, all on current VTD keys (Capitol Portal + VEST 2024); college/other trends stay in the random shocks",06_vtd_model.R,2026-10-03T23:42:36Z
+reference: baseline blend,PASS,regional,w 0.40 / small_v 118.73 | blessed 09-29: w 0.40 / small_v 118.73 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T23:42:36Z
+baseline blend bin optima,INFO,regional,weight on actual 2024 by bin 0.55/0.35/0.40/0.45/0.45/0.50/0.25/0.40/0.30/0.40 (adopted: median of bins 2-10),06_vtd_model.R,2026-10-03T23:42:36Z
+baseline blend weight,UNGATED,regional,"chosen on 2022 governor; the crossover fit saw 2022 AG as a covariate, so the weight on actual 2024 is conservative",06_vtd_model.R,2026-10-03T23:42:36Z
+two-party baseline,INFO,regional,"4 fitted values clamped | cor with actual 2024: blended 0.9756, fitted 0.9701 | 1194 VTDs fitted-only",06_vtd_model.R,2026-10-03T23:42:36Z
+logit swing from blended 2024 baseline,INFO,regional,uniform shift + calibrated 2024-swing reversion + county/local shocks,06_vtd_model.R,2026-10-03T23:42:36Z
+deterministic shift by electorate (sensitivity),INFO,regional,midterm22 0.3581 | pres24_major 0.3660 | general24_L2 0.3587,06_vtd_model.R,2026-10-03T23:42:36Z
+"Brown level (joint with two-party, from 05)",INFO,regional,"final Brown median 0.0438 [0.0319, 0.0591] | polled 0.0581 | keep 0.58-0.93 | P without fade link 0.7011",06_vtd_model.R,2026-10-03T23:42:36Z
+Libertarian geography from portal 'other' votes,UNGATED,regional,AG 2022 other = Libertarian only; GOV 2022 other also includes the Green candidate; replaces VEST 2022 Libertarian columns (retired precinct vintage),06_vtd_model.R,2026-10-03T23:42:36Z
+Libertarian pseudo-count selected by AG <-> GOV cross-prediction,PASS,regional,M 20 expected-L votes (interior) | cross-race mse 0.1056 | slopes AG 0.855 GOV 0.788,06_vtd_model.R,2026-10-03T23:42:36Z
+down-ballot Libertarian races excluded (lower salience; candidate-specific geography),INFO,regional,analog-race mse: AG+GOV only 0.1056 | +COM 0.1199 | +LTG 0.0927,06_vtd_model.R,2026-10-03T23:42:36Z
+Brown allocation: 2022 AG + GOV Libertarian geography,INFO,regional,k p05 0.71 med 0.98 p95 1.28 max 1.91 | max Brown at median level 0.0834 | 0 VTDs without 2022 L data set to 1 | Webb 1.089 Brazos 1.202 Harris 0.969,06_vtd_model.R,2026-10-03T23:42:36Z
+retired: composition-spec allocation (0.196 / 0.715),INFO,regional,failed historical check (L-ratio slope on k 0.08-0.24) | cor with adopted k 0.062 | VTDs with Brown > 0.10: comp 144 -> adopted 0,06_vtd_model.R,2026-10-03T23:42:36Z
+2026 crosstab group gains vs CCES 2024,INFO,regional,readings black 16 hispanic 16 white 17 | gains black +0.073 hispanic +0.115 white +0.064 | Hispanic-minus-white target +0.0513 (se 0.0316),06_vtd_model.R,2026-10-03T23:42:36Z
+swing variance fit: relative-error weighting,INFO,regional,bins weighted by n / var^2 | smallest bin observed var 0.587 vs fitted 0.395 (ratio 1.5),06_vtd_model.R,2026-10-03T23:42:36Z
+reference: swing shrinkage split,PASS,regional,tau2 0.0037 / s 27.5555 | blessed 09-29: tau2 0.0037 / s 27.5555 | max diff 0 | inputs unchanged: exact match required,06_vtd_model.R,2026-10-03T23:42:36Z
+swing shrinkage,INFO,regional,"local sd 0.061 | half-weight 7488 votes | bin R2 0.856 | targets: 9197 cell, 515 county | 721 vote-ratio anomalies to target",06_vtd_model.R,2026-10-03T23:42:36Z
+drift: reversion rho,INFO,regional,rho 0.333 / se 0.370 | previous run 10-03 16:04: rho 0.444 / se 0.373 | change rho -0.1116 / se -0.0034 | moves as crosstabs are added | sweep slope 0.0856 | statewide 2020->24 swing -0.1350 | 1135 VTDs with CVAP sums > 1 normalized,06_vtd_model.R,2026-10-03T23:42:36Z
+2024-swing reversion drawn per simulation,UNGATED,regional,"rho ~ N(0.333, 0.370), untruncated: negative draws = 2024 swing continues (as 2020's did in 2022); calibrated on Hispanic-minus-white differential, CVAP ecological mapping",06_vtd_model.R,2026-10-03T23:42:36Z
+per-draw shift converged (Newton),PASS,regional,max |statewide 2P - target| 1.11e-16,06_vtd_model.R,2026-10-03T23:42:36Z
+shared regional-profile shock,UNGATED,regional,"sd 0.078 logit per profile per draw (hispanic/rural/suburbs/urban), re-anchored statewide each draw | from 9 profile-minus-state swing gaps; 10-03 test: profile 90% widths +0.9 to +2.1 pts, county P moves <= 0.04",06_vtd_model.R,2026-10-03T23:42:36Z
+MC statewide 2P mean reproduces anchor,PASS,regional,0.507242 vs 0.507194 (4 SE = 0.000208),06_vtd_model.R,2026-10-03T23:42:36Z
+MC P(Talarico plurality) reproduces analytic P(2P > 0.5),PASS,regional,0.6697 vs 0.6690 (4 SE = 0.0060),06_vtd_model.R,2026-10-03T23:42:36Z
+precincts forecast > 15 pts above their 2024 result,INFO,regional,"254 VTDs, 61,908 2024 votes (pre-correction preflight: 599 VTDs, 410,358 votes)",06_vtd_model.R,2026-10-03T23:42:36Z
+soft turnout targets computed in 07,PASS,regional,8734 direct | 978 county fallbacks | K 50 on 2022 registrants | county rate from direct VTDs,07_vote_counts.R,2026-10-04T00:21:57Z
+soft turnout logit shift,UNGATED,regional,"0.117841633783 carried forward from the retired K50 CSV (generator never saved); its level is absorbed by soft_scale, its curvature shapes the relative pattern",07_vote_counts.R,2026-10-04T00:21:57Z
+soft targets vs retired CSV on shared direct VTDs,INFO,regional,8631 shared | median |d| 0.00000 | p99 0.00812 | exact (<1e-9) 4479,07_vote_counts.R,2026-10-04T00:21:57Z
+06 draw reuse,PASS,regional,100000 target/Brown draws | sigma county 0.1040 local 0.2050 profile 0.0780 (hispanic/rural/suburbs/urban),07_vote_counts.R,2026-10-04T00:21:57Z
+06 2024-swing reversion reused per draw,PASS,regional,rho mean 0.329 sd 0.370 | swing_dev -0.421..0.204,07_vote_counts.R,2026-10-04T00:21:57Z
+2022 turnout reference,UNGATED,regional,0.4597 from the approved preflight; ratio basis for 2022 L2 ballots,07_vote_counts.R,2026-10-04T00:21:57Z
+soft turnout preserves baseline and fallbacks,PASS,regional,scale 1.00016864 | baseline 9102832 | fallback 14988 | 317 zero-electorate VTDs,07_vote_counts.R,2026-10-04T00:21:57Z
+reference: central statewide ballots,PASS,regional,ballots 9102832 | blessed 09-29: ballots 9102832 | max diff 0 | inputs not fingerprinted: tol 91000,07_vote_counts.R,2026-10-04T00:21:57Z
+2022 electorate fallbacks,INFO,regional,l2_2022=9328 | l2_2024_scaled=25 | none=317 | pres_2024_scaled=42,07_vote_counts.R,2026-10-04T00:21:57Z
+registration growth,INFO,regional,state 1.0782 | VTD p05 0.992 med 1.057 p95 1.223 | direct=9362 county=350 state=0,07_vote_counts.R,2026-10-04T00:21:57Z
+portal race on model keys: statewide_U.S._Senator_2018,PASS,regional,9712 VTDs,07_vote_counts.R,2026-10-04T00:21:57Z
+portal race on model keys: statewide_Governor_2022,PASS,regional,9712 VTDs,07_vote_counts.R,2026-10-04T00:21:57Z
+turnout variance components,UNGATED,regional,single cycle: state -0.0383 | county 0.0829 | local all 0.1893 | local t18>=500 0.1761 adopted,07_vote_counts.R,2026-10-04T00:21:57Z
+reference: turnout decomposition,PASS,regional,state -0.0383 / county 0.0829 / local_all 0.1893 / local_500 0.1761 | blessed 09-29: state -0.0383 / county 0.0829 / local_all 0.1893 / local_500 0.1761 | max diff 0 | inputs unchanged: exact match required,07_vote_counts.R,2026-10-04T00:21:57Z
+registration growth signal,INFO,regional,cor log turnout change with log growth 0.191 | within-county 0.170,07_vote_counts.R,2026-10-04T00:21:57Z
+reference: turnout-preference shock correlation,PASS,regional,county +0.307 / local +0.144 | blessed 09-29: county +0.307 / local +0.144 | max diff 0 | inputs unchanged: exact match required,07_vote_counts.R,2026-10-04T00:21:57Z
+turnout-preference correlation sample,INFO,regional,"250 counties, 5576 VTDs >= 500 votes",07_vote_counts.R,2026-10-04T00:21:57Z
+turnout and preference shocks correlated,UNGATED,regional,single cycle (2018 Senate -> 2022 Governor); statewide turnout rate still independent of the statewide target,07_vote_counts.R,2026-10-04T00:21:57Z
+turnout-rate truncation,INFO,regional,"0 of 100000 draws clipped into (0,1)",07_vote_counts.R,2026-10-04T00:21:57Z
+turnout draws reproduce fundamentals center,PASS,regional,0.485904 vs 0.485780 | 4 SE 0.000440,07_vote_counts.R,2026-10-04T00:21:57Z
+integer statewide ballots reproduce implied totals,PASS,regional,max absolute rounding gap 123.3 votes | max relative 1.99e-05,07_vote_counts.R,2026-10-04T00:21:57Z
+continuous statewide Brown share equals sampled level,PASS,regional,max residual 2.78e-17 | max VTD Brown share 0.1636,07_vote_counts.R,2026-10-04T00:21:57Z
+per-draw two-party shift converged,PASS,regional,max residual 1.11e-16,07_vote_counts.R,2026-10-04T00:21:57Z
+integer vote identities,PASS,regional,max |T+P+B-ballots| 0 | invalid counts 0,07_vote_counts.R,2026-10-04T00:21:57Z
+integer statewide 2P tracks sampled target,PASS,regional,max absolute gap 1.28e-05,07_vote_counts.R,2026-10-04T00:21:57Z
+integer statewide Brown share tracks sampled level,PASS,regional,max absolute gap 1.95e-05,07_vote_counts.R,2026-10-04T00:21:57Z
+07 target draws reproduce 06 plurality probability,PASS,regional,target 0.6697 | 06 0.6697,07_vote_counts.R,2026-10-04T00:21:57Z
+integer-count plurality reproduces 06,PASS,regional,count 0.6697 | 06 0.6697 | 4 SE 0.0059,07_vote_counts.R,2026-10-04T00:21:57Z
+06 statewide 2P draws retained,PASS,regional,mean 0.507242,07_vote_counts.R,2026-10-04T00:21:57Z
+07 county two-party geography matches 06,PASS,regional,max |07 - 06| 0.0047 over 28 counties with >= 50k midterm electorate (Hidalgo 07 0.5958 vs 06 0.5955),07_vote_counts.R,2026-10-04T00:21:57Z
+headline_finite,PASS,publish,all component means and sds finite,08_publish.R,2026-10-04T00:23:51Z
+headline_p_consistent,PASS,publish,"mean 0.5072, P 0.669",08_publish.R,2026-10-04T00:23:51Z
+track_reaches_election_day,PASS,publish,last track date 2026-11-03,08_publish.R,2026-10-04T00:23:51Z
+track_matches_poll_mean,PASS,publish,election-day gap 0.00e+00,08_publish.R,2026-10-04T00:23:51Z
+forecast_path_reaches_headline,PASS,publish,Election Day 0.507194 vs headline 0.507194 | sd 0.016460 vs 0.016460 | fundamentals weight 0.359 at last poll -> 0.375 on Election Day,08_publish.R,2026-10-04T00:23:51Z
+trajectory_endpoints,PASS,publish,"starts at poll average 0.5131 on 2026-09-30, ends at headline 0.5072 on Election Day",08_publish.R,2026-10-04T00:23:51Z
+approval_sensitivity_covers_track,PASS,publish,406 days | slope -1.05 pts per 10 net pts | Election Day fundamentals 0.5145 vs adopted 0.5012,08_publish.R,2026-10-04T00:23:51Z
+ledger_count,PASS,publish,44 ledger rows vs 44 pooled,08_publish.R,2026-10-04T00:23:51Z
+ledger_repools_to_obs,PASS,publish,"40/40 dates matched, max diff 1.11e-16",08_publish.R,2026-10-04T00:23:51Z
+ledger_influence_complete,PASS,publish,44 polls | influence sums to 1.0000 | top: Barbara Jordan Public Policy Research and Survey Center 0.095,08_publish.R,2026-10-04T00:23:51Z
+vtd_anchor_matches_combined,PASS,publish,anchor gap 0.00e+00,08_publish.R,2026-10-04T00:23:51Z
+vtd_built_on_current_draws,PASS,publish,"06's 100000 target draws are identical to 05's joint draws (06 saved 10-03 19:42, 05 saved 10-03 16:04)",08_publish.R,2026-10-04T00:23:51Z
+vtd_draws_center,PASS,publish,draw mean gap 4.84e-05,08_publish.R,2026-10-04T00:23:51Z
+vtd_ids_unique,PASS,publish,9712 VTDs,08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_pres16,PASS,publish,"statewide_President_Vice-President_2016: 9712 VTDs, D 3877626 vs 3877626, R 4684288 vs 4684288",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_sen18,PASS,publish,"statewide_U.S._Senator_2018: 9712 VTDs, D 4044073 vs 4044073, R 4259630 vs 4259630",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_gov18,PASS,publish,"statewide_Governor_2018: 9712 VTDs, D 3545673 vs 3545673, R 4655344 vs 4655344",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_pres20,PASS,publish,"statewide_President_Vice-President_2020: 9712 VTDs, D 5257513 vs 5257513, R 5889022 vs 5889022",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_sen20,PASS,publish,"statewide_U.S._Senator_2020: 9712 VTDs, D 4887309 vs 4887309, R 5961643 vs 5961643",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_gov22,PASS,publish,"statewide_Governor_2022: 9712 VTDs, D 3554772 vs 3554772, R 4437097 vs 4437097",08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_pres24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-04T00:23:51Z
+baseline_sums_sen24,PASS,publish,vest: 9712 VTDs,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_pres16,UNGATED,regional,9363/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_sen18,UNGATED,regional,9354/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_gov18,UNGATED,regional,9353/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_pres20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_sen20,UNGATED,regional,9357/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_gov22,UNGATED,regional,9328/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_pres24,UNGATED,regional,9348/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+baseline_coverage_sen24,UNGATED,regional,9347/9712 VTDs with a defined two-party baseline,08_publish.R,2026-10-04T00:23:51Z
+pres24_is_model_baseline,PASS,publish,max |base_pres24 - d2_act| 0.00e+00,08_publish.R,2026-10-04T00:23:51Z
+vtd_draws_aligned,PASS,publish,10000 draws x 9712 VTDs,08_publish.R,2026-10-04T00:23:51Z
+vtd_draws_after_forecast,PASS,publish,07 2026-10-03 20:18:27.370074 vs 06 2026-10-03 19:42:35.666735,08_publish.R,2026-10-04T00:23:51Z
+scenario_vtd_aggregates_talarico_p95,PASS,publish,"target 0.5345, VTD draws aggregate 0.5345, window gap 0.0017",08_publish.R,2026-10-04T00:23:51Z
+scenario_vtd_aggregates_paxton_p95,PASS,publish,"target 0.4800, VTD draws aggregate 0.4801, window gap 0.0016",08_publish.R,2026-10-04T00:23:51Z
+vtd_geometry_match,PASS,publish,tx_2024_gen_all_tx_vtd.shp,08_publish.R,2026-10-04T00:23:51Z
+geojson_size,PASS,publish,"13.2 MB, 9712 features",08_publish.R,2026-10-04T00:23:51Z
+county_projections_complete,PASS,publish,254 counties | 0 unlabeled,08_publish.R,2026-10-04T00:23:51Z
+county_geometry_match,PASS,publish,254 county polygons,08_publish.R,2026-10-04T00:23:51Z
+shading_columns_valid,PASS,publish,319 precincts blank (< 0.5 expected ballots) | Texas 268596 sq mi | precinct vs county net-vote gap 3.8e-08 of ballots,08_publish.R,2026-10-04T00:23:51Z
+detail_files_complete,PASS,publish,9712 precincts (332 imputed demographics) | 254 counties | precinct vs county ballot totals gap 6.6e-07,08_publish.R,2026-10-04T00:23:51Z
+unit_xwalk_complete,PASS,publish,"668757 blocks | 38 districts | 862 subdivisions | 0 VTDs placed by point (no blocks) | nearest-polygon blocks: VTD 0, subdivision 0",08_publish.R,2026-10-04T00:23:51Z
+planc2333_population_balance,PASS,publish,2020 population per district 766986-766987 (ideal 766987),08_publish.R,2026-10-04T00:23:51Z
+congressional_district_allocation_exact,PASS,publish,"38 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 5.6e-17)",08_publish.R,2026-10-04T00:23:51Z
+congressional_district_split_precincts,UNGATED,publish,427 precincts cross congressional_district lines; their 6.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-04T00:23:51Z
+county_subdivision_allocation_exact,PASS,publish,"862 units (0 without expected voters) | every precinct fully allocated | statewide ballots, 2024 Harris votes and all 10000 stored draws' two-party share reproduced (max gap 5.6e-17)",08_publish.R,2026-10-04T00:23:51Z
+county_subdivision_split_precincts,UNGATED,publish,1703 precincts cross county_subdivision lines; their 16.0% of expected ballots are divided by 2020 block population,08_publish.R,2026-10-04T00:23:51Z
+sim_cloud_draws_aligned,PASS,publish,5000 draws | county-summed 2P vs stored statewide 2P max gap 0.0e+00,08_publish.R,2026-10-04T00:23:51Z
+sim_cloud_complete,PASS,publish,5000 rows | PCA var first 3 0.120/0.093/0.072 | axes: shape_x = South Texas vs state (0.77); shape_y = Suburbs vs state (0.43),08_publish.R,2026-10-04T00:23:51Z
+sim_cloud_center,PASS,publish,cloud mean 0.5073 vs headline 0.5072 (4 SE 0.0009) | P(Talarico) cloud 0.674 vs 0.669,08_publish.R,2026-10-04T00:23:51Z
+sim_cloud_density,PASS,publish,"13824 grid cells per view | shell levels shape 0.553/0.205, drivers 0.358/0.069 (50%/90%)",08_publish.R,2026-10-04T00:23:51Z
+district_subdivision_geometry_match,PASS,publish,"38 district polygons | 862 subdivision polygons (0 TIGER subdivisions hold no blocks, dropped)",08_publish.R,2026-10-04T00:23:51Z
