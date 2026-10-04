@@ -1,5 +1,5 @@
 import { darkMapColor } from './map-colors.js';
-import { configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
+import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -555,6 +555,7 @@ export const initialMeasure = () => params.get('m');
 
 function syncUnit(next) {
   unit = next;
+  if (isMapBusy()) showTileProgress();
   document.querySelectorAll('[data-unit]').forEach(button => {
     const active = button.dataset.unit === unit;
     button.classList.toggle('active', active);
@@ -597,6 +598,23 @@ export function setTheme(next) {
   if (map) map.setStyle(styles[theme]);
 }
 
+// Count actual tile requests in this transaction; metadata stages have no denominator.
+const requestedTiles = new Set(), pendingTiles = new Set();
+let dataReady = false;
+const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions'})[unit];
+function showTileProgress() {
+  const total = [...requestedTiles].filter(key => key.startsWith(`${unit}:`)).length;
+  const pending = [...pendingTiles].filter(key => key.startsWith(`${unit}:`)).length;
+  setMapProgress(geographyName(), dataReady && total ? Math.min(99, Math.floor(100 * (total - pending) / total)) : null);
+}
+function trackTile(event, loading) {
+  if (!isMapBusy() || !levelKeys.includes(event.sourceId) || !event.coord) return;
+  const key = `${event.sourceId}:${event.coord.key}`;
+  requestedTiles.add(key);
+  if (loading) pendingTiles.add(key); else pendingTiles.delete(key);
+  showTileProgress();
+}
+
 function waitForIdle(signal) {
   return new Promise((resolve, reject) => {
     const clean = () => { map.off('idle', rendered); map.off('error', failed); signal.removeEventListener('abort', aborted); };
@@ -611,11 +629,15 @@ function waitForIdle(signal) {
   });
 }
 configureMapLoading({
+  start:() => { dataReady = false; requestedTiles.clear(); pendingTiles.clear(); showTileProgress(); },
   wait:async signal => {
     if (!map) return;
+    dataReady = true;
+    showTileProgress();
     await waitForIdle(signal);
     refitView();
     await waitForIdle(signal);
+    setMapProgress(geographyName(), 100);
     if (message.textContent.startsWith('Map update failed:')) message.hidden = true;
   },
   report:error => { message.textContent = `Map update failed: ${error.message || error}`; message.hidden = false; console.error(error); },
@@ -629,6 +651,8 @@ export function initMap(select) {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
+  map.on('sourcedataloading', event => trackTile(event, true));
+  map.on('sourcedata', event => trackTile(event, false));
   map.on('moveend', () => {
     window.dispatchEvent(new Event('view-change'));
     if (!isMapBusy()) runMapUpdate('Loading map view…', async () => {});
