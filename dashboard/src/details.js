@@ -1,5 +1,6 @@
 import { csv, pct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
+import { renderList } from './list.js';
 
 const levelInfo = {
   county:{ file:'county_details.csv', kicker:'County' },
@@ -10,6 +11,8 @@ const levelInfo = {
 const splitNote = 'Precincts that cross these lines are divided by 2020 census block population.';
 let bases = [];
 let selected = 0;
+let mapUnit = 'county';
+let listShowing = true;
 let activeShade = '';
 let onShade = () => {};
 const content = document.querySelector('#place-content');
@@ -17,6 +20,17 @@ const content = document.querySelector('#place-content');
 export function setBaselines(shifts) {
   bases = shifts.filter(row => row.component === 'combined').sort((a,b) => +(b.baseline === 'sen24') - +(a.baseline === 'sen24') || b.baseline.localeCompare(a.baseline));
 }
+
+// With no place selected the panel lists places; the list's level follows the map unless the user picks another.
+export function showList(unit = mapUnit) {
+  mapUnit = unit;
+  listShowing = true;
+  selected++;
+  renderList(content, mapUnit, selectPlace);
+}
+window.addEventListener('unit-change', event => { mapUnit = event.detail; if (listShowing) showList(); });
+content.addEventListener('click', event => { if (event.target.closest('.back-to-list')) showList(); });
+showList();
 
 export function setShadeHandler(handler) { onShade = handler; }
 
@@ -74,7 +88,7 @@ function renderPlace(unit, props, data) {
     [unit === 'precinct' ? 'Median income' : 'Average of precinct median incomes','med_income','money'],
     ['Registered voters, 2024','registered_2024','count'],['Voted in 2022','voted_2022','count'],
   ].map(([name,key,kind]) => [escapeHTML(name),shade(key,name,kind,value(key))]);
-  content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
+  content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
     <p class="shade-hint">Select any underlined number to shade the map by that measure.</p>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
     <p class="actual-result"><strong>2024 Harris:</strong> ${shade('dem_pres24','2024 Harris votes','count',value('dem_pres24'))} actual votes · ${harris + trump > 0 ? shade('base_pres24','2024 Harris two-party share','share',harris/(harris+trump)) : 'n/a'} two-party share</p>
@@ -88,6 +102,7 @@ function renderPlace(unit, props, data) {
 
 export async function selectPlace(unit, props) {
   const request = ++selected;
+  listShowing = false;
   openPanel('place');
   content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit]?.kicker || unit)}</div><h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">Loading details…</p>`;
   try {

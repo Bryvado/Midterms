@@ -20,14 +20,16 @@ function defaults() {
   const sideW = Math.min(320, Math.max(260, Math.round(W * .26)));
   // The polling chart is the panel's main element, so it gets a wider default.
   const pollW = Math.min(480, Math.max(sideW, Math.round(W * .34)));
-  const pollH = Math.round(Math.min(H * .66, 640));
+  // The place panel lists many columns when nothing is selected, so it defaults wider.
+  const placeW = Math.min(420, Math.max(sideW, Math.round(W * .3)));
+  const pollH = Math.round(Math.min(H * .58, 560));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
     // Lifted clear of the map's attribution line, which must stay visible.
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:true },
-    place:{ x:W - sideW - GAP, y:pollH + GAP * 2, w:sideW, h:Math.max(MIN.h, H - pollH - GAP * 3), open:true },
+    place:{ x:W - placeW - GAP, y:pollH + GAP * 2, w:placeW, h:Math.max(MIN.h, H - pollH - GAP * 3), open:true },
   };
 }
 

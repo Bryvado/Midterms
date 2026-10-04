@@ -533,6 +533,7 @@ export function setUnit(next) {
   const note = document.querySelector('#level-note');
   if (note) note.hidden = unit !== 'cd';
   tooltip.hidden = true;
+  window.dispatchEvent(new CustomEvent('unit-change', { detail:unit }));
   applyDisplay();
 }
 
