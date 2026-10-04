@@ -1,6 +1,7 @@
 import { csv, pct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
-import { renderList } from './list.js';
+import { renderList, listFiltersByView } from './list.js';
+import { countyNames, shortLabel } from './labels.js';
 
 const levelInfo = {
   county:{ file:'county_details.csv', kicker:'County' },
@@ -26,10 +27,17 @@ export function showList(unit = mapUnit) {
   mapUnit = unit;
   listShowing = true;
   selected++;
-  renderList(content, mapUnit, selectPlace);
+  renderList(content, mapUnit, (level, props) => { selectPlace(level, props); window.dispatchEvent(new CustomEvent('zoom-place', { detail:{ level, id:props.region_id } })); });
 }
 window.addEventListener('unit-change', event => { mapUnit = event.detail; if (listShowing) showList(); });
 content.addEventListener('click', event => { if (event.target.closest('.back-to-list')) showList(); });
+// With "Only places in the map view" on, the list follows the map as it moves, unless the search box is being typed in.
+let moveTimer;
+window.addEventListener('view-change', () => {
+  if (!listShowing || !listFiltersByView()) return;
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(() => { if (!document.activeElement?.matches?.('.list-search')) showList(); }, 250);
+});
 showList();
 
 export function setShadeHandler(handler) { onShade = handler; }
@@ -63,8 +71,9 @@ function section(title, headers, rows) {
   return `<h3>${escapeHTML(title)}</h3><div class="table-scroll"><table><thead><tr>${headers.map(h => `<th>${escapeHTML(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
-function renderPlace(unit, props, data) {
+function renderPlace(unit, props, data, counties) {
   const label = props.region_label || props.region_id;
+  const heading = shortLabel(unit, label, counties, { keepCounty:true });
   const value = key => data[key];
   const harris = +value('dem_pres24'), trump = +value('rep_pres24');
   const voteRows = [['Ballots cast','ballots'],['Talarico (D)','talarico'],['Paxton (R)','paxton']].map(([name,key]) => [
@@ -88,7 +97,7 @@ function renderPlace(unit, props, data) {
     [unit === 'precinct' ? 'Median income' : 'Average of precinct median incomes','med_income','money'],
     ['Registered voters, 2024','registered_2024','count'],['Voted in 2022','voted_2022','count'],
   ].map(([name,key,kind]) => [escapeHTML(name),shade(key,name,kind,value(key))]);
-  content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2>${escapeHTML(label)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
+  content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2 title="${escapeHTML(label)}">${escapeHTML(heading)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
     <p class="shade-hint">Select any underlined number to shade the map by that measure.</p>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
     <p class="actual-result"><strong>2024 Harris:</strong> ${shade('dem_pres24','2024 Harris votes','count',value('dem_pres24'))} actual votes · ${harris + trump > 0 ? shade('base_pres24','2024 Harris two-party share','share',harris/(harris+trump)) : 'n/a'} two-party share</p>
@@ -110,7 +119,7 @@ export async function selectPlace(unit, props) {
     if (request !== selected) return;
     const data = rows.find(row => row.region_id === String(props.region_id));
     if (!data) throw new Error('No detail row for this place.');
-    renderPlace(unit, props, data);
+    renderPlace(unit, props, data, await countyNames());
   } catch (e) {
     if (request === selected) content.innerHTML = `<h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">${escapeHTML(e.message)}</p>`;
   }

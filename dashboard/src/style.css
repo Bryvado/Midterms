@@ -247,3 +247,4 @@
 .back-to-list:hover{text-decoration:underline}
 .back-to-list{display:block;text-align:left}
 @media(max-width:700px){.list-scroll,.fp-place .place-content:has(.list-scroll) .list-scroll{max-height:62vh;flex:none}}
+.list-view{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#455c64;flex-basis:100%}
