@@ -20,9 +20,9 @@ function defaults() {
   const sideW = Math.min(320, Math.max(260, Math.round(W * .26)));
   // The polling chart is the panel's main element, so it gets a wider default.
   const pollW = Math.min(480, Math.max(sideW, Math.round(W * .34)));
-  // The place panel lists many columns when nothing is selected, so it defaults wider.
+  // Leave room for readable place rows and comparison controls.
   const placeW = Math.min(420, Math.max(sideW, Math.round(W * .3)));
-  const pollH = Math.round(Math.min(H * .58, 560));
+  const pollH = Math.round(Math.min(H * .52, 560));
   return {
     controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
     // Lifted clear of the map's attribution line, which must stay visible.
