@@ -1,6 +1,6 @@
 import { csv, pct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
-import { renderList, listFiltersByView } from './list.js';
+import { renderList, listFiltersByView, cancelList } from './list.js';
 import { countyNames, shortLabel } from './labels.js';
 
 const levelInfo = {
@@ -110,6 +110,7 @@ function renderPlace(unit, props, data, counties) {
 }
 
 export async function selectPlace(unit, props) {
+  cancelList(content);
   const request = ++selected;
   listShowing = false;
   openPanel('place');

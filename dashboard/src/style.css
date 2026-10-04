@@ -221,30 +221,54 @@
   .chart-toolbar.open .chart-layers{display:flex}
   .chart-toolbar{justify-content:space-between}
 }
-.list-controls{display:flex;gap:8px;align-items:center;margin:0 0 6px;flex-wrap:wrap}
-.list-controls label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#455c64}
-.list-controls select,.list-search{border:1px solid #cfd9d9;border-radius:5px;background:#fff;font-size:11px;padding:3px 5px;color:#243b43;min-width:0}
-.list-controls select{max-width:190px}
-.list-search{flex:1 1 90px}
-.list-scroll{overflow:auto;max-height:calc(100% - 64px);border:1px solid #e3e9e8;border-radius:5px}
+/* Place browser: one measure at a time, with an optional full table. */
+.list-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;margin:0 0 8px;flex:none}
+.list-controls label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#455c64;min-width:0}
+.list-geography{grid-column:1}
+.list-measure{grid-column:1/3}
+.list-controls select,.list-search,.list-page{border:1px solid #cfd9d9;border-radius:5px;background:#fff;font:inherit;padding:5px 6px;color:#243b43;min-width:0}
+.list-controls select{flex:1;width:0;max-width:none}
+.list-search{grid-column:2/4;width:100%;font-size:12px}
+.list-controls input:focus-visible,.list-page:focus-visible{outline:3px solid #2a7192;outline-offset:1px}
+.list-options{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.list-view input{margin:0}
+.list-direction,.list-full,.list-pagination button{border:1px solid #cfd9d9;border-radius:5px;background:#fff;color:#315e70;font-size:12px;padding:4px 7px;line-height:1.2}
+.list-direction{font-size:16px;padding:0}
+.list-full{font-size:11px}
+.list-full[aria-pressed=true]{background:#e7f0f1;border-color:#a9c4cc}
+.list-scroll{overflow:auto;border:1px solid #e3e9e8;border-radius:6px;min-height:80px}
 .fp-place .fp-body{display:flex;flex-direction:column}
 .fp-place .place-content{min-height:0;flex:1;display:flex;flex-direction:column}
-.fp-place .place-content>*:not(.list-controls):not(.list-scroll):not(.list-count){flex:none}
-.fp-place .place-content:has(.list-scroll) .list-scroll{flex:1 1 auto;max-height:none;min-height:120px}
-.place-list{border-collapse:separate;border-spacing:0;margin:0;font-size:10.5px;width:max-content;min-width:100%}
-.place-list th,.place-list td{padding:4px 7px;border-bottom:1px solid #edf1f0;text-align:right;white-space:nowrap}
-.place-list th{position:sticky;top:0;z-index:2;background:#f4f7f7;vertical-align:bottom;white-space:normal;min-width:78px;max-width:104px}
-.place-list th button{border:0;background:none;padding:0;font:inherit;font-weight:700;color:#455c64;text-align:right;line-height:1.25}
-.place-list th[aria-sort=ascending] button:after{content:' (low to high)';font-weight:500}
-.place-list th[aria-sort=descending] button:after{content:' (high to low)';font-weight:500}
+.fp-place .place-content>*:not(.list-scroll){flex:none}
+.fp-place .place-content:has(.list-scroll) .list-scroll{flex:1 1 auto;min-height:80px}
+.place-list{border-collapse:separate;border-spacing:0;margin:0;font-size:12px;width:100%}
+.place-list th,.place-list td{padding:9px 10px;border-bottom:1px solid #edf1f0;text-align:right}
+.place-list th{position:sticky;top:0;z-index:2;background:#f4f7f7;vertical-align:bottom;white-space:normal;font-size:10.5px}
+.place-list th button{border:0;background:none;padding:0;font:inherit;font-weight:700;color:#455c64;text-align:inherit;line-height:1.3}
+.place-list th[aria-sort=ascending] button:after{content:' ↑'}
+.place-list th[aria-sort=descending] button:after{content:' ↓'}
 .place-list th[aria-sort]:not([aria-sort=none]){background:#e7f0f1}
-.place-list .name{position:sticky;left:0;z-index:1;text-align:left;background:#fff;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.place-list th.name{z-index:3;background:#f4f7f7}
-.place-list tbody tr{cursor:pointer}
-.place-list tbody tr:hover td,.place-list tbody tr:focus-visible td{background:#eef5f6}
-.list-count{margin:6px 0 0}
-.back-to-list{border:0;background:none;color:#315e70;font-size:11px;font-weight:700;padding:0 0 6px}
+.place-list .name{text-align:left;font-weight:600}
+.place-list.compact{table-layout:fixed}
+.place-list.compact .name{width:48%;white-space:normal;overflow-wrap:anywhere}
+.place-list.compact td:not(.name){white-space:normal;overflow-wrap:anywhere}
+.place-list.full{width:max-content;min-width:100%}
+.place-list.full th{min-width:90px;max-width:150px}
+.place-list.full .name{position:sticky;left:0;z-index:1;background:#fff;min-width:120px;max-width:180px;white-space:normal}
+.place-list.full th.name{z-index:3;background:#f4f7f7}
+.place-list tbody tr[data-id]{cursor:pointer}
+.place-list tbody tr[data-id]:hover td,.place-list tbody tr[data-id]:focus-visible td{background:#eef5f6}
+.place-list tbody tr[data-id]:focus-visible{outline:2px solid #2a7192;outline-offset:-2px}
+.place-list .list-empty td{text-align:left;white-space:normal;color:#64767b;line-height:1.5}
+.list-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;padding-top:7px}
+.list-count{margin:0;font-size:10.5px}
+.list-pagination{display:flex;gap:3px;align-items:center}
+.list-pagination label{display:flex;align-items:center;gap:4px;font-size:10.5px;white-space:nowrap;color:#455c64}
+.list-pagination button{font-size:16px;min-width:24px;padding:2px 4px}
+.list-pagination button:disabled{opacity:.35;cursor:default}
+.list-page{width:46px;padding:3px;font-size:11px;appearance:textfield;text-align:center}
+.list-page::-webkit-inner-spin-button{appearance:none}
+.list-disclaimer{margin:0 0 6px}
+.back-to-list{display:block;text-align:left;border:0;background:none;color:#315e70;font-size:11px;font-weight:700;padding:0 0 6px}
 .back-to-list:hover{text-decoration:underline}
-.back-to-list{display:block;text-align:left}
-@media(max-width:700px){.list-scroll,.fp-place .place-content:has(.list-scroll) .list-scroll{max-height:62vh;flex:none}}
-.list-view{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#455c64;flex-basis:100%}
+@media(max-width:700px){.list-scroll,.fp-place .place-content:has(.list-scroll) .list-scroll{max-height:52vh;flex:none}}
