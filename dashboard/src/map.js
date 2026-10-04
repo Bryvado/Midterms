@@ -518,6 +518,25 @@ export function setReference(headline, shifts, shortLabels) {
   drawLegend();
 }
 
+export function viewBounds() {
+  if (!map) return null;
+  const b = map.getBounds();
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+}
+
+// Choosing a place from the list brings its level onto the map and fits the view to it. The right padding clears the floating panels on wide screens.
+const boxes = new Map();
+window.addEventListener('zoom-place', async ({ detail:{ level, id } }) => {
+  try {
+    if (!boxes.has(level)) boxes.set(level, fetch(`${base}data/bounds_${level}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
+    const box = (await boxes.get(level))[id];
+    if (!box || !map) return;
+    if (level !== unit) setUnit(level);
+    const wide = window.innerWidth > 700;
+    map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:level === 'precinct' ? 12 : 10, duration:700 });
+  } catch { /* no geometry bounds available */ }
+});
+
 export const initialMeasure = () => params.get('m');
 
 export function setUnit(next) {
@@ -567,6 +586,7 @@ export function initMap(select) {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
+  map.on('moveend', () => window.dispatchEvent(new Event('view-change')));
   // Attribution first so it takes the bottom line of the corner, below the zoom buttons and clear of the legend.
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
