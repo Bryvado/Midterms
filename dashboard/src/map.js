@@ -1,3 +1,5 @@
+import { darkMapColor } from './map-colors.js';
+import { configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -188,6 +190,10 @@ function ramp(type, surfaceTheme = theme) {
 }
 // Interpolate in CIELAB so the ramp passes through a clean light midpoint instead of a muddy RGB mix.
 const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).interpolate(interpolateLab).clamp(true)(t);
+const mapColorAt = (colors, t, type) => {
+  const color = colorAt(colors, t);
+  return theme === 'dark' ? darkMapColor(color, t, isDiverging(type)) : color;
+};
 // Shared with the poll chart: a margin in points on the requested surface’s diverging palette, clamped at ±8, neutral at 0.
 export function marginColor(points, surfaceTheme = theme) {
   const colors = [...ramp('margin', surfaceTheme)];
@@ -243,7 +249,7 @@ function scale(key, level = unit) {
   let lo, hi, center = diverging ? centerValue(key, s.c) : null, rangeNote = '';
   if (s.b === 'rat') {
     const r = ratings[type];
-    return { kind:'ratings', type, edges:r.edges, labels:r.labels, colors:r.labels.map((_, i) => colorAt(colors, i / (r.labels.length - 1))),
+    return { kind:'ratings', type, edges:r.edges, labels:r.labels, colors:r.labels.map((_, i) => mapColorAt(colors, i / (r.labels.length - 1), type)),
       note:type === 'margin' ? 'Talarico minus Paxton as a share of all ballots, in points.' : 'Modeled chance that Talarico leads.' };
   }
   const fit = values => {
@@ -296,7 +302,7 @@ function scale(key, level = unit) {
     if (!edges.length) edges = [(lo + hi) / 2];
     // Each class takes the colour at its midpoint; the open-ended outer classes use the midpoint to the range end.
     const limits = [lo, ...edges, hi];
-    const classColors = limits.slice(0, -1).map((start, i) => colorAt(colors, tPos((start + limits[i + 1]) / 2)));
+    const classColors = limits.slice(0, -1).map((start, i) => mapColorAt(colors, tPos((start + limits[i + 1]) / 2), type));
     return { kind:'step', type, edges, tx, log, colors:classColors, lo, hi, note };
   }
   const stops = diverging
@@ -304,7 +310,7 @@ function scale(key, level = unit) {
     : [0,.25,.5,.75,1].map(f => log ? Math.expm1(tx(lo) + f * (tx(hi) - tx(lo))) : lo + f * (hi - lo));
   for (let i = 1; i < stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + 1e-9;
   const positions = stops.map(v => (tx(v) - tx(stops[0])) / Math.max(1e-9, tx(stops.at(-1)) - tx(stops[0])));
-  return { kind:'cont', type, stops, tx, log, positions, colors:stops.map(v => colorAt(colors, tPos(v))), lo, hi, center, note };
+  return { kind:'cont', type, stops, tx, log, positions, colors:stops.map(v => mapColorAt(colors, tPos(v), type)), lo, hi, center, note };
 }
 
 function colorExpression(key, level) {
@@ -428,8 +434,9 @@ function paint() {
   for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
 
-async function applyDisplay() {
-  try { await ensureValues(); } catch (error) { console.error(error); }
+async function applyDisplay(signal) {
+  await ensureValues();
+  signal?.throwIfAborted();
   paint();
   scheduleFit();
 }
@@ -453,37 +460,37 @@ function refitView() {
 }
 function scheduleFit() { if (map) map.once('idle', refitView); }
 
-function updateScale(patch) {
+function updateScale(patch, signal) {
   const prev = scaleState.get(measure) || {};
   scaleState.set(measure, { ...prev, ...patch });
   viewRange = null;
-  applyDisplay();
+  return applyDisplay(signal);
 }
 
 function initDisplayControls() {
   const panel = document.querySelector('#display-panel');
   if (!panel) return;
   const diverging = () => isDiverging(metricType(measure));
-  const on = (sel, ev, fn) => panel.querySelector(sel).addEventListener(ev, fn);
+  const on = (sel, ev, fn) => panel.querySelector(sel).addEventListener(ev, e => runMapUpdate('Updating map display…', signal => fn(e, signal)));
   on('#color-palette', 'change', e => { settings[diverging() ? 'dpal' : 'spal'] = e.target.value; paint(); });
-  on('#color-lo', 'input', e => { settings[diverging() ? 'dlo' : 'slo'] = e.target.value; paint(); });
-  on('#color-hi', 'input', e => { settings[diverging() ? 'dhi' : 'shi'] = e.target.value; paint(); });
-  on('#scale-center', 'change', e => updateScale({ c:e.target.value }));
-  on('#scale-range', 'change', e => {
+  on('#color-lo', 'change', e => { settings[diverging() ? 'dlo' : 'slo'] = e.target.value; paint(); });
+  on('#color-hi', 'change', e => { settings[diverging() ? 'dhi' : 'shi'] = e.target.value; paint(); });
+  on('#scale-center', 'change', (e, signal) => updateScale({ c:e.target.value }, signal));
+  on('#scale-range', 'change', (e, signal) => {
     const patch = { r:e.target.value };
     if (e.target.value === 'custom') {
       const sc = scale(measure), k = percentUnits(measure) ? 100 : 1;
       patch.lo = String(+(sc.lo * k).toFixed(2)); patch.hi = String(+(sc.hi * k).toFixed(2));
     }
-    updateScale(patch);
+    return updateScale(patch, signal);
   });
-  on('#scale-min', 'change', e => updateScale({ lo:e.target.value }));
-  on('#scale-max', 'change', e => updateScale({ hi:e.target.value }));
-  on('#scale-bins', 'change', e => updateScale({ b:e.target.value }));
-  on('#scale-log', 'change', e => updateScale({ log:e.target.checked ? '1' : '0' }));
-  for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol' })) on(id, 'input', e => { settings[key] = String(e.target.value); paint(); });
+  on('#scale-min', 'change', (e, signal) => updateScale({ lo:e.target.value }, signal));
+  on('#scale-max', 'change', (e, signal) => updateScale({ hi:e.target.value }, signal));
+  on('#scale-bins', 'change', (e, signal) => updateScale({ b:e.target.value }, signal));
+  on('#scale-log', 'change', (e, signal) => updateScale({ log:e.target.checked ? '1' : '0' }, signal));
+  for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol' })) on(id, 'change', e => { settings[key] = String(e.target.value); paint(); });
   for (const [id, key] of Object.entries({ '#outline-on':'ln', '#overlay-county':'oc', '#overlay-cd':'od' })) on(id, 'change', e => { settings[key] = e.target.checked ? '1' : '0'; paint(); });
-  on('#display-reset', 'click', () => { Object.assign(settings, defaults); scaleState.clear(); viewRange = null; applyDisplay(); });
+  on('#display-reset', 'click', (_, signal) => { Object.assign(settings, defaults); scaleState.clear(); viewRange = null; return applyDisplay(signal); });
 }
 
 function valueText(props) {
@@ -531,20 +538,22 @@ export function viewBounds() {
 
 // Choosing a place from the list brings its level onto the map and fits the view to it. The right padding clears the floating panels on wide screens.
 const boxes = new Map();
-window.addEventListener('zoom-place', async ({ detail:{ level, id } }) => {
-  try {
-    if (!boxes.has(level)) boxes.set(level, fetch(`${base}data/bounds_${level}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
-    const box = (await boxes.get(level))[id];
-    if (!box || !map) return;
-    if (level !== unit) setUnit(level);
-    const wide = window.innerWidth > 700;
-    map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:level === 'precinct' ? 12 : 10, duration:700 });
-  } catch { /* no geometry bounds available */ }
-});
+window.addEventListener('zoom-place', ({ detail:{ level, id } }) => runMapUpdate('Loading selected place…', async signal => {
+  if (!boxes.has(level)) boxes.set(level, fetch(`${base}data/bounds_${level}.json`).then(r => {
+    if (!r.ok) throw new Error('Place bounds could not be loaded.');
+    return r.json();
+  }).catch(error => { boxes.delete(level); throw error; }));
+  const box = (await boxes.get(level))[id];
+  signal.throwIfAborted();
+  if (!box || !map) return;
+  if (level !== unit) await setUnit(level, signal);
+  const wide = window.innerWidth > 700;
+  map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:level === 'precinct' ? 12 : 10, duration:700 });
+}));
 
 export const initialMeasure = () => params.get('m');
 
-export function setUnit(next) {
+function syncUnit(next) {
   unit = next;
   document.querySelectorAll('[data-unit]').forEach(button => {
     const active = button.dataset.unit === unit;
@@ -558,14 +567,20 @@ export function setUnit(next) {
   if (note) note.hidden = unit !== 'cd';
   tooltip.hidden = true;
   window.dispatchEvent(new CustomEvent('unit-change', { detail:unit }));
-  applyDisplay();
 }
 
-export async function setMeasure(next, meta) {
+export async function setUnit(next, signal) {
+  signal?.throwIfAborted();
+  syncUnit(next);
+  await applyDisplay(signal);
+}
+
+export async function setMeasure(next, meta, signal) {
   const request = ++measureRequest;
   measure = next;
   if (meta) metricKinds.set(next, meta.kind);
   try { await ensureValues(); } catch (error) { if (request === measureRequest) throw error; }
+  signal?.throwIfAborted();
   if (request !== measureRequest) return;
   paint();
   scheduleFit();
@@ -582,6 +597,31 @@ export function setTheme(next) {
   if (map) map.setStyle(styles[theme]);
 }
 
+function waitForIdle(signal) {
+  return new Promise((resolve, reject) => {
+    const clean = () => { map.off('idle', rendered); map.off('error', failed); signal.removeEventListener('abort', aborted); };
+    const rendered = () => {
+      if (map.loaded() && !map.isMoving() && map.getLayer(layerName(unit))) { clean(); resolve(); }
+    };
+    const failed = event => { clean(); reject(event.error || new Error('Map resources could not be loaded.')); };
+    const aborted = () => { clean(); reject(signal.reason); };
+    if (signal.aborted) { reject(signal.reason); return; }
+    map.on('idle', rendered); map.on('error', failed); signal.addEventListener('abort', aborted, { once:true });
+    map.triggerRepaint();
+  });
+}
+configureMapLoading({
+  wait:async signal => {
+    if (!map) return;
+    await waitForIdle(signal);
+    refitView();
+    await waitForIdle(signal);
+    if (message.textContent.startsWith('Map update failed:')) message.hidden = true;
+  },
+  report:error => { message.textContent = `Map update failed: ${error.message || error}`; message.hidden = false; console.error(error); },
+  stop:() => map?.stop(),
+});
+
 export function initMap(select) {
   onSelect = select;
   pane.dataset.theme = theme;
@@ -589,7 +629,10 @@ export function initMap(select) {
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
   map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
-  map.on('moveend', () => window.dispatchEvent(new Event('view-change')));
+  map.on('moveend', () => {
+    window.dispatchEvent(new Event('view-change'));
+    if (!isMapBusy()) runMapUpdate('Loading map view…', async () => {});
+  });
   // Attribution first so it takes the bottom line of the corner, below the zoom buttons and clear of the legend.
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
@@ -633,6 +676,7 @@ export function initMap(select) {
     if (feature) { tooltip.hidden = true; onSelect(unit, feature.properties); }
   });
   map.on('error', e => {
+    failMapUpdate(e.error || new Error('Map resources could not be loaded.'));
     const error = String(e.error?.message || e.error || '');
     if (/pmtiles|regions|counties|404|fetch/i.test(error)) {
       message.textContent = 'Map tiles could not be loaded. The other data remains available.';
@@ -640,8 +684,14 @@ export function initMap(select) {
     }
     console.error('Map error:', e.error);
   });
-  document.querySelector('#reset-map').addEventListener('click', () => map.fitBounds(bounds, { padding: 28, duration: 450 }));
+  document.querySelector('#reset-map').addEventListener('click', () => runMapUpdate('Resetting map view…', () => map.fitBounds(bounds, { padding:28, duration:450 })));
+  pane.addEventListener('click', event => {
+    const button = event.target.closest('.maplibregl-ctrl-zoom-in,.maplibregl-ctrl-zoom-out');
+    if (!button) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    runMapUpdate('Loading map view…', () => button.classList.contains('maplibregl-ctrl-zoom-in') ? map.zoomIn() : map.zoomOut());
+  }, true);
   initDisplayControls();
-  setUnit(unit);
+  syncUnit(unit);
   return map;
 }

@@ -1,3 +1,4 @@
+import { runMapUpdate } from './map-loading.js';
 import './style.css';
 import './layout.js';
 import { initAppearance } from './appearance.js';
@@ -15,7 +16,7 @@ for (const button of ['#methods-button','#status-button','#footer-methods']) $(b
 $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
 
-for (const button of document.querySelectorAll('[data-unit]')) button.addEventListener('click', () => setUnit(button.dataset.unit));
+for (const button of document.querySelectorAll('[data-unit]')) button.addEventListener('click', () => runMapUpdate('Changing geography…', signal => setUnit(button.dataset.unit, signal)));
 let scenarioRows = [];
 // When a scenario map is shown, the headline's range card states that scenario's statewide outcome from scenarios.csv.
 function showScenario(key) {
@@ -35,21 +36,15 @@ function showScenario(key) {
   }
 }
 
-async function applyMeasure(key, meta) {
+async function applyMeasure(key, meta, signal) {
   showScenario(key);
-  try {
-    await setMeasure(key, meta);
-    if ($('#map-message').textContent.startsWith('Could not shade')) $('#map-message').hidden = true;
-    renderChart(key);
-    highlightShade(key);
-  } catch (error) {
-    console.error(error);
-    $('#map-message').textContent = `Could not shade by this measure: ${error.message}`;
-    $('#map-message').hidden = false;
-  }
+  await setMeasure(key, meta, signal);
+  $('#map-message').hidden = true;
+  renderChart(key);
+  highlightShade(key);
 }
-measure.addEventListener('change', () => applyMeasure(measure.value));
-setShadeHandler(meta => {
+measure.addEventListener('change', () => runMapUpdate('Shading map…', signal => applyMeasure(measure.value, undefined, signal)));
+setShadeHandler(meta => runMapUpdate('Shading map…', async signal => {
   if (![...measure.options].some(option => option.value === meta.key)) {
     let group = measure.querySelector('#selected-measures');
     if (!group) {
@@ -61,8 +56,8 @@ setShadeHandler(meta => {
     group.replaceChildren(new Option(meta.label,meta.key));
   }
   measure.value = meta.key;
-  applyMeasure(meta.key, meta);
-});
+  await applyMeasure(meta.key, meta, signal);
+}));
 
 optionGroup('Demographics', demographicMeasures.map(metric => [metric.key, measureLabel(metric, currentUnit())]));
 optionGroup('Electorate counts', electorateMeasures.map(metric => [metric.key, metric.label]));
@@ -152,26 +147,32 @@ async function loadScenario() {
   setScenario(rows.find(row => String(row.adopted).toUpperCase() !== 'TRUE'));
 }
 
-try {
-  const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([
-    'headline.csv','kalman_track.csv','poll_ledger.csv','gates.csv','uniform_shift.csv','scenarios.csv',
-  ].map(csv));
-  renderSummary(headline,scenarios,gates);
-  renderShifts(shifts);
-  setReference(headline, shifts, shortLabels);
-  const requested = initialMeasure();
-  if (requested && requested !== measure.value && [...measure.options].some(option => option.value === requested)) {
-    measure.value = requested;
-    applyMeasure(requested);
+await runMapUpdate('Loading forecast map…', async signal => {
+  try {
+    const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([
+      'headline.csv','kalman_track.csv','poll_ledger.csv','gates.csv','uniform_shift.csv','scenarios.csv',
+    ].map(csv));
+    signal.throwIfAborted();
+    renderSummary(headline,scenarios,gates);
+    renderShifts(shifts);
+    setReference(headline, shifts, shortLabels);
+    const requested = initialMeasure();
+    if (requested && requested !== measure.value && [...measure.options].some(option => option.value === requested)) {
+      measure.value = requested;
+      await applyMeasure(requested, undefined, signal);
+    } else {
+      await applyMeasure(measure.value, undefined, signal);
+    }
+    renderLedger(ledger);
+    setBaselines(shifts);
+    initChart(track,ledger,headline,shifts);
+    loadScenario();
+  } catch (error) {
+    if (signal.aborted) throw error;
+    console.error(error);
+    $('#run-date').textContent = 'Published data unavailable';
+    $('#status-button').textContent = 'Data unavailable';
+    $('#status-button').classList.add('fail');
+    $('#trend-chart').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
   }
-  renderLedger(ledger);
-  setBaselines(shifts);
-  initChart(track,ledger,headline,shifts);
-  loadScenario();
-} catch (error) {
-  console.error(error);
-  $('#run-date').textContent = 'Published data unavailable';
-  $('#status-button').textContent = 'Data unavailable';
-  $('#status-button').classList.add('fail');
-  $('#trend-chart').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
-}
+});
