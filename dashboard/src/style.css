@@ -221,3 +221,29 @@
   .chart-toolbar.open .chart-layers{display:flex}
   .chart-toolbar{justify-content:space-between}
 }
+.list-controls{display:flex;gap:8px;align-items:center;margin:0 0 6px;flex-wrap:wrap}
+.list-controls label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#455c64}
+.list-controls select,.list-search{border:1px solid #cfd9d9;border-radius:5px;background:#fff;font-size:11px;padding:3px 5px;color:#243b43;min-width:0}
+.list-controls select{max-width:190px}
+.list-search{flex:1 1 90px}
+.list-scroll{overflow:auto;max-height:calc(100% - 64px);border:1px solid #e3e9e8;border-radius:5px}
+.fp-place .fp-body{display:flex;flex-direction:column}
+.fp-place .place-content{min-height:0;flex:1;display:flex;flex-direction:column}
+.fp-place .place-content>*:not(.list-controls):not(.list-scroll):not(.list-count){flex:none}
+.fp-place .place-content:has(.list-scroll) .list-scroll{flex:1 1 auto;max-height:none;min-height:120px}
+.place-list{border-collapse:separate;border-spacing:0;margin:0;font-size:10.5px;width:max-content;min-width:100%}
+.place-list th,.place-list td{padding:4px 7px;border-bottom:1px solid #edf1f0;text-align:right;white-space:nowrap}
+.place-list th{position:sticky;top:0;z-index:2;background:#f4f7f7;vertical-align:bottom;white-space:normal;min-width:78px;max-width:104px}
+.place-list th button{border:0;background:none;padding:0;font:inherit;font-weight:700;color:#455c64;text-align:right;line-height:1.25}
+.place-list th[aria-sort=ascending] button:after{content:' (low to high)';font-weight:500}
+.place-list th[aria-sort=descending] button:after{content:' (high to low)';font-weight:500}
+.place-list th[aria-sort]:not([aria-sort=none]){background:#e7f0f1}
+.place-list .name{position:sticky;left:0;z-index:1;text-align:left;background:#fff;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.place-list th.name{z-index:3;background:#f4f7f7}
+.place-list tbody tr{cursor:pointer}
+.place-list tbody tr:hover td,.place-list tbody tr:focus-visible td{background:#eef5f6}
+.list-count{margin:6px 0 0}
+.back-to-list{border:0;background:none;color:#315e70;font-size:11px;font-weight:700;padding:0 0 6px}
+.back-to-list:hover{text-decoration:underline}
+.back-to-list{display:block;text-align:left}
+@media(max-width:700px){.list-scroll,.fp-place .place-content:has(.list-scroll) .list-scroll{max-height:62vh;flex:none}}
