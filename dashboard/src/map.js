@@ -1,3 +1,4 @@
+import { applyMapLabels } from './map-labels.js';
 import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
@@ -712,6 +713,7 @@ export function initMap(select) {
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left');
   map.on('style.load', () => {
+    applyMapLabels(map, theme);
     // Fills and overlays go beneath the basemap's labels so place names stay readable. Styles differ
     // (OpenFreeMap Dark has a water-label layer before its roads), so insert below the trailing run of
     // symbol layers and lift any earlier symbol layer above our layers.
