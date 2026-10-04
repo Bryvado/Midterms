@@ -1,3 +1,4 @@
+import { runMapUpdate } from './map-loading.js';
 import { setTheme } from './map.js';
 
 // Map and data surfaces deliberately have independent preferences and palettes.
@@ -21,7 +22,7 @@ export function initAppearance() {
   applyLayout();
   setTheme(preferences.map);
   const save = () => { try { localStorage.setItem(key, JSON.stringify(preferences)); } catch { /* Session-only preference. */ } };
-  mapSelect.addEventListener('change', () => { preferences.map = mapSelect.value; setTheme(preferences.map); save(); });
+  mapSelect.addEventListener('change', () => runMapUpdate('Changing map background…', () => { preferences.map = mapSelect.value; setTheme(preferences.map); save(); }));
   layoutSelect.addEventListener('change', () => { preferences.layout = layoutSelect.value; applyLayout(); save(); });
   const position = () => {
     const rect = button.getBoundingClientRect();
