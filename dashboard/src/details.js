@@ -3,12 +3,14 @@ import { csv, pct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
 import { renderList, listFiltersByView, cancelList } from './list.js';
 import { countyNames, shortLabel } from './labels.js';
+import { driversFor, driversHTML } from './drivers.js';
 
 const levelInfo = {
   county:{ file:'county_details.csv', kicker:'County' },
   precinct:{ file:'precinct_details.csv', kicker:'Precinct' },
   cd:{ file:'cd_details.csv', kicker:'Congressional district (2025 map)', note:'U.S. Senate forecast within each district — not a House forecast.' },
   cousub:{ file:'cousub_details.csv', kicker:'County subdivision' },
+  puma:{ file:'puma_details.csv', kicker:'PUMA (2020 vintage)' },
 };
 const splitNote = 'Precincts that cross these lines are divided by 2020 census block population.';
 let bases = [];
@@ -72,7 +74,7 @@ function section(title, headers, rows) {
   return `<h3>${escapeHTML(title)}</h3><div class="table-scroll"><table><thead><tr>${headers.map(h => `<th>${escapeHTML(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 
-function renderPlace(unit, props, data, counties) {
+function renderPlace(unit, props, data, counties, drivers) {
   const label = props.region_label || props.region_id;
   const heading = shortLabel(unit, label, counties, { keepCounty:true });
   const value = key => data[key];
@@ -95,9 +97,10 @@ function renderPlace(unit, props, data, counties) {
     const name = measureLabel(metric, unit);
     return [escapeHTML(name), shade(metric.key, name, metric.kind, value(metric.key))];
   });
-  content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2 title="${escapeHTML(label)}">${escapeHTML(heading)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
+  content.innerHTML = `<button type="button" class="back-to-list">Back to list</button><div class="place-kicker">${escapeHTML(levelInfo[unit].kicker)}${data.profile ? ` · ${escapeHTML(data.profile)}` : ''}</div><h2 title="${escapeHTML(label)}">${escapeHTML(heading)}</h2>${levelInfo[unit].note ? `<p class="level-disclaimer">${escapeHTML(levelInfo[unit].note)}</p>` : ''}${unit === 'cd' || unit === 'cousub' || unit === 'puma' ? `<p class="note">${escapeHTML(splitNote)}</p>` : ''}
     <p class="shade-hint">Select any underlined number to shade the map by that measure.</p>
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
+    ${drivers}
     <p class="actual-result"><strong>2024 Harris:</strong> ${shade('dem_pres24','2024 Harris votes','count',value('dem_pres24'))} actual votes · ${harris + trump > 0 ? shade('base_pres24','2024 Harris two-party share','share',harris/(harris+trump)) : 'n/a'} two-party share</p>
     <p class="note">Chance Talarico leads here: ${shade('p_talarico','Chance Talarico leads','share',props.p_talarico)}.${String(data.demographics_imputed).toUpperCase() === 'TRUE' ? ' Demographics estimated from neighboring precincts.' : ''}</p>
     ${section('Projected 2026 votes',['','Mean','90% range'],voteRows)}
@@ -118,7 +121,9 @@ export async function selectPlace(unit, props) {
     if (request !== selected) return;
     const data = rows.find(row => row.region_id === String(props.region_id));
     if (!data) throw new Error('No detail row for this place.');
-    renderPlace(unit, props, data, await countyNames());
+    const [counties, driver] = await Promise.all([countyNames(), driversFor(unit, props.region_id).catch(() => undefined)]);
+    if (request !== selected) return;
+    renderPlace(unit, props, data, counties, driver === undefined ? '<section class="drivers"><h3>From 2024 to the forecast</h3><p class="note">The driver file could not be loaded.</p></section>' : driversHTML(unit, driver));
   } catch (e) {
     if (request === selected) content.innerHTML = `<h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">${escapeHTML(e.message)}</p>`;
   }

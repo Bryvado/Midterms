@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: dashboard/.tile-cache
-          key: tiles-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/congressional_districts.geojson', 'data/published/county_subdivisions.geojson', 'data/published/cd_projections.csv', 'data/published/cousub_projections.csv', 'data/published/cd_details.csv', 'data/published/cousub_details.csv', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'data/published/precinct_details.csv', 'data/published/county_details.csv', 'scripts/build_tiles.R') }}
+          key: tiles-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/congressional_districts.geojson', 'data/published/county_subdivisions.geojson', 'data/published/pumas.geojson', 'data/published/puma_projections.csv', 'data/published/puma_details.csv', 'data/published/cd_projections.csv', 'data/published/cousub_projections.csv', 'data/published/cd_details.csv', 'data/published/cousub_details.csv', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'data/published/precinct_details.csv', 'data/published/county_details.csv', 'scripts/build_tiles.R') }}
       - uses: r-lib/actions/setup-r@v2
         if: steps.tile-cache.outputs.cache-hit != 'true'
         with:
@@ -89,6 +89,9 @@ jobs:
           if [ -f data/published/county_subdivisions.geojson ]; then
             build cousubs county_subdivisions.geojson cousub_projections.csv cousub
           fi
+          if [ -f data/published/pumas.geojson ]; then
+            build pumas pumas.geojson puma_projections.csv puma
+          fi
       - name: Copy map tiles into site
         run: |
           cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
@@ -99,7 +102,7 @@ jobs:
           python3 - <<'PY'
           import os
           from pmtiles.reader import MmapSource, all_tiles
-          for name in ("regions", "counties", "districts", "cousubs"):
+          for name in ("regions", "counties", "districts", "cousubs", "pumas"):
               path = f"dashboard/dist/{name}.pmtiles"
               if not os.path.exists(path):
                   continue

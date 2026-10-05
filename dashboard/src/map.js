@@ -88,6 +88,7 @@ const levels = {
   precinct:{ tiles:'regions', details:'precinct_details.csv', projections:'regional_projections.csv', plural:'precincts' },
   cd:{ tiles:'districts', details:'cd_details.csv', projections:'cd_projections.csv', plural:'congressional districts' },
   cousub:{ tiles:'cousubs', details:'cousub_details.csv', projections:'cousub_projections.csv', plural:'county subdivisions' },
+  puma:{ tiles:'pumas', details:'puma_details.csv', projections:'puma_projections.csv', plural:'PUMAs' },
 };
 const levelKeys = Object.keys(levels);
 const overlayStyle = {
@@ -106,7 +107,7 @@ for (const level of levelKeys) {
   levelSettings.set(level, clean);
 }
 if (!params.has('sc')) for (const [key, value] of Object.entries(savedDisplay.scales || {})) {
-  if (/^(county|precinct|cd|cousub)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
+  if (/^(county|precinct|cd|cousub|puma)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
 }
 const scaleKey = key => `${unit}__${key}`;
 for (const [key, value] of [...scaleState]) if (!key.includes('__')) { scaleState.set(scaleKey(key), value); scaleState.delete(key); }
@@ -653,7 +654,7 @@ export function setTheme(next) {
 // Count actual tile requests in this transaction; metadata stages have no denominator.
 const requestedTiles = new Set(), pendingTiles = new Set();
 let dataReady = false;
-const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions'})[unit];
+const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions',puma:'PUMAs'})[unit];
 function showTileProgress() {
   const total = [...requestedTiles].filter(key => key.startsWith(`${unit}:`)).length;
   const pending = [...pendingTiles].filter(key => key.startsWith(`${unit}:`)).length;

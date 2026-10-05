@@ -7,6 +7,7 @@ const levels = {
   precinct:{ label:'Precincts', details:'precinct_details.csv', projections:'regional_projections.csv' },
   cd:{ label:'Congressional districts', details:'cd_details.csv', projections:'cd_projections.csv' },
   cousub:{ label:'County subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv' },
+  puma:{ label:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv' },
 };
 const valid = v => v !== '' && v != null && Number.isFinite(+v);
 const cap = v => valid(v) ? `${pct(Math.min(1, Math.max(0, +v)))}${+v > 1 || +v < 0 ? ' (capped)' : ''}` : 'n/a';
