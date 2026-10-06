@@ -23,6 +23,7 @@
           <button type="button" data-open-panel="controls" aria-pressed="true">Map controls</button>
           <button type="button" data-open-panel="legend" aria-pressed="true">Legend</button>
           <button type="button" data-open-panel="polling" aria-pressed="true">Polling</button>
+          <button type="button" data-open-panel="scatter" aria-pressed="false">Simulations</button>
           <button type="button" data-open-panel="place" aria-pressed="true">Selected place</button>
           <button type="button" id="reset-layout" class="reset-layout">Reset layout</button>
         </div>
@@ -123,6 +124,24 @@
             <details class="panel-details"><summary id="poll-summary">Poll ledger</summary><div id="poll-ledger"></div></details>
           </div>
           <span class="fp-resize" aria-hidden="true"></span>
+        </section>
+        <section class="float-panel fp-scatter" id="fp-scatter" data-panel="scatter" aria-label="Simulated outcomes">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Simulated outcomes</h2><button type="button" class="fp-close" aria-label="Close simulated outcomes panel">×</button></header>
+          <div class="fp-body">
+            <p id="scatter-caption" class="chart-caption">Loading simulations…</p>
+            <div class="scatter-controls">
+              <select id="scatter-scenario" aria-label="Scenario"></select>
+              <span class="range-switch" role="group" aria-label="Scatter view"><button type="button" data-scatter-view="votes" aria-pressed="true">Votes</button><button type="button" data-scatter-view="turnout_share" aria-pressed="false">Turnout vs margin</button></span>
+            </div>
+            <p id="scatter-chance" class="chart-caption"></p>
+            <p id="scatter-note" class="scatter-note" hidden>Turnout and margin are drawn independently in the model, so no relationship is expected here.</p>
+            <div id="scatter-chart" class="chart-root" aria-label="Simulated outcomes scatter"></div>
+            <div class="scatter-legend" aria-label="Legend">
+              <span><i class="sc-sw dot blue"></i>Talarico wins</span><span><i class="sc-sw dot red"></i>Paxton wins</span>
+              <span class="sc-contours"><i class="sc-sw line c0"></i>50% <i class="sc-sw line c1"></i>80% <i class="sc-sw line c2"></i>95% of simulations</span>
+              <span><i class="sc-sw line tie"></i>Tie line</span>
+            </div>
+          </div>
         </section>
         <section class="float-panel fp-place" id="fp-place" data-panel="place" aria-label="Selected place">
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Selected place</h2><button type="button" class="fp-close" aria-label="Close selected place panel">×</button></header>
