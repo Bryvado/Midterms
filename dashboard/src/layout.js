@@ -30,6 +30,7 @@ function defaults() {
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:true },
+    scatter:{ x:Math.max(GAP, W - pollW - 460 - GAP * 2), y:GAP, w:460, h:Math.min(560, H - GAP * 2), open:false },
     place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:true },
   };
 }
@@ -67,7 +68,8 @@ function apply() {
 function update(id, patch) {
   const el = panels.get(id);
   const current = state[id] || {};
-  if (!phone.matches && !('x' in current)) Object.assign(current, { x:el.offsetLeft, y:el.offsetTop });
+  // A panel that is still closed has no measured position yet, so it opens at its default one.
+  if (!phone.matches && !('x' in current)) Object.assign(current, el.hidden && defaults()[id]?.y != null ? { x:defaults()[id].x, y:defaults()[id].y } : { x:el.offsetLeft, y:el.offsetTop });
   state[id] = { ...current, ...patch };
   save();
   apply();

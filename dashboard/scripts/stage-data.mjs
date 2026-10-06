@@ -10,6 +10,7 @@ const files = [
   'uniform_shift.csv', 'scenarios.csv', 'county_details.csv', 'precinct_details.csv',
   'cd_details.csv', 'cousub_details.csv', 'puma_details.csv', 'drivers.csv',
   'county_projections.csv', 'regional_projections.csv', 'cd_projections.csv', 'cousub_projections.csv', 'puma_projections.csv',
+  'sim_scatter_points.csv', 'sim_scatter_density.csv', 'sim_scatter_axes.csv',
 ];
 // Optional files: copied when published, skipped (and their controls hidden) when not.
 const optional = ['sensitivities.csv'];

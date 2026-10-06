@@ -6,6 +6,7 @@ import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } 
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario } from './chart.js';
+import { initScatter } from './scatter.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
 const $ = selector => document.querySelector(selector);
@@ -167,6 +168,7 @@ await runMapUpdate('Loading forecast map…', async signal => {
     setBaselines(shifts);
     initChart(track,ledger,headline,shifts);
     loadScenario();
+    csv('sensitivities.csv').catch(() => []).then(rows => initScatter(headline, rows));
   } catch (error) {
     if (signal.aborted) throw error;
     console.error(error);
