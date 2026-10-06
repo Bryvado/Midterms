@@ -24,6 +24,7 @@
           <button type="button" data-open-panel="legend" aria-pressed="true">Legend</button>
           <button type="button" data-open-panel="polling" aria-pressed="true">Polling</button>
           <button type="button" data-open-panel="scatter" aria-pressed="false">Simulations</button>
+          <button type="button" data-open-panel="shifts" aria-pressed="false">Precinct shifts</button>
           <button type="button" data-open-panel="place" aria-pressed="true">Selected place</button>
           <button type="button" id="reset-layout" class="reset-layout">Reset layout</button>
         </div>
@@ -55,6 +56,12 @@
               <label class="measure-label">Show
                 <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
               </label>
+            </div>
+            <div class="compare-group" role="group" aria-label="Compare elections">
+              <span class="compare-title">Compare elections</span>
+              <label>From <select id="cmp-from"></select></label>
+              <label>To <select id="cmp-to"></select></label>
+              <label>Metric <select id="cmp-metric"></select></label>
             </div>
             <p id="level-note" class="level-note" hidden>U.S. Senate forecast within each district — not a House forecast.</p>
             <div class="map-buttons"><button id="reset-map" class="map-reset" type="button" title="Show all of Texas">Reset view</button><button id="appearance-toggle" class="appearance-toggle" type="button" popovertarget="appearance-menu" aria-expanded="false" aria-label="Appearance: map and data displays" title="Map and data appearance"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c-5 2-11-3-9-9Z"/><path d="M12 8a4 4 0 0 0 0 8M3 12H1M5.6 5.6 4.2 4.2M5.6 18.4l-1.4 1.4M12 21v2"/></svg></button></div>
@@ -143,6 +150,49 @@
             </div>
           </div>
         </section>
+        <section class="float-panel fp-shifts" id="fp-shifts" data-panel="shifts" aria-label="Precinct shifts">
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Precinct shifts</h2><button type="button" class="fp-close" aria-label="Close precinct shifts panel">×</button></header>
+          <div class="fp-body">
+            <div class="sh-controls">
+              <label>Level <select id="sh-level"></select></label>
+              <label>From <select id="sh-from"></select></label>
+              <label>To <select id="sh-to"></select></label>
+              <label>Minimum two-party votes <select id="sh-min"></select></label>
+              <label>Summaries <select id="sh-weight"><option value="1">Vote-weighted</option><option value="0">Unweighted</option></select></label>
+              <label>County <input id="sh-county" list="sh-county-list" type="search" placeholder="All counties" autocomplete="off"><datalist id="sh-county-list"></datalist></label>
+              <label>Profile <select id="sh-profile"></select></label>
+            </div>
+            <p id="sh-status" class="note">Open to load the precinct data.</p>
+            <p id="sh-counts" class="note sh-counts"></p>
+            <p id="sh-caveats" class="note sh-caveats"></p>
+            <div id="sh-summary" class="sh-summary"></div>
+            <div class="range-switch sh-tabs" role="group" aria-label="Precinct shifts view"><button type="button" data-sh-view="xy" aria-pressed="true">Shift vs shift</button><button type="button" data-sh-view="demog" aria-pressed="false">Shift vs demographics</button><button type="button" data-sh-view="table" aria-pressed="false">Movers table</button></div>
+            <div id="sh-views" class="sh-views">
+              <section id="sh-view-xy">
+                <div class="sh-row"><span class="sh-axis">X axis: the pair above</span><label class="check"><input id="sh-xrel" type="checkbox"> Relative</label><span class="sh-axis">Y axis</span><label>From <select id="sh-y2from"></select></label><label>To <select id="sh-y2to"></select></label><label class="check"><input id="sh-yrel" type="checkbox"> Relative</label></div>
+                <div class="sh-row"><label>Color <select id="sh-color"><option value="profile">Profile</option><option value="share">Democratic share, From race</option></select></label><label class="check"><input id="sh-contours" type="checkbox"> 50 / 80 / 95% contours</label></div>
+                <div class="sh-canvas"><canvas id="sh-xy-canvas" role="img" aria-label="Scatter of precinct shifts"></canvas><div class="chart-tooltip" hidden></div></div>
+                <div id="sh-xy-legend" class="sh-legend"></div>
+                <p id="sh-xy-stats" class="note"></p>
+              </section>
+              <section id="sh-view-demog" hidden>
+                <div class="sh-row"><label>X axis <select id="sh-demog"></select></label><label class="check"><input id="sh-demog-rel" type="checkbox"> Relative to statewide</label></div>
+                <div class="sh-canvas"><canvas id="sh-demog-canvas" role="img" aria-label="Scatter of precinct shifts against a demographic measure"></canvas><div class="chart-tooltip" hidden></div></div>
+                <p id="sh-demog-stats" class="note"></p>
+              </section>
+              <section id="sh-view-table" hidden>
+                <div class="sh-row"><label class="check"><input id="sh-inview" type="checkbox"> Only places in the map view</label><button type="button" id="sh-csv" class="text-button">Download CSV</button></div>
+                <div id="sh-table-body"></div>
+              </section>
+            </div>
+            <details class="sh-how"><summary>How this is computed</summary>
+              <p>Two-party share of a past race is D / (D + R) from the published vote columns. The 2026 share is the projection's mean field, the same value the map's Projected share shows. A shift from A to B is share B minus share A in points, and positive means more Democratic. A relative shift subtracts the statewide shift, with statewide shares taken from vote totals summed over all rows.</p>
+              <p>The turnout ratio is two-party votes in B divided by two-party votes in A, using Talarico plus Paxton expected votes for 2026. Its relative form divides by the statewide ratio, which uses only places with votes in both races. Net Democratic vote change is (D − R) in B minus (D − R) in A, and Talarico minus Paxton for 2026.</p>
+              <p>A race with no two-party votes is missing, never a 0% share. Places below the minimum votes in either race are grey. Summaries are weighted by two-party votes in the From race unless set to unweighted.</p>
+            </details>
+            <p id="sh-check" class="note sh-check">Statewide check runs when the data loads.</p>
+          </div>
+        </section>
         <section class="float-panel fp-place" id="fp-place" data-panel="place" aria-label="Selected place">
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Selected place</h2><button type="button" class="fp-close" aria-label="Close selected place panel">×</button></header>
           <div class="fp-body">
@@ -191,6 +241,10 @@
         <p>Map shares are Talarico's share of votes for the two major candidates, D/(D+R). Scenario maps use joint simulation draws near the statewide 5th and 95th percentiles. Precinct and county vote counts come from a separate vote-count simulation and may imply a two-party share that differs from the map by up to about half a point.</p>
         <p>The actual 2024 Harris result is the model's reference baseline for geographic shifts. “Reference baseline” describes its role in the model, not how the 2024 votes were obtained.</p>
         <p>Click a number in the selected-place panel to shade every county or precinct by that measure. Red and blue map colors represent Republican and Democratic outcomes. Result confidence uses one purple scale from 50% (even) to 100% (certain), regardless of which candidate is favored; it is the published larger of the two candidates' modeled chances of leading. Projected margin is Talarico minus Paxton as a share of all ballots, and Brown share is Brown's share of all ballots, both as published by the model. Net vote density is the published net Talarico minus Paxton votes per square mile of full-resolution area: blue is a Talarico lead, red is a Paxton lead. Areas expected to cast under half a ballot have no margin, Brown share or density and are drawn as no data. The Display panel sets how each metric is colored: a center (an even 50%, the statewide forecast or a baseline race's statewide result), a range (fit to the areas in view, fit to all areas at the current level, a fixed width or custom bounds) and continuous, stepped, ratings, equal-interval, quantile, natural-break or standard-deviation classes. Classification uses raw values for all areas at the selected geographic level, with one observation per area. Natural breaks use deterministic 1D k-means, rather than Fisher–Jenks optimization. Candidate maps keep the chosen center as a boundary, which can add a class. Display settings, including border thickness, are saved separately for each geographic level; Reset display resets only the current level. These settings change only the coloring; the legend states the active center and range. Estimated demographic percentages are capped at 100% for display and shading; the published CSVs retain the original estimates. Choose demographics directly from Show or click a demographic value in a place’s details. These sequential colors describe areas, not individual voter behavior. The sun/moon Appearance button sets the map background and the data-panel theme independently, while preserving the selected measure and location.</p>
+        <h3>Precinct shifts</h3>
+        <p>The Compare elections controls and the Precinct shifts panel compare any two elections place by place, using the published vote columns and the projection's mean field for 2026. The two-party share of a past race is D / (D + R). A shift from A to B is share B minus share A, in points, and positive means more Democratic. A relative shift subtracts the statewide shift, and statewide shares come from vote totals summed over all rows, not from averaging places. The turnout ratio is two-party votes in B divided by two-party votes in A (Talarico plus Paxton expected votes for 2026), and its relative form divides by the statewide ratio. Net Democratic vote change is (D − R) in B minus (D − R) in A.</p>
+        <p>A race with no two-party votes is missing for that place and is never read as a 0% share; any comparison that involves it is grey and left out of every scatter, table and summary. Places below the minimum two-party votes in either race are grey too, with their own legend entry, and the counts of places shown, below the minimum and missing a race are printed. Summaries, binned trend lines, correlations and regression lines are weighted by two-party votes in the From race unless the panel is set to unweighted, and the active choice is labeled.</p>
+        <p>The 2016 to 2022 races and the 2024 races come from different upstream sources that the model puts onto the same precinct map, so a comparison that crosses that boundary can partly reflect how each source assigns votes to precincts. A comparison between different offices includes candidate differences, not only changes in the electorate. As a check, the statewide share of every past race computed from the loaded precinct file is compared with the published statewide result, and the panel footer warns by name if any race differs by more than 0.0001.</p>
         <h3>Statewide shift from past races</h3><div id="shift-table" class="table-scroll"></div>
         <h3>Model checks</h3><p id="gate-summary"></p><div id="gate-list" class="gate-list"></div>
       </div>

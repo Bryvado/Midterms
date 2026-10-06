@@ -29,7 +29,7 @@ const columns = [
 const pageSize = 50;
 const state = { level:'', sort:'population', metric:'population', dir:-1, query:'', inView:false, full:false, page:0, filters:[] };
 const boxes = new Map();
-const boxesFor = level => {
+export const boxesFor = level => {
   if (!boxes.has(level)) boxes.set(level, fetch(`${base}data/bounds_${level}.json`).then(r => r.ok ? r.json() : null).catch(() => null));
   return boxes.get(level);
 };

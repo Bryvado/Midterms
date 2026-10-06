@@ -3,6 +3,7 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -123,6 +124,8 @@ let viewRange = null;
 const metricKinds = new Map(placeMeasures.map(metric => [metric.key, metric.kind]));
 export const currentUnit = () => unit;
 const stateValues = new Map();
+// Comparison values depend on the pair and filters, so their cache key carries the comparison version.
+const svKey = (key, level) => isCompareMeasure(key) ? `${key}|${level}|${stateVersion()}` : `${key}|${level}`;
 
 const styles = {
   // OpenFreeMap styles, no API key. Positron is on the quick-start guide; Dark is listed in the openfreemap-styles README.
@@ -143,6 +146,7 @@ const outline = () => settings.ln === '1' ? `rgba(${outlineColor[theme]},${+sett
 const quantile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
 
 function metricType(key) {
+  if (isCompareMeasure(key)) return { shift:'shift', rshift:'shift', ratio:'ratio', rratio:'ratio', net:'netvotes' }[key.slice(4)];
   if (key === 'vote_density') return 'density';
   if (key === 'result_confidence') return 'confidence';
   if (key === 'p_talarico') return 'prob';
@@ -152,12 +156,31 @@ function metricType(key) {
   if (['count','money','bounded'].includes(metricKinds.get(key)) || isCount(key)) return 'seq';
   return 'share';
 }
-const isDiverging = type => ['density','prob','shift','share','margin'].includes(type);
+const isDiverging = type => ['density','prob','shift','share','margin','ratio','netvotes'].includes(type);
 // Percent-like metrics take custom bounds in percent or points; counts and density take raw numbers.
 const percentUnits = key => ['share','prob','brown','confidence','margin','shift'].includes(metricType(key)) || metricKinds.get(key) === 'bounded';
 
+// Scale choices for the election-comparison measures. Ratios are shaded on a log scale: the value is ln(ratio), centered on 0 (a ratio of 1).
+function compareOptions(key) {
+  const metric = key.slice(4), type = metricType(key), store = storeIfLoaded(unit);
+  const ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to) : null;
+  const times = r => `×${r.toFixed(2)}`;
+  const centers = metric === 'shift' ? [['zero','0 (no shift)']] : metric === 'rshift' ? [['zero','Statewide shift']] : metric === 'ratio' ? [['zero','×1 (no change)']] : metric === 'rratio' ? [['zero','Statewide ratio']] : [['zero','0']];
+  if (ev && metric === 'shift' && Number.isFinite(ev.stateShift)) centers.push(['state',`Statewide shift (${signed(ev.stateShift)})`]);
+  if (ev && metric === 'ratio' && Number.isFinite(ev.stateRatio)) centers.push(['state',`Statewide ratio (${times(ev.stateRatio)})`]);
+  const fits = [['view','Fit to view (5th–95th pct.)'],['state','Fit to state (5th–95th pct.)']];
+  const preset = r => [`p${r}`, `±${Math.round(100 * r)} pts`];
+  let ranges, range;
+  if (type === 'shift') { ranges = [...fits,['comp','Competitive focus (±3 pts)'],...[.05,.1,.15,.25].map(preset),['custom','Custom']]; range = 'p0.15'; }
+  else if (type === 'ratio') { ranges = [...fits,['p0.223','×0.8 to ×1.25'],['p0.405','×0.67 to ×1.5'],['p0.693','×0.5 to ×2'],['p1.099','×0.33 to ×3']]; range = 'p0.405'; }
+  else { ranges = [...fits,['custom','Custom']]; range = 'state'; }
+  const bins = [['cont','Continuous'],['step','Round-number steps'],...Object.entries(classificationMethods)];
+  return { type, centers, ranges, bins, log:false, defaults:{ c:'zero', r:range, b:'cont', k:'6', log:'0' } };
+}
+
 // What each metric type offers, and its defaults.
 function options(key) {
+  if (isCompareMeasure(key)) return compareOptions(key);
   const type = metricType(key);
   const centers = [];
   if (type === 'share') {
@@ -197,6 +220,11 @@ function current(key = measure) {
 }
 
 function centerValue(key, c) {
+  if (isCompareMeasure(key)) {
+    const store = storeIfLoaded(unit), ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to) : null;
+    if (c === 'state' && ev) return key === 'cmp_shift' ? ev.stateShift : key === 'cmp_ratio' ? Math.log(ev.stateRatio) : 0;
+    return 0;
+  }
   const type = metricType(key);
   if (c === 'state' && type === 'share') return reference.stateShare;
   if (c === 'state' && type === 'shift') return +reference.baselines.find(row => `shift_${row.baseline}` === key)?.shift_mean || 0;
@@ -228,20 +256,29 @@ export function marginColor(points, surfaceTheme = theme) {
   return colorAt(colors, .5 + Math.max(-8, Math.min(8, points)) / 16);
 }
 export const partyColor = (side, surfaceTheme = theme) => colorAt(ramp('margin', surfaceTheme), side === 'D' ? 1 : 0);
+// A two-party share on the diverging palette, 20% to 80% across the ramp like the map.
+export const shareColor = (share, surfaceTheme = theme) => colorAt(ramp('share', surfaceTheme), Math.max(0, Math.min(1, .5 + (share - .5) / .6)));
 const announce = () => window.dispatchEvent(new Event('display-change'));
 
 function format(key, v) {
   const type = metricType(key), kind = metricKinds.get(key);
   const p1 = x => `${+(100 * x).toFixed(Math.abs(100 * x - Math.round(100 * x)) < .05 ? 0 : 1)}`;
+  if (type === 'ratio') return `×${Math.exp(v).toFixed(2)}`;
   if (type === 'shift' || type === 'margin') return `${v > 0 ? '+' : v < 0 ? '−' : ''}${p1(Math.abs(v))} pts`;
-  if (type === 'density') return v === 0 ? '0' : `${v > 0 ? '+' : '−'}${compact(Math.abs(v))}`;
+  if (type === 'density' || type === 'netvotes') return v === 0 ? '0' : `${v > 0 ? '+' : '−'}${compact(Math.abs(v))}`;
   if (type === 'seq' && kind !== 'bounded') return compact(v, kind);
   return `${p1(v)}%`;
 }
 
 async function loadStateValues(key, level) {
-  const id = `${key}|${level}`;
+  const id = svKey(key, level);
   if (stateValues.has(id)) return stateValues.get(id);
+  if (isCompareMeasure(key)) {
+    const values = metricValues(await ensureStore(level), key.slice(4));
+    if (!values.length) throw new Error('No places have votes in both races under the current filters.');
+    stateValues.set(id, values);
+    return values;
+  }
   const column = sourceKey(key);
   const [details, projections] = await Promise.all([csv(levels[level].details), csv(levels[level].projections)]);
   const rows = details.columns.includes(column) ? details : projections;
@@ -254,6 +291,16 @@ async function loadStateValues(key, level) {
 
 function viewValues() {
   if (!map?.getLayer(layerName(unit))) return [];
+  if (isCompareMeasure(measure)) {
+    const seen = new Set(), values = [];
+    for (const f of map.queryRenderedFeatures({ layers:[layerName(unit)] })) {
+      if (seen.has(f.properties.region_id)) continue;
+      seen.add(f.properties.region_id);
+      const d = describeProps(f.properties, unit);
+      if (d.status === CMP.ok && Number.isFinite(d.value)) values.push(d.value);
+    }
+    return values.sort((a,b) => a-b);
+  }
   const column = sourceKey(measure), seen = new Set(), values = [];
   const bounded = metricKinds.get(measure) === 'bounded';
   for (const f of map.queryRenderedFeatures({ layers:[layerName(unit)] })) {
@@ -274,7 +321,7 @@ function scale(key, level = unit) {
   const levelName = levels[level].plural;
   let lo, hi, center = diverging ? centerValue(key, s.c) : null, rangeNote = '';
   if (s.b in classificationMethods) {
-    const values = stateValues.get(`${key}|${level}`) || [];
+    const values = stateValues.get(svKey(key, level)) || [];
     if (values.length) {
       lo = values[0]; hi = values.at(-1);
       let edges = classify(values, s.b, +s.k);
@@ -298,10 +345,10 @@ function scale(key, level = unit) {
   };
   if (s.r === 'view') {
     const got = viewRange && viewRange.key === key && viewRange.level === level ? viewRange.domain : null;
-    [lo, hi] = got || fit(stateValues.get(`${key}|${level}`)) || [0, 1];
+    [lo, hi] = got || fit(stateValues.get(svKey(key, level))) || [0, 1];
     rangeNote = got ? `fit to the 5th–95th percentile of ${levelName} in view` : `fit to the 5th–95th percentile of all ${levelName} until the map settles`;
   } else if (s.r === 'state') {
-    [lo, hi] = fit(stateValues.get(`${key}|${level}`)) || [0, 1];
+    [lo, hi] = fit(stateValues.get(svKey(key, level))) || [0, 1];
     rangeNote = `fit to the 5th–95th percentile of all ${levelName}`;
   } else if (s.r === 'comp') {
     const r = type === 'shift' ? .03 : .05; lo = center - r; hi = center + r; rangeNote = 'competitive focus';
@@ -321,9 +368,9 @@ function scale(key, level = unit) {
   const tPos = v => diverging
     ? (v <= center ? .5 - .5 * (center - v) / Math.max(1e-9, center - lo) : .5 + .5 * (v - center) / Math.max(1e-9, hi - center))
     : (tx(v) - tx(lo)) / Math.max(1e-9, tx(hi) - tx(lo));
-  const units = { share:'Talarico two-party share', margin:'Talarico minus Paxton, points of all ballots', shift:'two-party points', prob:'chance Talarico leads', confidence:'larger candidate’s chance of leading', brown:'Brown share of all ballots', density:'net Talarico minus Paxton votes per square mile' }[type] || '';
+  const units = { share:'Talarico two-party share', margin:'Talarico minus Paxton, points of all ballots', shift:'two-party points', prob:'chance Talarico leads', confidence:'larger candidate’s chance of leading', brown:'Brown share of all ballots', density:'net Talarico minus Paxton votes per square mile', ratio:'turnout ratio between the two elections, shown on a log scale', netvotes:'change in net Democratic minus Republican votes' }[type] || '';
   const centerNote = diverging && options(key).centers.length > 1 && !['even','zero'].includes(s.c) ? ` Centered on the ${centerText(key, s.c).replace(/^Statewide/, 'statewide')}.` : '';
-  const note = `${units ? `${units[0].toUpperCase()}${units.slice(1)}.` : ''}${centerNote} Colors span ${format(key, lo)} to ${format(key, hi)}${rangeNote ? ` (${rangeNote})` : ''} and saturate beyond.${type === 'shift' ? ' Grey areas lack a baseline.' : ''}${metricKinds.get(key) === 'bounded' ? ' Estimates above 100% are capped.' : ''}`;
+  const note = `${units ? `${units[0].toUpperCase()}${units.slice(1)}.` : ''}${centerNote} Colors span ${format(key, lo)} to ${format(key, hi)}${rangeNote ? ` (${rangeNote})` : ''} and saturate beyond.${type === 'shift' && !isCompareMeasure(key) ? ' Grey areas lack a baseline.' : ''}${metricKinds.get(key) === 'bounded' ? ' Estimates above 100% are capped.' : ''}`;
   if (s.b === 'step') {
     let edges;
     if (diverging) {
@@ -351,7 +398,22 @@ function scale(key, level = unit) {
   return { kind:'cont', type, stops, tx, log, positions, colors:stops.map(v => mapColorAt(colors, tPos(v), type)), lo, hi, center, note };
 }
 
+const compareGreys = () => theme === 'dark'
+  ? { nodata:'#4c5159', missing:'#737b84', below:'#4d5862', filtered:'#2c353d' }
+  : { nodata:'#afb8b8', missing:'#b3bcbc', below:'#d9dfdf', filtered:'#eef1f1' };
+export const compareGreyColors = compareGreys;
+function compareColorExpression(key, level) {
+  const g = compareGreys(), e = mapExpressions(level, key.slice(4));
+  if (!e) return g.nodata;
+  const s = scale(key, level), tx = s.tx || (v => v);
+  const paint = s.kind === 'cont'
+    ? ['interpolate', ['linear'], e.value, ...s.stops.flatMap((stop, i) => [tx(stop), s.colors[i]])]
+    : ['step', e.value, s.colors[0], ...s.edges.flatMap((edge, i) => [tx(edge), s.colors[i + 1]])];
+  return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), paint];
+}
+
 function colorExpression(key, level) {
+  if (isCompareMeasure(key)) return compareColorExpression(key, level);
   const s = scale(key, level);
   const column = sourceKey(key);
   const raw = ['to-number', ['get', column]];
@@ -365,9 +427,23 @@ function colorExpression(key, level) {
 }
 
 function legendTitle() {
+  if (isCompareMeasure(measure)) return `${pairLabel()}: ${cmpMetrics.find(metric => `cmp_${metric.key}` === measure)?.label || ''}`;
   const label = document.querySelector('#measure').selectedOptions[0]?.textContent || 'Projected share';
   const qualifier = measure === 'base_pres24' || isCount(measure) ? '2024 actual' : '';
   return qualifier ? `${label} · ${qualifier}` : label;
+}
+
+// Grey entries for places that are not shaded, and the guard notes for the active pair.
+function compareLegendExtras() {
+  const g = compareGreys(), store = storeIfLoaded(unit), ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to) : null;
+  const chip = (color, text) => `<div class="legend-nodata"><span style="background:${color}"></span>${escapeHTML(text)}</div>`;
+  const noun = levels[unit].plural;
+  let html = chip(g.missing, 'No votes in this race') + (cmpState.min > 0 ? chip(g.below, `Too few votes (under ${cmpState.min.toLocaleString('en-US')} two-party)`) : '') + (ev?.counts.filtered ? chip(g.filtered, 'Excluded by filters') : '');
+  const notes = [];
+  if (ev) notes.push(`${ev.counts.shown.toLocaleString('en-US')} ${noun} shown · ${ev.counts.below.toLocaleString('en-US')} below minimum · ${ev.counts.missing.toLocaleString('en-US')} missing a race`);
+  if (crossOffice()) notes.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
+  if (crossesSources()) notes.push(sourceCaveat);
+  return html + notes.map(text => `<div class="legend-note">${escapeHTML(text)}</div>`).join('');
 }
 
 function drawLegend() {
@@ -386,9 +462,10 @@ function drawLegend() {
     body = `<div class="legend-ramp" style="background:linear-gradient(90deg,${gradient})"></div>
       <div class="legend-edges">${picks.map(i => `<span style="left:${(100 * s.positions[i]).toFixed(2)}%">${escapeHTML(format(measure, s.stops[i]))}</span>`).join('')}</div>`;
   }
-  const ends = isDiverging(s.type) && s.kind !== 'ratings' ? '<div class="legend-ends"><span>Paxton</span><span>Talarico</span></div>' : '';
+  const endNames = s.type === 'shift' && isCompareMeasure(measure) ? ['Less Democratic', 'More Democratic'] : s.type === 'ratio' ? ['Fewer votes', 'More votes'] : s.type === 'netvotes' ? ['Net Republican', 'Net Democratic'] : ['Paxton', 'Talarico'];
+  const ends = isDiverging(s.type) && s.kind !== 'ratings' ? `<div class="legend-ends"><span>${endNames[0]}</span><span>${endNames[1]}</span></div>` : '';
   const lines = Object.entries(overlayStyle).filter(([level]) => settings[level === 'county' ? 'oc' : 'od'] === '1').map(([, style]) => `<div class="legend-line"><span style="border-top:${Math.max(2, style.width)}px ${style.dash ? 'dashed' : 'solid'} ${style[theme]}"></span>${escapeHTML(style.label)}</div>`).join('');
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}<div class="legend-nodata"><span></span>No data</div>${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}${isCompareMeasure(measure) ? compareLegendExtras() : '<div class="legend-nodata"><span></span>No data</div>'}${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
   syncControls();
 }
 
@@ -461,6 +538,7 @@ function syncControls() {
 }
 
 async function ensureValues() {
+  if (isCompareMeasure(measure)) await ensureStore(unit);
   const { s } = current();
   if ((['view','state'].includes(s.r) && s.b !== 'rat') || s.b in classificationMethods) await loadStateValues(measure, unit);
 }
@@ -541,6 +619,19 @@ function initDisplayControls() {
   on('#display-reset', 'click', (_, signal) => { Object.assign(settings, defaults); for (const key of [...scaleState.keys()]) if (key.startsWith(`${unit}__`)) scaleState.delete(key); viewRange = null; return applyDisplay(signal); });
 }
 
+function compareTooltip(props) {
+  const d = describeProps(props, unit), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
+  const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : 'no votes in this race'}`;
+  const lines = [part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
+  if (d.status === CMP.filtered) lines.push('Excluded by the current filters.');
+  else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.');
+  else {
+    lines.push(`Shift: ${signed(d.shift)}`, `Turnout ratio: ×${d.ratio.toFixed(2)}`, `Net Democratic vote change: ${d.net >= 0 ? '+' : '−'}${count(Math.abs(d.net))}`);
+    if (d.status === CMP.below) lines.push(`Below the minimum of ${cmpState.min.toLocaleString('en-US')} two-party votes: not shaded.`);
+  }
+  return lines.map(escapeHTML).join('<br>');
+}
+
 function valueText(props) {
   const v = props[sourceKey(measure)];
   const kind = metricKinds.get(measure);
@@ -557,7 +648,8 @@ function valueText(props) {
 function showTooltip(event, props) {
   const label = props.region_label || props.region_id || 'Selected place';
   const showing = document.querySelector('#measure').selectedOptions[0].textContent;
-  tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
+  if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
+  else tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
   const rect = pane.getBoundingClientRect();
   let x = event.originalEvent.clientX - rect.left + 13;
   let y = event.originalEvent.clientY - rect.top + 13;
@@ -599,6 +691,14 @@ window.addEventListener('zoom-place', ({ detail:{ level, id } }) => runMapUpdate
   map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:level === 'precinct' ? 12 : 10, duration:700 });
 }));
 
+// A new pair, minimum or filter repaints the map when it is shaded by comparison.
+let compareTimer = 0;
+window.addEventListener('compare-change', ({ detail }) => {
+  if (detail?.what === 'view' || !isCompareMeasure(measure) || !map) return;
+  clearTimeout(compareTimer);
+  compareTimer = setTimeout(() => runMapUpdate('Shading map…', signal => { viewRange = null; return applyDisplay(signal); }), 120);
+});
+
 export const initialMeasure = () => params.get('m');
 
 function syncUnit(next) {
@@ -632,6 +732,7 @@ export async function setUnit(next, signal) {
 export async function setMeasure(next, meta, signal) {
   const request = ++measureRequest;
   measure = next;
+  if (isCompareMeasure(next)) setCompareMetric(next.slice(4));
   if (meta) metricKinds.set(next, meta.kind);
   try { await ensureValues(); } catch (error) { if (request === measureRequest) throw error; }
   signal?.throwIfAborted();

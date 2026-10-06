@@ -7,6 +7,8 @@ import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario } from './chart.js';
 import { initScatter } from './scatter.js';
+import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
+import './shifts.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
 const $ = selector => document.querySelector(selector);
@@ -60,6 +62,19 @@ setShadeHandler(meta => runMapUpdate('Shading map…', async signal => {
   await applyMeasure(meta.key, meta, signal);
 }));
 
+optionGroup('Election comparison', cmpMetrics.map(metric => [`cmp_${metric.key}`, metric.label]));
+// The Compare elections group in Map controls: changing the pair or metric shades the map by comparison.
+const cmpFrom = $('#cmp-from'), cmpTo = $('#cmp-to'), cmpMetric = $('#cmp-metric');
+for (const select of [cmpFrom, cmpTo]) select.replaceChildren(...cmpRaces.map(race => new Option(race.label, race.key)));
+cmpMetric.replaceChildren(new Option('Shade the map…', ''), ...cmpMetrics.map(metric => new Option(metric.label, metric.key)));
+const syncCompare = () => { cmpFrom.value = cmpState.from; cmpTo.value = cmpState.to; cmpMetric.value = measure.value.startsWith('cmp_') ? measure.value.slice(4) : ''; };
+const showComparison = () => { if (!measure.value.startsWith('cmp_')) { measure.value = `cmp_${cmpState.metric}`; measure.dispatchEvent(new Event('change')); } };
+cmpFrom.addEventListener('change', () => { setCompare({ from:cmpFrom.value }); showComparison(); });
+cmpTo.addEventListener('change', () => { setCompare({ to:cmpTo.value }); showComparison(); });
+cmpMetric.addEventListener('change', () => { if (cmpMetric.value) { measure.value = `cmp_${cmpMetric.value}`; measure.dispatchEvent(new Event('change')); } });
+measure.addEventListener('change', syncCompare);
+window.addEventListener('compare-change', syncCompare);
+syncCompare();
 optionGroup('Demographics', demographicMeasures.map(metric => [metric.key, measureLabel(metric, currentUnit())]));
 optionGroup('Electorate counts', electorateMeasures.map(metric => [metric.key, metric.label]));
 window.addEventListener('unit-change', ({ detail:unit }) => {
@@ -164,6 +179,7 @@ await runMapUpdate('Loading forecast map…', async signal => {
     } else {
       await applyMeasure(measure.value, undefined, signal);
     }
+    syncCompare();
     renderLedger(ledger);
     setBaselines(shifts);
     initChart(track,ledger,headline,shifts);
