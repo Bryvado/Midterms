@@ -30,6 +30,7 @@ function defaults() {
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
     polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:true },
+    shifts:{ x:Math.max(GAP, W - 580 - GAP), y:GAP, w:580, h:Math.min(880, H - GAP * 2), open:false },
     scatter:{ x:Math.max(GAP, W - pollW - 460 - GAP * 2), y:GAP, w:460, h:Math.min(560, H - GAP * 2), open:false },
     place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:true },
   };

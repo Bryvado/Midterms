@@ -4,6 +4,7 @@ import { openPanel } from './layout.js';
 import { renderList, listFiltersByView, cancelList } from './list.js';
 import { countyNames, shortLabel } from './labels.js';
 import { driversFor, driversHTML } from './drivers.js';
+import { renderTimeline } from './timeline.js';
 
 const levelInfo = {
   county:{ file:'county_details.csv', kicker:'County' },
@@ -106,8 +107,10 @@ function renderPlace(unit, props, data, counties, drivers) {
     ${section('Projected 2026 votes',['','Mean','90% range'],voteRows)}
     <p class="note">Vote counts come from a separate simulation and may imply a two-party share differing from the map by up to about half a point.</p>
     ${section('Past results',['Race','D votes','R votes','D two-party'],resultRows)}
+    <div class="timeline" id="place-timeline"></div>
     ${section('Demographics',['Measure','Value'],demographics)}
     <p class="note">Estimated percentage fields are capped at 100% for display and map shading. The published source values remain unchanged.</p>`;
+  renderTimeline(content.querySelector('#place-timeline'), unit, props.region_id);
 }
 
 export async function selectPlace(unit, props) {
