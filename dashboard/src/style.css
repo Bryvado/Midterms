@@ -517,8 +517,10 @@
 .tl-range{stroke:#1d6483;stroke-width:3;opacity:.45}.tl-cap{stroke:#1d6483;stroke-width:1.5}
 .tl-hit{fill:transparent;cursor:pointer;outline:none}.tl-hit:focus-visible{stroke:#2a7192;stroke-width:2}
 .tl-ring{fill:none;stroke-width:1.8}.tl-ring.active{stroke:var(--text,#1b282d)}.tl-ring.pending{stroke:#d9662a;stroke-dasharray:3 2}
-.tl-legend{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:10px;color:var(--muted,#4f656c)}
-.tl-legend span{display:inline-flex;align-items:center;gap:4px}
+.tl-legend{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px;font-size:10.5px}
+.tl-toggle{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid var(--border,#c9d4d6);border-radius:12px;background:var(--control,transparent);color:var(--text,#1b282d);font:inherit;cursor:pointer}
+.tl-toggle[aria-pressed=false]{opacity:.5;text-decoration:line-through}
+.tl-toggle:focus-visible{outline:2px solid #2a7192;outline-offset:1px}
 .tl-key{display:inline-block;width:14px;height:0;border-top:2px solid}
 .tl-key.place{border-color:#1d6483;border-top-width:3px}.tl-key.county{border-color:#b8892f;border-top-style:dashed}.tl-key.state{border-color:#8e9ea3}
 .tl-hint{margin:3px 0 0}
