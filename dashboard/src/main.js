@@ -62,16 +62,20 @@ setShadeHandler(meta => runMapUpdate('Shading map…', async signal => {
   await applyMeasure(meta.key, meta, signal);
 }));
 
-optionGroup('Election comparison', cmpMetrics.map(metric => [`cmp_${metric.key}`, metric.label]));
+// Comparison measures are chosen in the Compare elections group; Show lists one entry only while one is active.
+const cmpOption = new Option('Election comparison', 'cmp_shift');
+cmpOption.hidden = true;
+measure.prepend(cmpOption);
+const useComparison = key => { cmpOption.value = key; cmpOption.hidden = false; measure.value = key; };
 // The Compare elections group in Map controls: changing the pair or metric shades the map by comparison.
 const cmpFrom = $('#cmp-from'), cmpTo = $('#cmp-to'), cmpMetric = $('#cmp-metric');
 for (const select of [cmpFrom, cmpTo]) select.replaceChildren(...cmpRaces.map(race => new Option(race.label, race.key)));
 cmpMetric.replaceChildren(new Option('Shade the map…', ''), ...cmpMetrics.map(metric => new Option(metric.label, metric.key)));
-const syncCompare = () => { cmpFrom.value = cmpState.from; cmpTo.value = cmpState.to; cmpMetric.value = measure.value.startsWith('cmp_') ? measure.value.slice(4) : ''; };
-const showComparison = () => { if (!measure.value.startsWith('cmp_')) { measure.value = `cmp_${cmpState.metric}`; measure.dispatchEvent(new Event('change')); } };
+const syncCompare = () => { cmpOption.hidden = !measure.value.startsWith('cmp_'); cmpFrom.value = cmpState.from; cmpTo.value = cmpState.to; cmpMetric.value = measure.value.startsWith('cmp_') ? measure.value.slice(4) : ''; };
+const showComparison = () => { if (!measure.value.startsWith('cmp_')) { useComparison(`cmp_${cmpState.metric}`); measure.dispatchEvent(new Event('change')); } };
 cmpFrom.addEventListener('change', () => { setCompare({ from:cmpFrom.value }); showComparison(); });
 cmpTo.addEventListener('change', () => { setCompare({ to:cmpTo.value }); showComparison(); });
-cmpMetric.addEventListener('change', () => { if (cmpMetric.value) { measure.value = `cmp_${cmpMetric.value}`; measure.dispatchEvent(new Event('change')); } });
+cmpMetric.addEventListener('change', () => { if (cmpMetric.value) { useComparison(`cmp_${cmpMetric.value}`); measure.dispatchEvent(new Event('change')); } });
 measure.addEventListener('change', syncCompare);
 window.addEventListener('compare-change', syncCompare);
 syncCompare();
@@ -173,6 +177,7 @@ await runMapUpdate('Loading forecast map…', async signal => {
     renderShifts(shifts);
     setReference(headline, shifts, shortLabels);
     const requested = initialMeasure();
+    if (requested?.startsWith('cmp_') && cmpMetrics.some(metric => `cmp_${metric.key}` === requested)) useComparison(requested);
     if (requested && requested !== measure.value && [...measure.options].some(option => option.value === requested)) {
       measure.value = requested;
       await applyMeasure(requested, undefined, signal);
