@@ -97,7 +97,7 @@ const overlayStyle = {
   cd:{ label:'2025 congressional district lines', light:'#141414', dark:'#ffffff', width:1.8, dash:null },
 };
 const outlineColor = { light:'40,60,65', dark:'240,247,247' };
-let map, unit = levels[params.get('u')] ? params.get('u') : 'county', measure = 'mean', theme = 'light', onSelect = () => {};
+let map, unit = levels[params.get('u')] ? params.get('u') : 'county', measure = 'mean', theme = 'light', basemap = 'light', onSelect = () => {};
 const levelSettings = new Map();
 let savedDisplay;
 try { savedDisplay = JSON.parse(params.get('ds') || localStorage.getItem('midterms-display-levels-v1') || '{}'); } catch { savedDisplay = {}; }
@@ -127,7 +127,11 @@ const stateValues = new Map();
 // Comparison values depend on the pair and filters, so their cache key carries the comparison version.
 const svKey = (key, level) => isCompareMeasure(key) ? `${key}|${level}|${stateVersion()}` : `${key}|${level}`;
 
+// A blank style is the "no basemap" option: just a solid background under the shaded areas.
+const plainStyle = color => ({ version:8, sources:{}, layers:[{ id:'background', type:'background', paint:{ 'background-color':color } }] });
 const styles = {
+  'plain-light':plainStyle('rgb(242,243,240)'),
+  'plain-dark':plainStyle('rgb(12,12,12)'),
   // OpenFreeMap styles, no API key. Positron is on the quick-start guide; Dark is listed in the openfreemap-styles README.
   light:'https://tiles.openfreemap.org/styles/positron',
   dark:'https://tiles.openfreemap.org/styles/dark',
@@ -743,13 +747,14 @@ export async function setMeasure(next, meta, signal) {
 }
 
 export function setTheme(next) {
-  if (!styles[next] || theme === next) return;
-  theme = next;
+  if (!styles[next] || basemap === next) return;
+  basemap = next;
+  theme = next.endsWith('dark') ? 'dark' : 'light';
   pane.dataset.theme = theme;
   pane.style.background = basemapBackground[theme];
   drawLegend();
   announce();
-  if (map) map.setStyle(styles[theme]);
+  if (map) map.setStyle(styles[basemap]);
 }
 
 // Count actual tile requests in this transaction; metadata stages have no denominator.
@@ -804,7 +809,7 @@ export function initMap(select) {
   pane.style.background = basemapBackground[theme];
   const protocol = new Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile);
-  map = new maplibregl.Map({ container:'map', style:styles[theme], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
+  map = new maplibregl.Map({ container:'map', style:styles[basemap], bounds, fitBoundsOptions: { padding: 28 }, attributionControl: false, cooperativeGestures: false });
   map.on('sourcedataloading', event => trackTile(event, true));
   map.on('sourcedata', event => trackTile(event, false));
   map.on('moveend', () => {

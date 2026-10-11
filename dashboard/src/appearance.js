@@ -6,7 +6,7 @@ export function initAppearance() {
   const key = 'tx-appearance-v1', preferences = { map:'light', layout:'light' };
   try {
     const saved = JSON.parse(localStorage.getItem(key));
-    for (const surface of Object.keys(preferences)) if (['light','dark'].includes(saved?.[surface])) preferences[surface] = saved[surface];
+    for (const surface of Object.keys(preferences)) if ((surface === 'map' ? ['light','dark','plain-light','plain-dark'] : ['light','dark']).includes(saved?.[surface])) preferences[surface] = saved[surface];
   } catch { /* Storage can be unavailable; controls still work for this session. */ }
   const button = document.querySelector('#appearance-toggle');
   const menu = document.querySelector('#appearance-menu');

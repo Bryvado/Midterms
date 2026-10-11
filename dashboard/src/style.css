@@ -536,3 +536,18 @@
 .sh-row{gap:5px 8px}
 .sh-row label:not(.check){min-width:96px}
 .tl-line.tl-projected{stroke-dasharray:4 3;stroke-width:1.8}
+
+.fp-controls .fp-body{padding:12px 14px 14px;display:grid;gap:12px;align-content:start;overflow:auto}
+.fp-controls .map-controls{gap:10px}
+.fp-controls .segmented{flex-wrap:wrap}
+.fp-controls .segmented button{font-size:13px;padding:9px 13px}
+.fp-controls .measure-label{font-size:12px;padding:4px 6px 4px 12px}
+.fp-controls .measure-label select{font-size:13px;padding:7px 6px 7px 0;max-width:260px}
+.fp-controls .compare-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;margin:0;padding-top:12px}
+.fp-controls .compare-title{grid-column:1/-1;font-size:12px}
+.fp-controls .compare-group label{display:grid;gap:3px;font-size:11.5px}
+.fp-controls .compare-group select{font-size:13px;padding:7px 6px;max-width:none;width:100%}
+.fp-controls .map-buttons{margin-top:0;gap:8px}
+.fp-controls .map-buttons .map-reset{font-size:12.5px;padding:8px 12px}
+.fp-controls .level-note{margin:0}
+@media(min-width:701px){.fp-controls{min-width:500px;min-height:410px}}
