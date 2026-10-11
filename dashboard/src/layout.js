@@ -25,7 +25,7 @@ function defaults() {
   const placeH = Math.max(MIN.h, Math.round(H / 3));
   const pollH = Math.round(Math.min(H * .52, 560));
   return {
-    controls:{ x:GAP, y:GAP, w:null, h:null, open:true },
+    controls:{ x:GAP, y:GAP, w:Math.min(500, Math.max(380, W - pollW - GAP * 3)), h:null, open:true },
     // Lifted clear of the map's attribution line, which must stay visible.
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
@@ -51,7 +51,8 @@ function apply() {
     document.querySelector(`[data-open-panel="${id}"]`)?.setAttribute('aria-pressed', String(box.open));
     if (phone.matches) { el.removeAttribute('style'); continue; }
     el.style.width = box.w ? `${box.w}px` : '';
-    el.style.height = box.h ? `${box.h}px` : '';
+    // Map controls always fit their content, so a stored height can never leave empty space or clip it.
+    el.style.height = box.h && id !== 'controls' ? `${box.h}px` : '';
     if (box.y == null) {
       // Bottom-anchored until moved, so a legend that grows stays on screen.
       el.style.left = `${box.x}px`;
