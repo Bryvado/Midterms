@@ -41,12 +41,16 @@ export async function renderTimeline(host, level, regionId) {
   const labels = races.map((race, k) => `<text class="tl-axis" x="${x(k)}" y="${height - 20}" text-anchor="middle">${race.forecast ? 'Fcst' : `'${String(race.year).slice(2)}`}</text><text class="tl-axis tl-office" x="${x(k)}" y="${height - 9}" text-anchor="middle">${race.forecast ? '' : { pres:'Pres', sen:'Sen', gov:'Gov' }[race.office]}</text>`).join('');
   const bar = Number.isFinite(store.q05[i]) && Number.isFinite(store.q95[i]) ? `<line class="tl-range" x1="${x(last)}" x2="${x(last)}" y1="${y(store.q05[i])}" y2="${y(store.q95[i])}"/><line class="tl-cap" x1="${x(last) - 4}" x2="${x(last) + 4}" y1="${y(store.q05[i])}" y2="${y(store.q05[i])}"/><line class="tl-cap" x1="${x(last) - 4}" x2="${x(last) + 4}" y1="${y(store.q95[i])}" y2="${y(store.q95[i])}"/>` : '';
   const hits = races.map((race, k) => Number.isFinite(series.place[k]) ? `<circle class="tl-hit" cx="${x(k)}" cy="${y(series.place[k])}" r="9" data-k="${k}" tabindex="0" role="button" aria-label="${escapeHTML(race.label)}: ${pct(series.place[k])}. Select to compare."/>` : '').join('');
+  // A dashed, smoothed track from the latest past result to the projection, with level tangents at both ends.
+  const lastPast = series.place.findLastIndex((v, k) => k < last && Number.isFinite(v));
+  const projected = lastPast >= 0 && Number.isFinite(series.place[last]) ? `<path class="tl-line tl-place tl-projected" d="M${x(lastPast).toFixed(1)},${y(series.place[lastPast]).toFixed(1)}C${((x(lastPast) + x(last)) / 2).toFixed(1)},${y(series.place[lastPast]).toFixed(1)} ${((x(lastPast) + x(last)) / 2).toFixed(1)},${y(series.place[last]).toFixed(1)} ${x(last).toFixed(1)},${y(series.place[last]).toFixed(1)}"/>` : '';
   const countyName = ci !== undefined && countyStore ? names.get(store.county[i]) || 'County' : '';
   host.innerHTML = `<h3>Share over time</h3>
     <svg class="timeline-chart" viewBox="0 0 ${width} ${height}" role="group" aria-label="Democratic two-party share in each race">
       ${axis}${labels}
       <path class="tl-line tl-state" d="${path(series.state)}"/>${series.county ? `<path class="tl-line tl-county" d="${path(series.county)}"/>` : ''}
       <path class="tl-line tl-place" d="${path(series.place.slice(0, last))}"/>
+      ${projected}
       ${bar}${marks(series.state, 'tl-state', 2.6)}${series.county ? marks(series.county, 'tl-county', 2.8) : ''}${marks(series.place, 'tl-place', 3.8)}
       <g class="tl-rings"></g>${hits}
     </svg>
