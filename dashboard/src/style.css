@@ -522,6 +522,16 @@
 .tl-key{display:inline-block;width:14px;height:0;border-top:2px solid}
 .tl-key.place{border-color:#1d6483;border-top-width:3px}.tl-key.county{border-color:#b8892f;border-top-style:dashed}.tl-key.state{border-color:#8e9ea3}
 .tl-hint{margin:3px 0 0}
+.tl-tabs{display:inline-flex;gap:0;margin:2px 0 4px;border:1px solid var(--border,#c9d4d6);border-radius:6px;overflow:hidden}
+.tl-tab{font:600 11px 'DM Sans',system-ui,sans-serif;padding:3px 10px;border:0;background:var(--control,transparent);color:var(--muted,#4f656c);cursor:pointer}
+.tl-tab+.tl-tab{border-left:1px solid var(--border,#c9d4d6)}
+.tl-tab[aria-pressed=true]{background:#1d6483;color:#fff}
+.tl-tab:focus-visible{outline:2px solid #2a7192;outline-offset:-2px}
+.tl-line.tl-mix{stroke:#6a5a9a;stroke-width:1.4;stroke-dasharray:1.5 2.5;stroke-linecap:round}.tl-line.tl-mix.tl-projected{stroke-dasharray:1.5 2.5;stroke-width:1.4}
+.tl-mark.tl-mix{fill:var(--panel,#fff);stroke:#6a5a9a;stroke-width:1.2}
+.tl-key.mix{border-color:#6a5a9a;border-top-style:dotted}
+:root[data-layout=dark] .tl-tab[aria-pressed=true]{background:#2f7ea3}
+:root[data-layout=dark] .tl-line.tl-mix{stroke:#b3a2e6}:root[data-layout=dark] .tl-mark.tl-mix{stroke:#b3a2e6}:root[data-layout=dark] .tl-key.mix{border-color:#b3a2e6}
 :root[data-layout=dark] .tl-grid{stroke:#364a5b}:root[data-layout=dark] .tl-grid.half{stroke:#788e9f}
 :root[data-layout=dark] .tl-line.tl-place,:root[data-layout=dark] .tl-mark.tl-place{stroke:#5fcaf2;fill:#5fcaf2}:root[data-layout=dark] .tl-line.tl-place{fill:none}
 :root[data-layout=dark] .tl-range,:root[data-layout=dark] .tl-cap{stroke:#5fcaf2}
