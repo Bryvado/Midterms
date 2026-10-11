@@ -550,4 +550,6 @@
 .fp-controls .map-buttons{margin-top:0;gap:8px}
 .fp-controls .map-buttons .map-reset{font-size:12.5px;padding:8px 12px}
 .fp-controls .level-note{margin:0}
-@media(min-width:701px){.fp-controls{min-width:500px;min-height:410px}}
+@media(min-width:701px){.fp-controls{min-width:380px;max-width:calc(100% - 24px)}}
+.fp-controls .segmented button{padding:8px 11px}
+.fp-controls .fp-resize[data-edge=n],.fp-controls .fp-resize[data-edge=s],.fp-controls .fp-resize[data-edge=ne],.fp-controls .fp-resize[data-edge=nw],.fp-controls .fp-resize[data-edge=se],.fp-controls .fp-resize[data-edge=sw]{display:none}
