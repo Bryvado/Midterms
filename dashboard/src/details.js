@@ -86,14 +86,6 @@ function renderPlace(unit, props, data, counties, drivers) {
     `${shade(`${key}_q05`,`${name}: 5th percentile votes`,'count',value(`${key}_q05`))}–${shade(`${key}_q95`,`${name}: 95th percentile votes`,'count',value(`${key}_q95`))}`,
   ]);
   voteRows.push(['Brown (L)',shade('brown_mean','Brown: mean 2026 votes','count',value('brown_mean')),'—']);
-  const resultRows = bases.map(b => {
-    const race = b.label, key = b.baseline;
-    const dem = +value(`dem_${key}`), rep = +value(`rep_${key}`);
-    return [escapeHTML(race),
-      shade(`dem_${key}`,`${race}: Democratic votes`,'count',value(`dem_${key}`)),
-      shade(`rep_${key}`,`${race}: Republican votes`,'count',value(`rep_${key}`)),
-      dem + rep > 0 ? shade(`base_${key}`,`${race}: Democratic two-party share`,'share',dem/(dem+rep)) : 'n/a'];
-  });
   const demographics = placeMeasures.map(metric => {
     const name = measureLabel(metric, unit);
     return [escapeHTML(name), shade(metric.key, name, metric.kind, value(metric.key))];
@@ -106,11 +98,11 @@ function renderPlace(unit, props, data, counties, drivers) {
     <p class="note">Chance Talarico leads here: ${shade('p_talarico','Chance Talarico leads','share',props.p_talarico)}.${String(data.demographics_imputed).toUpperCase() === 'TRUE' ? ' Demographics estimated from neighboring precincts.' : ''}</p>
     ${section('Projected 2026 votes',['','Mean','90% range'],voteRows)}
     <p class="note">Vote counts come from a separate simulation and may imply a two-party share differing from the map by up to about half a point.</p>
-    ${section('Past results',['Race','D votes','R votes','D two-party'],resultRows)}
+    <div id="place-results"></div>
     <div class="timeline" id="place-timeline"></div>
     ${section('Demographics',['Measure','Value'],demographics)}
     <p class="note">Estimated percentage fields are capped at 100% for display and map shading. The published source values remain unchanged.</p>`;
-  renderTimeline(content.querySelector('#place-timeline'), unit, props.region_id);
+  renderTimeline(content.querySelector('#place-timeline'), unit, props.region_id, { results:content.querySelector('#place-results'), cell:shade });
 }
 
 export async function selectPlace(unit, props) {

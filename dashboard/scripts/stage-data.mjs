@@ -11,6 +11,7 @@ const files = [
   'cd_details.csv', 'cousub_details.csv', 'puma_details.csv', 'drivers.csv',
   'county_projections.csv', 'regional_projections.csv', 'cd_projections.csv', 'cousub_projections.csv', 'puma_projections.csv',
   'sim_scatter_points.csv', 'sim_scatter_density.csv', 'sim_scatter_axes.csv',
+  'history_races.csv', 'history_precinct.csv', 'history_county.csv', 'history_congressional_district.csv', 'history_county_subdivision.csv', 'history_puma.csv',
 ];
 // Optional files: copied when published, skipped (and their controls hidden) when not.
 const optional = ['sensitivities.csv'];
