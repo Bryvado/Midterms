@@ -62,7 +62,7 @@ export async function renderTimeline(host, level, regionId, options = {}) {
   const i = indexOf(store, String(regionId));
   if (i === undefined) { host.innerHTML = ''; return; }
   const row = rows.get(String(regionId));
-  const placeName = placeNameOf(level, store, i, names);
+  const placeFull = placeNameOf(level, store, i, names), placeName = clip(placeFull, 24);
   const officeLabel = offices.find(item => item[0] === office)[1];
   const forecast = { col:null, year:2026, label:'2026 forecast', tab:'sen', cmp:'f26', forecast:true };
   const ownRaces = meta.list.filter(race => race.tab === office);
@@ -101,7 +101,8 @@ export async function renderTimeline(host, level, regionId, options = {}) {
     return diamond ? `<rect class="tl-mark ${cls}${est}" x="${(x(p.year) - r).toFixed(1)}" y="${(y(p[key]) - r).toFixed(1)}" width="${2 * r}" height="${2 * r}" transform="rotate(45 ${cx} ${cy})"/>` : `<circle class="tl-mark ${cls}${est}" cx="${cx}" cy="${cy}" r="${r}"/>`;
   };
   const axis = ticks.map(v => `<line class="tl-grid${Math.abs(v - .5) < 1e-9 ? ' half' : ''}" x1="${margin.left}" x2="${width - margin.right}" y1="${y(v)}" y2="${y(v)}"/><text class="tl-axis" x="${margin.left - 4}" y="${y(v) + 3}" text-anchor="end">${Math.round(v * 100)}%</text>`).join('');
-  const labels = tickYears.map(year => `<text class="tl-axis" x="${x(year)}" y="${height - 6}" text-anchor="middle">${year === 2026 ? "'26 fcst" : `'${String(year).slice(2)}`}</text>`).join('');
+  const sparse = (x(2004) - x(2002)) < 26;
+  const labels = tickYears.filter(year => !sparse || year === 2026 || (year - years[0]) % 4 === 0).map(year => `<text class="tl-axis" x="${x(year)}" y="${height - 6}" text-anchor="middle">${year === 2026 ? "'26 fcst" : `'${String(year).slice(2)}`}</text>`).join('');
   const xf = x(2026), qLo = store.q05[i], qHi = store.q95[i];
   const bar = withForecast && Number.isFinite(qLo) && Number.isFinite(qHi) ? `<line class="tl-range" x1="${xf}" x2="${xf}" y1="${y(qLo)}" y2="${y(qHi)}"/><line class="tl-cap" x1="${xf - 4}" x2="${xf + 4}" y1="${y(qLo)}" y2="${y(qLo)}"/><line class="tl-cap" x1="${xf - 4}" x2="${xf + 4}" y1="${y(qHi)}" y2="${y(qHi)}"/>` : '';
   const smooth = (p, q) => `M${x(p.year).toFixed(1)},${y(p.place).toFixed(1)}C${((x(p.year) + x(q.year)) / 2).toFixed(1)},${y(p.place).toFixed(1)} ${((x(p.year) + x(q.year)) / 2).toFixed(1)},${y(q.place).toFixed(1)} ${x(q.year).toFixed(1)},${y(q.place).toFixed(1)}`;
@@ -122,13 +123,13 @@ export async function renderTimeline(host, level, regionId, options = {}) {
   if (showAvg) { keyed.push({ cls:'tl-place', text:`${placeName} · all-race avg.`, tip:avgTip, last:lastOf(avgPts, 'place'), avg:true }); if (showTexas) keyed.push({ cls:'tl-state', text:'Texas · all-race avg.', tip:avgTip, last:lastOf(avgPts, 'texas'), avg:true }); }
   const placed = keyed.filter(k => k.last).map(k => ({ ...k, y:y(k.last[k.cls === 'tl-place' ? 'place' : 'texas']) })).sort((a, b) => a.y - b.y);
   for (let k = 1; k < placed.length; k++) if (placed[k].y - placed[k - 1].y < 11) placed[k].y = placed[k - 1].y + 11;
-  const directSvg = direct ? placed.map(k => `<text class="tl-direct ${k.cls}" x="${width - margin.right + 7}" y="${(k.y + 3).toFixed(1)}">${k.tip ? `<title>${escapeHTML(k.tip)}</title>` : `<title>${escapeHTML(k.text)}</title>`}${escapeHTML(clip(k.text, 31))}</text>`).join('') : '';
+  const directSvg = direct ? placed.map(k => `<text class="tl-direct ${k.cls}" x="${width - margin.right + 7}" y="${(k.y + 3).toFixed(1)}">${k.tip ? `<title>${escapeHTML(k.tip)}</title>` : `<title>${escapeHTML(k.text)}</title>`}${escapeHTML(k.suffix ? `${clip(placeFull, 31 - k.suffix.length)}${k.suffix}` : k.text)}</text>`).join('') : '';
   const legendHtml = direct ? '' : `<div class="tl-legend" aria-label="Lines shown">${keyed.map(k => `<span${k.tip ? ` title="${escapeHTML(k.tip)}"` : ''}><i class="tl-key ${k.cls === 'tl-place' ? 'place' : 'state'}${k.avg ? ' avg' : ''}"></i>${escapeHTML(k.text)}</span>`).join('')}</div>`;
   const hitPts = [...(showAvg ? avgPts.map(p => ({ ...p, tip:true, clickable:compareSeries === 'avg' })) : []), ...(showOffice ? officePts.map(p => ({ ...p, tip:true, clickable:compareSeries === 'office' })) : [])];
   const hits = hitPts.filter(p => Number.isFinite(p.place)).map(p => `<circle class="tl-hit${p.clickable ? ' tl-pick' : ''}" cx="${x(p.year).toFixed(1)}" cy="${y(p.place).toFixed(1)}" r="9" data-id="${p.id}" tabindex="0" role="${p.clickable ? 'button' : 'img'}" aria-label="${escapeHTML(tipText(p))}"/>`).join('');
   function tipText(p) {
     const tx = showTexas && Number.isFinite(p.texas) ? `  ·  Texas: ${pct(p.texas)}  ·  gap ${gapText(p.place - p.texas)}` : '';
-    return `${p.head}  ${dash}  ${placeName}: ${pct(p.place)}${tx}`;
+    return `${p.head}  ${dash}  ${placeFull}: ${pct(p.place)}${tx}`;
   }
   host.innerHTML = `<h3>Share over time</h3>
     <div class="tl-tabs" role="group" aria-label="Office shown">${offices.map(([key, label]) => `<button type="button" class="tl-tab" data-office="${key}" aria-pressed="${key === office}">${label}</button>`).join('')}</div>
