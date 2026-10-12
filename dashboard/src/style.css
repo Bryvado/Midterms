@@ -523,7 +523,13 @@
 .tl-toggle:focus-visible{outline:2px solid #2a7192;outline-offset:1px}
 .tl-key{display:inline-block;width:14px;height:0;border-top:2px solid}
 .tl-key.place{border-color:#1d6483;border-top-width:3px}.tl-key.county{border-color:#b8892f;border-top-style:dashed}.tl-key.state{border-color:#8e9ea3}
-.tl-hint{margin:3px 0 0}
+.tl-hint,.tl-source{margin:3px 0 0}
+.tl-line.tl-sa{stroke:#8e9ea3;stroke-width:1.2;stroke-dasharray:1.5 2.5;stroke-linecap:round}
+.tl-mark.tl-sa{fill:#8e9ea3}
+.tl-key.sa{border-color:#8e9ea3;border-top-style:dotted}
+.tl-mark.tl-est{fill:var(--panel,#fff)!important;stroke-width:1.5}
+.tl-mark.tl-state.tl-est{stroke:#8e9ea3}.tl-mark.tl-county.tl-est{stroke:#b8892f}.tl-mark.tl-place.tl-est{stroke:#1d6483}
+:root[data-layout=dark] .tl-mark.tl-county.tl-est{stroke:#e0b155}:root[data-layout=dark] .tl-mark.tl-place.tl-est{stroke:#5fcaf2}
 .tl-tabs{display:inline-flex;gap:0;margin:2px 0 4px;border:1px solid var(--border,#c9d4d6);border-radius:6px;overflow:hidden}
 .tl-tab{font:600 11px 'DM Sans',system-ui,sans-serif;padding:3px 10px;border:0;background:var(--control,transparent);color:var(--muted,#4f656c);cursor:pointer}
 .tl-tab+.tl-tab{border-left:1px solid var(--border,#c9d4d6)}
