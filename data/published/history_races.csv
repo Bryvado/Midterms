@@ -1,0 +1,130 @@
+race_key,year,office,office_label,label,dem_name,rep_name,d,r,two_party,source,col,in_avg
+2002 ag_commissioner,2002,ag_commissioner,Agriculture Commissioner,2002 Agriculture Commissioner (Ramsay),Ramsay,Combs,1674311,2636085,0.3884355404932633,tlc_14g_realloc,ag_commissioner_2002,TRUE
+2002 attorney_general,2002,attorney_general,Attorney General,2002 Attorney General (Watson),Watson,Abbott,1841519,2541712,0.42012821135824235,tlc_14g_realloc,attorney_general_2002,TRUE
+2002 cca_1,2002,cca_1,Criminal Appeals Place 1,2002 Criminal Appeals Place 1 (Molina),Molina,Cochran,1725005,2512667,0.40706430323064174,tlc_14g_realloc,cca_1_2002,TRUE
+2002 cca_2,2002,cca_2,Criminal Appeals Place 2,2002 Criminal Appeals Place 2 (Montgomery),Montgomery,Womack,1828170,2462859,0.42604466201463564,tlc_14g_realloc,cca_2_2002,TRUE
+2002 cca_3,2002,cca_3,Criminal Appeals Place 3,2002 Criminal Appeals Place 3 (Bull),Bull,Price,1692506,2493355,0.40433879672545264,tlc_14g_realloc,cca_3_2002,TRUE
+2002 comptroller,2002,comptroller,Comptroller,2002 Comptroller (Akins),Akins,Rylander,1477223,2878270,0.3391632129818599,tlc_14g_realloc,comptroller_2002,TRUE
+2002 governor,2002,governor,Governor,2002 Governor (Sanchez),Sanchez,Perry,1818503,2632069,0.40859983840279407,tlc_14g_realloc,governor_2002,TRUE
+2002 land_commissioner,2002,land_commissioner,Land Commissioner,2002 Land Commissioner (Bernsen),Bernsen,Patterson,1819304,2331551,0.4382962064442145,tlc_14g_realloc,land_commissioner_2002,TRUE
+2002 lt_governor,2002,lt_governor,Lt. Governor,2002 Lt. Governor (Sharp),Sharp,Dewhurst,2081834,2341310,0.4706683752552483,tlc_14g_realloc,lt_governor_2002,TRUE
+2002 railroad_3,2002,railroad_3,Railroad Commissioner 3,2002 Railroad Commissioner 3 (Boyles),Boyles,Williams,1821590,2407103,0.4307690343091825,tlc_14g_realloc,railroad_3_2002,TRUE
+2002 statewide_average,2002,statewide_average,"All statewide races, averaged","2002 all statewide races, averaged",NA,NA,NA,NA,0.42060186858852344,NA,avg2p_2002,NA
+2002 supreme_court_1,2002,supreme_court_1,Supreme Court Place 1,2002 Supreme Court Place 1 (Parsons),Parsons,Wainwright,1814245,2440654,0.4263896745845201,tlc_14g_realloc,supreme_court_1_2002,TRUE
+2002 supreme_court_2,2002,supreme_court_2,Supreme Court Place 2,2002 Supreme Court Place 2 (Yanez),Yanez,Schneider,1815256,2441800,0.42641111603887755,tlc_14g_realloc,supreme_court_2_2002,TRUE
+2002 supreme_court_4,2002,supreme_court_4,Supreme Court Place 4,2002 Supreme Court Place 4 (Mirabal),Mirabal,Smith,1977955,2330981,0.4590355948661108,tlc_14g_realloc,supreme_court_4_2002,TRUE
+2002 supreme_court_8,2002,supreme_court_8,Supreme Court Place 8,2002 Supreme Court Place 8 (Moody),Moody,Jefferson,1860011,2442022,0.43235628364542994,tlc_14g_realloc,supreme_court_8_2002,TRUE
+2002 supreme_court_chief,2002,supreme_court_chief,Supreme Court Chief Justice,2002 Supreme Court Chief Justice (Baker),Baker,Phillips,1774099,2525442,0.41262520813268205,tlc_14g_realloc,supreme_court_chief_2002,TRUE
+2002 us_senate,2002,us_senate,U.S. Senate,2002 U.S. Senate (Kirk),Kirk,Cornyn,1955308,2495616,0.4393038389332193,tlc_14g_realloc,us_senate_2002,TRUE
+2004 cca_6,2004,cca_6,Criminal Appeals Place 6,2004 Criminal Appeals Place 6 (Molina),Molina,Keasler,2906687,3990355,0.42143965485493634,tlc_14g_realloc,cca_6_2004,TRUE
+2004 president,2004,president,President,2004 President (Kerry),Kerry,Bush,2832499,4526716,0.3848914592113425,tlc_14g_realloc,president_2004,TRUE
+2004 railroad_3,2004,railroad_3,Railroad Commissioner 3,2004 Railroad Commissioner 3 (Scarborough),Scarborough,Carrillo,2872596,3891643,0.4246739359741724,tlc_14g_realloc,railroad_3_2004,TRUE
+2004 statewide_average,2004,statewide_average,"All statewide races, averaged","2004 all statewide races, averaged",NA,NA,NA,NA,0.4096655551320533,NA,avg2p_2004,NA
+2004 supreme_court_9,2004,supreme_court_9,Supreme Court Place 9,2004 Supreme Court Place 9 (Van Os),Van Os,Brister,2817558,4094029,0.40765717048776207,tlc_14g_realloc,supreme_court_9_2004,TRUE
+2006 ag_commissioner,2006,ag_commissioner,Agriculture Commissioner,2006 Agriculture Commissioner (Gilbert),Gilbert,Staples,1761218,2307975,0.43281751443099403,tlc_14g_realloc,ag_commissioner_2006,TRUE
+2006 attorney_general,2006,attorney_general,Attorney General,2006 Attorney General (Van Os),Van Os,Abbott,1600365,2556297,0.3850120601578863,tlc_14g_realloc,attorney_general_2006,TRUE
+2006 cca_presiding,2006,cca_presiding,Criminal Appeals Presiding Judge,2006 Criminal Appeals Presiding Judge (Molina),Molina,Keller,1797176,2347043,0.43365854941546284,tlc_14g_realloc,cca_presiding_2006,TRUE
+2006 comptroller,2006,comptroller,Comptroller,2006 Comptroller (Head),Head,Combs,1586618,2548096,0.3837310150109536,tlc_14g_realloc,comptroller_2006,TRUE
+2006 governor,2006,governor,Governor,2006 Governor (Bell),Bell,Perry,1311346,1717503,0.4329519233213673,tlc_14g_realloc,governor_2006,TRUE
+2006 land_commissioner,2006,land_commissioner,Land Commissioner,2006 Land Commissioner (Hathcox),Hathcox,Patterson,1723359,2318093,0.4264207517496187,tlc_14g_realloc,land_commissioner_2006,TRUE
+2006 lt_governor,2006,lt_governor,Lt. Governor,2006 Lt. Governor (Alvarado),Alvarado,Dewhurst,1619457,2515493,0.39165092685522196,tlc_14g_realloc,lt_governor_2006,TRUE
+2006 railroad_3,2006,railroad_3,Railroad Commissioner 3,2006 Railroad Commissioner 3 (Henry),Henry,Jones,1754302,2270300,0.4358945306889973,tlc_14g_realloc,railroad_3_2006,TRUE
+2006 statewide_average,2006,statewide_average,"All statewide races, averaged","2006 all statewide races, averaged",NA,NA,NA,NA,0.41590727684183754,NA,avg2p_2006,NA
+2006 supreme_court_2,2006,supreme_court_2,Supreme Court Place 2,2006 Supreme Court Place 2 (Moody),Moody,Willett,1879699,2136570,0.4680211908116712,tlc_14g_realloc,supreme_court_2_2006,TRUE
+2006 us_senate,2006,us_senate,U.S. Senate,2006 U.S. Senate (Radnofsky),Radnofsky,Hutchison,1556462,2662572,0.3689143059762021,tlc_14g_realloc,us_senate_2006,TRUE
+2008 cca_3,2008,cca_3,Criminal Appeals Place 3,2008 Criminal Appeals Place 3 (Strawn),Strawn,Price,3482468,3949512,0.4685787636672865,tlc_14g_realloc,cca_3_2008,TRUE
+2008 cca_4,2008,cca_4,Criminal Appeals Place 4,2008 Criminal Appeals Place 4 (Molina),Molina,Womack,3340589,4044526,0.4523408233995002,tlc_14g_realloc,cca_4_2008,TRUE
+2008 president,2008,president,President,2008 President (Obama),Obama,McCain,3528518,4479038,0.44064855743750025,tlc_14g_realloc,president_2008,TRUE
+2008 railroad_3,2008,railroad_3,Railroad Commissioner 3,2008 Railroad Commissioner 3 (Thompson),Thompson,Williams,3406063,3998582,0.4599900467881985,tlc_14g_realloc,railroad_3_2008,TRUE
+2008 statewide_average,2008,statewide_average,"All statewide races, averaged","2008 all statewide races, averaged",NA,NA,NA,NA,0.4557289115975333,NA,avg2p_2008,NA
+2008 supreme_court_7,2008,supreme_court_7,Supreme Court Place 7,2008 Supreme Court Place 7 (Houston),Houston,Wainwright,3525011,3925720,0.47310941704914594,tlc_14g_realloc,supreme_court_7_2008,TRUE
+2008 supreme_court_8,2008,supreme_court_8,Supreme Court Place 8,2008 Supreme Court Place 8 (Yanez),Yanez,Johnson,3428079,4018178,0.46037613259923743,tlc_14g_realloc,supreme_court_8_2008,TRUE
+2008 supreme_court_chief,2008,supreme_court_chief,Supreme Court Chief Justice,2008 Supreme Court Chief Justice (Jordan),Jordan,Jefferson,3374255,4088955,0.45211845841132703,tlc_14g_realloc,supreme_court_chief_2008,TRUE
+2008 us_senate,2008,us_senate,U.S. Senate,2008 U.S. Senate (Noriega),Noriega,Cornyn,3389189,4336883,0.4386690934280706,tlc_14g_realloc,us_senate_2008,TRUE
+2010 ag_commissioner,2010,ag_commissioner,Agriculture Commissioner,2010 Agriculture Commissioner (Gilbert),Gilbert,Staples,1738001,2953466,0.3704600288140149,tlc_14g_realloc,ag_commissioner_2010,TRUE
+2010 attorney_general,2010,attorney_general,Attorney General,2010 Attorney General (Radnofsky),Radnofsky,Abbott,1655608,3164068,0.34351022765845673,tlc_14g_realloc,attorney_general_2010,TRUE
+2010 cca_6,2010,cca_6,Criminal Appeals Place 6,2010 Criminal Appeals Place 6 (Hampton),Hampton,Keasler,1759085,2905789,0.3770916427753461,tlc_14g_realloc,cca_6_2010,TRUE
+2010 governor,2010,governor,Governor,2010 Governor (White),White,Perry,2106543,2737804,0.4348456045778719,tlc_14g_realloc,governor_2010,TRUE
+2010 land_commissioner,2010,land_commissioner,Land Commissioner,2010 Land Commissioner (Uribe),Uribe,Patterson,1717147,3001440,0.36391127259071415,tlc_14g_realloc,land_commissioner_2010,TRUE
+2010 lt_governor,2010,lt_governor,Lt. Governor,2010 Lt. Governor (Chavez-Thompson),Chavez-Thompson,Dewhurst,1719169,3049526,0.3605114187424442,tlc_14g_realloc,lt_governor_2010,TRUE
+2010 railroad_1,2010,railroad_1,Railroad Commissioner 1,2010 Railroad Commissioner 1 (Weems),Weems,Porter,1756749,2880100,0.3788669848856411,tlc_14g_realloc,railroad_1_2010,TRUE
+2010 statewide_average,2010,statewide_average,"All statewide races, averaged","2010 all statewide races, averaged",NA,NA,NA,NA,0.3765200197029237,NA,avg2p_2010,NA
+2010 supreme_court_3,2010,supreme_court_3,Supreme Court Place 3,2010 Supreme Court Place 3 (Sharp),Sharp,Lehrmann,1809169,2907554,0.3835648182011112,tlc_14g_realloc,supreme_court_3_2010,TRUE
+2010 supreme_court_5,2010,supreme_court_5,Supreme Court Place 5,2010 Supreme Court Place 5 (Moody),Moody,Green,1789313,2903018,0.38132710586699875,tlc_14g_realloc,supreme_court_5_2010,TRUE
+2010 supreme_court_9,2010,supreme_court_9,Supreme Court Place 9,2010 Supreme Court Place 9 (Bailey),Bailey,Guzman,1722406,2918808,0.37111109291663774,tlc_14g_realloc,supreme_court_9_2010,TRUE
+2012 cca_presiding,2012,cca_presiding,Criminal Appeals Presiding Judge,2012 Criminal Appeals Presiding Judge (Hampton),Hampton,Keller,3163478,4256043,0.4263722685062823,tlc_20g_realloc,cca_presiding_2012,TRUE
+2012 president,2012,president,President,2012 President (Obama),Obama,Romney,3307609,4568788,0.4199393453631146,tlc_20g_realloc,president_2012,TRUE
+2012 railroad_1,2012,railroad_1,Railroad Commissioner 1,2012 Railroad Commissioner 1 (Henry),Henry,Craddick,3057319,4335527,0.4135510194585414,tlc_20g_realloc,railroad_1_2012,TRUE
+2012 statewide_average,2012,statewide_average,"All statewide races, averaged","2012 all statewide races, averaged",NA,NA,NA,NA,0.4233209552302245,NA,avg2p_2012,NA
+2012 supreme_court_6,2012,supreme_court_6,Supreme Court Place 6,2012 Supreme Court Place 6 (Petty),Petty,Hecht,3219526,4126568,0.43826365412694146,tlc_20g_realloc,supreme_court_6_2012,TRUE
+2012 us_senate,2012,us_senate,U.S. Senate,2012 U.S. Senate (Sadler),Sadler,Cruz,3194484,4439084,0.4184784886962427,tlc_20g_realloc,us_senate_2012,TRUE
+2014 ag_commissioner,2014,ag_commissioner,Agriculture Commissioner,2014 Agriculture Commissioner (Hogan),Hogan,Miller,1697092,2699224,0.3860259362611787,tlc_20g_realloc,ag_commissioner_2014,TRUE
+2014 attorney_general,2014,attorney_general,Attorney General,2014 Attorney General (Houston),Houston,Paxton,1773114,2743182,0.39260358488460456,tlc_20g_realloc,attorney_general_2014,TRUE
+2014 cca_3,2014,cca_3,Criminal Appeals Place 3,2014 Criminal Appeals Place 3 (Granberg),Granberg,Richardson,1672821,2738093,0.379245888720569,tlc_20g_realloc,cca_3_2014,TRUE
+2014 comptroller,2014,comptroller,Comptroller,2014 Comptroller (Collier),Collier,Hegar,1742142,2698398,0.39232660892594146,tlc_20g_realloc,comptroller_2014,TRUE
+2014 governor,2014,governor,Governor,2014 Governor (Davis),Davis,Abbott,1835458,2796251,0.3962809407931284,tlc_20g_realloc,governor_2014,TRUE
+2014 land_commissioner,2014,land_commissioner,Land Commissioner,2014 Land Commissioner (Cook),Cook,Bush,1644800,2827299,0.36779150014344497,tlc_20g_realloc,land_commissioner_2014,TRUE
+2014 lt_governor,2014,lt_governor,Lt. Governor,2014 Lt. Governor (Van De Putte),Van De Putte,Patrick,1813847,2724207,0.3996970948340412,tlc_20g_realloc,lt_governor_2014,TRUE
+2014 railroad_3,2014,railroad_3,Railroad Commissioner 3,2014 Railroad Commissioner 3 (Brown),Brown,Sitton,1682678,2691086,0.3847208034086887,tlc_20g_realloc,railroad_3_2014,TRUE
+2014 statewide_average,2014,statewide_average,"All statewide races, averaged","2014 all statewide races, averaged",NA,NA,NA,NA,0.3839840970844923,NA,avg2p_2014,NA
+2014 supreme_court_6,2014,supreme_court_6,Supreme Court Place 6,2014 Supreme Court Place 6 (Meyers),Meyers,Brown,1677390,2772665,0.3769369142628574,tlc_20g_realloc,supreme_court_6_2014,TRUE
+2014 supreme_court_7,2014,supreme_court_7,Supreme Court Place 7,2014 Supreme Court Place 7 (Benavides),Benavides,Boyd,1730904,2711106,0.3896668400116164,tlc_20g_realloc,supreme_court_7_2014,TRUE
+2014 supreme_court_chief,2014,supreme_court_chief,Supreme Court Chief Justice,2014 Supreme Court Chief Justice (Moody),Moody,Hecht,1720513,2756945,0.38426111423044057,tlc_20g_realloc,supreme_court_chief_2014,TRUE
+2014 us_senate,2014,us_senate,U.S. Senate,2014 U.S. Senate (Alameel),Alameel,Cornyn,1597272,2861244,0.35825193853739673,tlc_20g_realloc,us_senate_2014,TRUE
+2016 cca_2,2016,cca_2,Criminal Appeals Place 2,2016 Criminal Appeals Place 2,NA,NA,3496038,4790280,0.4219048798272043,capitol_portal,cca_2_2016,TRUE
+2016 cca_5,2016,cca_5,Criminal Appeals Place 5,2016 Criminal Appeals Place 5,NA,NA,3511747,4781627,0.42344008602530164,capitol_portal,cca_5_2016,TRUE
+2016 cca_6,2016,cca_6,Criminal Appeals Place 6,2016 Criminal Appeals Place 6,NA,NA,3558650,4784500,0.4265355411325459,capitol_portal,cca_6_2016,TRUE
+2016 president,2016,president,President,2016 President,NA,NA,3877626,4684288,0.4528924256889289,capitol_portal,president_2016,TRUE
+2016 railroad_1,2016,railroad_1,Railroad Commissioner 1,2016 Railroad Commissioner 1,NA,NA,3361857,4648357,0.41969627777734775,capitol_portal,railroad_1_2016,TRUE
+2016 statewide_average,2016,statewide_average,"All statewide races, averaged","2016 all statewide races, averaged",NA,NA,NA,NA,0.42526676517583956,NA,avg2p_2016,NA
+2016 supreme_court_3,2016,supreme_court_3,Supreme Court Place 3,2016 Supreme Court Place 3,NA,NA,3377983,4807466,0.4126814546153791,capitol_portal,supreme_court_3_2016,TRUE
+2016 supreme_court_5,2016,supreme_court_5,Supreme Court Place 5,2016 Supreme Court Place 5,NA,NA,3608430,4757840,0.431306902598171,capitol_portal,supreme_court_5_2016,TRUE
+2016 supreme_court_9,2016,supreme_court_9,Supreme Court Place 9,2016 Supreme Court Place 9,NA,NA,3445814,4883916,0.413676553741838,capitol_portal,supreme_court_9_2016,TRUE
+2018 ag_commissioner,2018,ag_commissioner,Agriculture Commissioner,2018 Agriculture Commissioner,NA,NA,3821185,4220727,0.47515876821333036,capitol_portal,ag_commissioner_2018,TRUE
+2018 attorney_general,2018,attorney_general,Attorney General,2018 Attorney General,NA,NA,3897409,4190455,0.4818835974492153,capitol_portal,attorney_general_2018,TRUE
+2018 cca_7,2018,cca_7,Criminal Appeals Place 7,2018 Criminal Appeals Place 7,NA,NA,3749155,4428312,0.45847387705752896,capitol_portal,cca_7_2018,TRUE
+2018 cca_presiding,2018,cca_presiding,Criminal Appeals Presiding Judge,2018 Criminal Appeals Presiding Judge,NA,NA,3733243,4288105,0.46541341929062297,capitol_portal,cca_presiding_2018,TRUE
+2018 comptroller,2018,comptroller,Comptroller,2018 Comptroller,NA,NA,3569799,4375981,0.449269801076798,capitol_portal,comptroller_2018,TRUE
+2018 governor,2018,governor,Governor,2018 Governor,NA,NA,3545673,4655344,0.43234552495135664,capitol_portal,governor_2018,TRUE
+2018 land_commissioner,2018,land_commissioner,Land Commissioner,2018 Land Commissioner,NA,NA,3567001,4434366,0.44579894910457174,capitol_portal,land_commissioner_2018,TRUE
+2018 lt_governor,2018,lt_governor,Lt. Governor,2018 Lt. Governor,NA,NA,3859878,4260186,0.4753506868911378,capitol_portal,lt_governor_2018,TRUE
+2018 railroad_1,2018,railroad_1,Railroad Commissioner 1,2018 Railroad Commissioner 1,NA,NA,3611209,4375917,0.452128713131607,capitol_portal,railroad_1_2018,TRUE
+2018 statewide_average,2018,statewide_average,"All statewide races, averaged","2018 all statewide races, averaged",NA,NA,NA,NA,0.4628682535752974,NA,avg2p_2018,NA
+2018 supreme_court_2,2018,supreme_court_2,Supreme Court Place 2,2018 Supreme Court Place 2,NA,NA,3845883,4359904,0.46867936006625566,capitol_portal,supreme_court_2_2018,TRUE
+2018 supreme_court_4,2018,supreme_court_4,Supreme Court Place 4,2018 Supreme Court Place 4,NA,NA,3791171,4399060,0.4628893861479609,capitol_portal,supreme_court_4_2018,TRUE
+2018 supreme_court_6,2018,supreme_court_6,Supreme Court Place 6,2018 Supreme Court Place 6,NA,NA,3795015,4403779,0.46287478377917535,capitol_portal,supreme_court_6_2018,TRUE
+2018 us_senate,2018,us_senate,U.S. Senate,2018 U.S. Senate,NA,NA,4044073,4259630,0.4870204293193049,capitol_portal,us_senate_2018,TRUE
+2020 cca_3,2020,cca_3,Criminal Appeals Place 3,2020 Criminal Appeals Place 3,NA,NA,4962780,5952614,0.4546588057197019,capitol_portal,cca_3_2020,TRUE
+2020 cca_4,2020,cca_4,Criminal Appeals Place 4,2020 Criminal Appeals Place 4,NA,NA,4922833,5972977,0.45180973236501004,capitol_portal,cca_4_2020,TRUE
+2020 cca_9,2020,cca_9,Criminal Appeals Place 9,2020 Criminal Appeals Place 9,NA,NA,4861782,6014555,0.44700545781176143,capitol_portal,cca_9_2020,TRUE
+2020 president,2020,president,President,2020 President,NA,NA,5257513,5889022,0.47167240761366647,capitol_portal,president_2020,TRUE
+2020 railroad_1,2020,railroad_1,Railroad Commissioner 1,2020 Railroad Commissioner 1,NA,NA,4791167,5830003,0.45109597153609254,capitol_portal,railroad_1_2020,TRUE
+2020 statewide_average,2020,statewide_average,"All statewide races, averaged","2020 all statewide races, averaged",NA,NA,NA,NA,0.45371170829664514,NA,avg2p_2020,NA
+2020 supreme_court_6,2020,supreme_court_6,Supreme Court Place 6,2020 Supreme Court Place 6,NA,NA,4902218,6049262,0.44763063987698465,capitol_portal,supreme_court_6_2020,TRUE
+2020 supreme_court_7,2020,supreme_court_7,Supreme Court Place 7,2020 Supreme Court Place 7,NA,NA,4860388,5842276,0.45412880381931076,capitol_portal,supreme_court_7_2020,TRUE
+2020 supreme_court_8,2020,supreme_court_8,Supreme Court Place 8,2020 Supreme Court Place 8,NA,NA,4825339,5845851,0.4521837770670375,capitol_portal,supreme_court_8_2020,TRUE
+2020 supreme_court_chief,2020,supreme_court_chief,Supreme Court Chief Justice,2020 Supreme Court Chief Justice,NA,NA,4892131,5825773,0.45644474889866526,capitol_portal,supreme_court_chief_2020,TRUE
+2020 us_senate,2020,us_senate,U.S. Senate,2020 U.S. Senate,NA,NA,4887309,5961643,0.4504867382582207,capitol_portal,us_senate_2020,TRUE
+2022 ag_commissioner,2022,ag_commissioner,Agriculture Commissioner,2022 Agriculture Commissioner,NA,NA,3474698,4480286,0.4367950960052214,capitol_portal,ag_commissioner_2022,TRUE
+2022 attorney_general,2022,attorney_general,Attorney General,2022 Attorney General,NA,NA,3498276,4278859,0.4498155168966464,capitol_portal,attorney_general_2022,TRUE
+2022 cca_5,2022,cca_5,Criminal Appeals Place 5,2022 Criminal Appeals Place 5,NA,NA,3414052,4513593,0.4306514734199122,capitol_portal,cca_5_2022,TRUE
+2022 cca_6,2022,cca_6,Criminal Appeals Place 6,2022 Criminal Appeals Place 6,NA,NA,3384873,4526399,0.4278544588025794,capitol_portal,cca_6_2022,TRUE
+2022 comptroller,2022,comptroller,Comptroller,2022 Comptroller,NA,NA,3265946,4496383,0.42074305276161317,capitol_portal,comptroller_2022,TRUE
+2022 governor,2022,governor,Governor,2022 Governor,NA,NA,3554772,4437097,0.4447985821589418,capitol_portal,governor_2022,TRUE
+2022 land_commissioner,2022,land_commissioner,Land Commissioner,2022 Land Commissioner,NA,NA,3351249,4463556,0.42883334900870845,capitol_portal,land_commissioner_2022,TRUE
+2022 lt_governor,2022,lt_governor,Lt. Governor,2022 Lt. Governor,NA,NA,3493602,4317770,0.44724563111320265,capitol_portal,lt_governor_2022,TRUE
+2022 railroad_1,2022,railroad_1,Railroad Commissioner 1,2022 Railroad Commissioner 1,NA,NA,3223244,4401273,0.4227473032062228,capitol_portal,railroad_1_2022,TRUE
+2022 statewide_average,2022,statewide_average,"All statewide races, averaged","2022 all statewide races, averaged",NA,NA,NA,NA,0.43349634464453396,NA,avg2p_2022,NA
+2022 supreme_court_3,2022,supreme_court_3,Supreme Court Place 3,2022 Supreme Court Place 3,NA,NA,3331501,4465168,0.4272979909753768,capitol_portal,supreme_court_3_2022,TRUE
+2022 supreme_court_5,2022,supreme_court_5,Supreme Court Place 5,2022 Supreme Court Place 5,NA,NA,3407027,4531135,0.42919595241316566,capitol_portal,supreme_court_5_2022,TRUE
+2022 supreme_court_9,2022,supreme_court_9,Supreme Court Place 9,2022 Supreme Court Place 9,NA,NA,3459080,4474995,0.4359777289728166,capitol_portal,supreme_court_9_2022,TRUE
+2024 cca_7,2024,cca_7,Criminal Appeals Place 7,2024 Criminal Appeals Place 7,NA,NA,4526792,6340938,0.41653519180178383,capitol_portal,cca_7_2024,TRUE
+2024 cca_8,2024,cca_8,Criminal Appeals Place 8,2024 Criminal Appeals Place 8,NA,NA,4461229,6385231,0.41130737586272387,capitol_portal,cca_8_2024,TRUE
+2024 cca_presiding,2024,cca_presiding,Criminal Appeals Presiding Judge,2024 Criminal Appeals Presiding Judge,NA,NA,4558851,6330393,0.41865633647294526,capitol_portal,cca_presiding_2024,TRUE
+2024 president,2024,president,President,2024 President,NA,NA,4835134,6393403,0.4306112185407591,vest,president_2024,TRUE
+2024 railroad_1,2024,railroad_1,Railroad Commissioner 1,2024 Railroad Commissioner 1,NA,NA,4275865,6100181,0.4120900196471758,capitol_portal,railroad_1_2024,TRUE
+2024 statewide_average,2024,statewide_average,"All statewide races, averaged","2024 all statewide races, averaged",NA,NA,NA,NA,0.4231875003403304,NA,avg2p_2024,NA
+2024 supreme_court_2,2024,supreme_court_2,Supreme Court Place 2,2024 Supreme Court Place 2,NA,NA,4571175,6372964,0.4176824691279963,capitol_portal,supreme_court_2_2024,TRUE
+2024 supreme_court_4,2024,supreme_court_4,Supreme Court Place 4,2024 Supreme Court Place 4,NA,NA,4656479,6256558,0.42668956405077707,capitol_portal,supreme_court_4_2024,TRUE
+2024 supreme_court_6,2024,supreme_court_6,Supreme Court Place 6,2024 Supreme Court Place 6,NA,NA,4425195,6145147,0.41864255669305683,capitol_portal,supreme_court_6_2024,TRUE
+2024 us_senate,2024,us_senate,U.S. Senate,2024 U.S. Senate,NA,NA,5031142,5990637,0.4564727708657559,vest,us_senate_2024,TRUE
