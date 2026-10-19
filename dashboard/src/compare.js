@@ -1,18 +1,34 @@
 import { csv } from './data.js';
 
 // Descriptive arithmetic on published columns only: shares, shifts, ratios and weighted summaries of past results and of the published 2026 projection.
+// Races from 2016 on come from the details files; earlier races (hist) come from the published history files, so any two can be compared.
+const race = (key, year, office, label, short, extra = {}) => ({ key, label, short, office, year, ...extra });
 export const races = [
-  { key:'pres16', label:'2016 President', short:'2016 Pres.', office:'pres', year:2016 },
-  { key:'sen18', label:'2018 Senate', short:'2018 Sen.', office:'sen', year:2018 },
-  { key:'gov18', label:'2018 Governor', short:'2018 Gov.', office:'gov', year:2018 },
-  { key:'pres20', label:'2020 President', short:'2020 Pres.', office:'pres', year:2020 },
-  { key:'sen20', label:'2020 Senate', short:'2020 Sen.', office:'sen', year:2020 },
-  { key:'gov22', label:'2022 Governor', short:'2022 Gov.', office:'gov', year:2022 },
-  { key:'pres24', label:'2024 President', short:'2024 Pres.', office:'pres', year:2024 },
-  { key:'sen24', label:'2024 Senate', short:'2024 Sen.', office:'sen', year:2024 },
-  { key:'f26', label:'2026 forecast', short:'2026 forecast', office:'sen', year:2026, forecast:true },
-];
-export const pastKeys = races.filter(race => !race.forecast).map(race => race.key);
+  race('pres04', 2004, 'pres', '2004 President', '2004 Pres.', { hist:true, col:'president_2004' }),
+  race('sen02', 2002, 'sen', '2002 Senate', '2002 Sen.', { hist:true, col:'us_senate_2002' }),
+  race('gov02', 2002, 'gov', '2002 Governor', '2002 Gov.', { hist:true, col:'governor_2002' }),
+  race('sen06', 2006, 'sen', '2006 Senate', '2006 Sen.', { hist:true, col:'us_senate_2006' }),
+  race('gov06', 2006, 'gov', '2006 Governor', '2006 Gov.', { hist:true, col:'governor_2006' }),
+  race('pres08', 2008, 'pres', '2008 President', '2008 Pres.', { hist:true, col:'president_2008' }),
+  race('sen08', 2008, 'sen', '2008 Senate', '2008 Sen.', { hist:true, col:'us_senate_2008' }),
+  race('gov10', 2010, 'gov', '2010 Governor', '2010 Gov.', { hist:true, col:'governor_2010' }),
+  race('pres12', 2012, 'pres', '2012 President', '2012 Pres.', { hist:true, col:'president_2012' }),
+  race('sen12', 2012, 'sen', '2012 Senate', '2012 Sen.', { hist:true, col:'us_senate_2012' }),
+  race('gov14', 2014, 'gov', '2014 Governor', '2014 Gov.', { hist:true, col:'governor_2014' }),
+  race('sen14', 2014, 'sen', '2014 Senate', '2014 Sen.', { hist:true, col:'us_senate_2014' }),
+  race('pres16', 2016, 'pres', '2016 President', '2016 Pres.'),
+  race('sen18', 2018, 'sen', '2018 Senate', '2018 Sen.'),
+  race('gov18', 2018, 'gov', '2018 Governor', '2018 Gov.'),
+  race('pres20', 2020, 'pres', '2020 President', '2020 Pres.'),
+  race('sen20', 2020, 'sen', '2020 Senate', '2020 Sen.'),
+  race('gov22', 2022, 'gov', '2022 Governor', '2022 Gov.'),
+  race('pres24', 2024, 'pres', '2024 President', '2024 Pres.'),
+  race('sen24', 2024, 'sen', '2024 Senate', '2024 Sen.'),
+  race('f26', 2026, 'sen', '2026 forecast', '2026 forecast', { forecast:true }),
+].sort((a, b) => a.year - b.year);
+// Races read from the details files (reconciled against uniform_shift.csv) and from the history files.
+export const pastKeys = races.filter(item => !item.forecast && !item.hist).map(item => item.key);
+export const histRaces = races.filter(item => item.hist);
 export const raceOf = key => races.find(race => race.key === key);
 export const metrics = [
   { key:'shift', label:'Shift in Democratic share' },
@@ -25,11 +41,11 @@ export const profileNames = ['rural', 'suburbs', 'urban', 'hispanic'];
 export const profileLabels = { rural:'Rural', suburbs:'Suburbs', urban:'Diverse urban', hispanic:'Hispanic working-class' };
 export const minOptions = [0, 50, 100, 250, 500, 1000];
 export const levelInfo = {
-  precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv' },
-  county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv' },
-  cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv' },
-  cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv' },
-  puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv' },
+  precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv' },
+  county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv' },
+  cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv' },
+  cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv' },
+  puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv' },
 };
 
 const params = new URLSearchParams(location.search);
@@ -86,14 +102,14 @@ const votes = v => { const x = num(v); return Number.isFinite(x) ? x : 0; };
 export function loadStore(level) {
   if (!stores.has(level)) {
     const info = levelInfo[level];
-    stores.set(level, Promise.all([csv(info.details), csv(info.projections)]).then(([details, projections]) => {
-      const byId = new Map(projections.map(row => [row.region_id, row]));
+    stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => [])]).then(([details, projections, history]) => {
+      const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row]));
       const n = details.length;
       const store = { level, n, ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
         dem:{}, rep:{}, tal:new Float64Array(n), pax:new Float64Array(n), mean:new Float64Array(n), q05:new Float64Array(n), q95:new Float64Array(n), pTal:new Float64Array(n),
         demog:{ hisp_cvap_share:new Float64Array(n), white_cvap_share:new Float64Array(n), black_cvap_share:new Float64Array(n), ba_plus_share:new Float64Array(n), med_income:new Float64Array(n), population:new Float64Array(n), area_sqmi:new Float64Array(n) },
         cache:new Map(), tp:new Map(), share:new Map(), index:null };
-      for (const key of pastKeys) { store.dem[key] = new Float64Array(n); store.rep[key] = new Float64Array(n); }
+      for (const item of races) if (!item.forecast) { store.dem[item.key] = new Float64Array(n); store.rep[item.key] = new Float64Array(n); }
       for (let i = 0; i < n; i++) {
         const row = details[i], p = byId.get(row.region_id) || {};
         store.ids[i] = row.region_id;
@@ -103,6 +119,8 @@ export function loadStore(level) {
         if (prof >= 0) store.profile[i] = prof;
         store.imputed[i] = String(row.demographics_imputed).toUpperCase() === 'TRUE' ? 1 : 0;
         for (const key of pastKeys) { store.dem[key][i] = votes(row[`dem_${key}`]); store.rep[key][i] = votes(row[`rep_${key}`]); }
+        const old = byHistory.get(row.region_id);
+        if (old) for (const item of histRaces) { store.dem[item.key][i] = votes(old[`dem_${item.col}`]); store.rep[item.key][i] = votes(old[`rep_${item.col}`]); }
         store.tal[i] = votes(row.talarico_mean); store.pax[i] = votes(row.paxton_mean);
         store.mean[i] = num(p.mean); store.q05[i] = num(p.q05); store.q95[i] = num(p.q95); store.pTal[i] = num(p.p_talarico);
         for (const key of Object.keys(store.demog)) store.demog[key][i] = num(row[key]);
@@ -189,8 +207,9 @@ export function metricArray(ev, metric) {
 }
 export const pairLabel = (from = state.from, to = state.to) => `${raceOf(from).label} to ${raceOf(to).label}`;
 export const crossOffice = (from = state.from, to = state.to) => raceOf(from).office !== raceOf(to).office;
-const oldSource = new Set(['pres16', 'sen18', 'gov18', 'pres20', 'sen20', 'gov22']);
-export const crossesSources = (from = state.from, to = state.to) => oldSource.has(from) && (to === 'pres24' || to === 'sen24' || to === 'f26');
+// Vote sources: 2002-2014 moved onto today's precincts from older returns, 2016-2022 and 2024 each come from one exact source.
+const sourceGroup = key => { const year = raceOf(key).year; return year <= 2014 ? 'moved' : year <= 2022 ? 'older' : 'recent'; };
+export const crossesSources = (from = state.from, to = state.to) => sourceGroup(from) !== sourceGroup(to);
 export const sourceCaveat = 'Part of the precinct-level change can come from how each source assigns votes to precincts, not from voters.';
 
 // ---- Weighted summaries ----
@@ -225,51 +244,48 @@ export function weightedDeciles(x, y, weights, idx, bins = 10) {
 }
 
 // ---- Map support ----
-// The MapLibre pieces mirror the arithmetic above on tile properties so the fill never needs a second data load.
-const tile = (level, key) => key === 'f26' ? { dem:['to-number', ['get', 'talarico_mean'], 0], rep:['to-number', ['get', 'paxton_mean'], 0] } : { dem:['to-number', ['get', `dem_${key}`], 0], rep:['to-number', ['get', `rep_${key}`], 0] };
-const tileColumns = key => key === 'f26' ? ['talarico_mean', 'paxton_mean', 'mean'] : [`dem_${key}`, `rep_${key}`];
-const tpExpr = (level, key) => { const t = tile(level, key); return ['+', t.dem, t.rep]; };
-const shareExpr = (level, key) => key === 'f26' ? ['to-number', ['get', 'mean'], 0] : ['/', tile(level, key).dem, tpExpr(level, key)];
-const netExpr = (level, key) => { const t = tile(level, key); return ['-', t.dem, t.rep]; };
+// The fill looks each place up by region_id in values computed from the stores, so any pair of races can be shaded, whether or not the tiles carry its columns.
+const lookups = new WeakMap();
+const roundTo = v => Math.round(v * 1e6) / 1e6;
 export function mapExpressions(level, metric = state.metric) {
   const store = storeIfLoaded(level);
   if (!store) return null;
   const { from, to, min } = state;
   const ev = evaluate(store, from, to);
-  const columns = [...tileColumns(from), ...tileColumns(to)];
-  const shift = ['-', shareExpr(level, to), shareExpr(level, from)];
-  const ratio = ['/', tpExpr(level, to), tpExpr(level, from)];
-  const value = metric === 'shift' ? shift : metric === 'rshift' ? ['-', shift, ev.stateShift]
-    : metric === 'ratio' ? ['ln', ratio] : metric === 'rratio' ? ['-', ['ln', ratio], Math.log(ev.stateRatio)]
-    : ['-', netExpr(level, to), netExpr(level, from)];
-  const excluded = [];
-  for (let i = 0; i < store.n; i++) if (ev.status[i] === STATUS.filtered) excluded.push(store.ids[i]);
+  const key = `${from}|${to}|${filterKey(state)}|${metric}`;
+  let cache = lookups.get(store);
+  if (!cache) lookups.set(store, cache = new Map());
+  if (!cache.has(key)) {
+    const values = {}, codes = {}, array = metricArray(ev, metric);
+    for (let i = 0; i < store.n; i++) {
+      if (ev.status[i] === STATUS.ok && Number.isFinite(array[i])) values[store.ids[i]] = roundTo(array[i]); else codes[store.ids[i]] = ev.status[i] === STATUS.ok ? STATUS.missing : ev.status[i];
+    }
+    if (cache.size > 8) cache.delete(cache.keys().next().value);
+    cache.set(key, { values, codes });
+  }
+  const { values, codes } = cache.get(key);
+  const id = ['to-string', ['get', 'region_id']], code = ['coalesce', ['get', id, ['literal', codes]], 0];
   return {
-    nodata:['any', ...columns.map(column => ['!', ['has', column]])],
-    filtered:excluded.length ? ['==', ['match', ['get', 'region_id'], excluded, 1, 0], 1] : null,
-    missing:['any', ['<=', tpExpr(level, from), 0], ['<=', tpExpr(level, to), 0]],
-    below:min > 0 ? ['any', ['<', tpExpr(level, from), min], ['<', tpExpr(level, to), min]] : null,
-    value, ev,
+    nodata:['all', ['==', code, 0], ['!', ['has', id, ['literal', values]]]],
+    filtered:ev.counts.filtered ? ['==', code, STATUS.filtered] : null,
+    missing:['==', code, STATUS.missing],
+    below:min > 0 ? ['==', code, STATUS.below] : null,
+    value:['get', id, ['literal', values]], ev,
   };
 }
-// Same arithmetic on a hovered feature's properties; null when the feature is not shaded.
+// The same values for a hovered feature, read from the store by its region_id; status is never ok for places that are not shaded.
 export function describeProps(props, level = state.level) {
-  const { from, to, min } = state;
-  const pull = key => key === 'f26'
-    ? { dem:+props.talarico_mean || 0, rep:+props.paxton_mean || 0, share:Number.isFinite(+props.mean) && props.mean !== '' ? +props.mean : NaN }
-    : { dem:+props[`dem_${key}`] || 0, rep:+props[`rep_${key}`] || 0, share:NaN };
-  const a = pull(from), b = pull(to);
-  const tpA = a.dem + a.rep, tpB = b.dem + b.rep;
-  const shareA = from === 'f26' ? a.share : tpA > 0 ? a.dem / tpA : NaN, shareB = to === 'f26' ? b.share : tpB > 0 ? b.dem / tpB : NaN;
-  const store = storeIfLoaded(level), ev = store ? evaluate(store, from, to) : null;
+  const { from, to } = state;
+  const store = storeIfLoaded(level);
   const at = store ? indexOf(store, String(props.region_id)) : undefined;
-  const status = ev && at !== undefined && ev.status[at] === STATUS.filtered ? STATUS.filtered : !(tpA > 0) || !(tpB > 0) ? STATUS.missing : tpA < min || tpB < min ? STATUS.below : STATUS.ok;
-  const shift = shareB - shareA, ratio = tpB / tpA;
-  const net = (b.dem - b.rep) - (a.dem - a.rep);
-  const metric = state.metric;
-  let value = NaN;
-  if (status === STATUS.ok) value = metric === 'shift' ? shift : metric === 'rshift' ? shift - (ev?.stateShift ?? 0) : metric === 'ratio' ? Math.log(ratio) : metric === 'rratio' ? Math.log(ratio) - Math.log(ev?.stateRatio ?? 1) : net;
-  return { status, value, shareA, shareB, shift, tpA, tpB, ratio, net };
+  if (at === undefined) return { status:STATUS.missing, value:NaN, shareA:NaN, shareB:NaN, shift:NaN, tpA:0, tpB:0, ratio:NaN, net:NaN };
+  const ev = evaluate(store, from, to);
+  const tpA = ev.tpA[at], tpB = ev.tpB[at], shareA = ev.shareA[at], shareB = ev.shareB[at];
+  const net = (to === 'f26' ? store.tal[at] - store.pax[at] : store.dem[to][at] - store.rep[to][at]) - (from === 'f26' ? store.tal[at] - store.pax[at] : store.dem[from][at] - store.rep[from][at]);
+  const status = ev.status[at];
+  const arrays = ev.arrays ||= {};
+  const value = status === STATUS.ok ? (arrays[state.metric] ||= metricArray(ev, state.metric))[at] : NaN;
+  return { status, value, shareA, shareB, shift:shareB - shareA, tpA, tpB, ratio:tpB / tpA, net };
 }
 // Sorted metric values of the shaded places at one level, for the map's range fit and class breaks.
 export function metricValues(store, metric = state.metric) {

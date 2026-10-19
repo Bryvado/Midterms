@@ -187,7 +187,7 @@ export async function renderTimeline(host, level, regionId, options = {}) {
     const [a, b] = [find(first), find(id)].sort((u, v) => u.year - v.year);
     first = null;
     pair = { a:a.id, b:b.id };
-    if (compareSeries === 'office' && a.cmp && b.cmp) setState({ from:a.cmp, to:b.cmp }); else drawRings();
+    if (compareSeries === 'office' && a.cmp && b.cmp) { setState({ from:a.cmp, to:b.cmp }); window.dispatchEvent(new Event('show-comparison')); } else drawRings();
   };
   svg.addEventListener('click', event => { const hit = event.target.closest('.tl-pick'); if (hit) pick(hit.dataset.id); });
   svg.addEventListener('keydown', event => { const hit = event.target.closest('.tl-pick'); if (hit && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); pick(hit.dataset.id); } });
