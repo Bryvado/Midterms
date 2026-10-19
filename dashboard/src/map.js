@@ -74,7 +74,7 @@ const parseScales = text => {
     const key = entry.slice(0, split), rest = entry.slice(split + 1);
     if (!key || !rest || !/^[\w]+$/.test(key)) continue;
     const s = {};
-    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log','k'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
+    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log','k','h'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
     scaleState.set(key, s);
   }
 };
@@ -160,6 +160,9 @@ function metricType(key) {
   if (['count','money','bounded'].includes(metricKinds.get(key)) || isCount(key)) return 'seq';
   return 'share';
 }
+// Contrast near the center: exponent applied to the distance from the center, so small values away from 0 still get a visible tint. Differences between elections are heavy-tailed, so they start stretched.
+const hingePowers = { '0':1, '1':.5, '2':1 / 3 };
+const defaultHinge = type => ['shift','ratio','netvotes','density'].includes(type) ? '1' : '0';
 const isDiverging = type => ['density','prob','shift','share','margin','ratio','netvotes'].includes(type);
 // Percent-like metrics take custom bounds in percent or points; counts and density take raw numbers.
 const percentUnits = key => ['share','prob','brown','confidence','margin','shift'].includes(metricType(key)) || metricKinds.get(key) === 'bounded';
@@ -179,7 +182,7 @@ function compareOptions(key) {
   else if (type === 'ratio') { ranges = [...fits,['p0.223','×0.8 to ×1.25'],['p0.405','×0.67 to ×1.5'],['p0.693','×0.5 to ×2'],['p1.099','×0.33 to ×3']]; range = 'p0.405'; }
   else { ranges = [...fits,['custom','Custom']]; range = 'state'; }
   const bins = [['cont','Continuous'],['step','Round-number steps'],...Object.entries(classificationMethods)];
-  return { type, centers, ranges, bins, log:false, defaults:{ c:'zero', r:range, b:'cont', k:'6', log:'0' } };
+  return { type, centers, ranges, bins, log:false, defaults:{ c:'zero', r:range, b:'cont', k:'6', log:'0', h:defaultHinge(type) } };
 }
 
 // What each metric type offers, and its defaults.
@@ -209,7 +212,7 @@ function options(key) {
   const bins = [['cont','Continuous'],['step','Round-number steps'],...Object.entries(classificationMethods)];
   if (type === 'margin' || type === 'prob') bins.push(['rat','Ratings categories']);
   const log = type === 'seq' && ['count','money'].includes(metricKinds.get(key) || (isCount(key) ? 'count' : ''));
-  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', k:'6', log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
+  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', k:'6', h:defaultHinge(type), log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
 }
 
 function current(key = measure) {
@@ -219,6 +222,7 @@ function current(key = measure) {
   if (!opt.ranges.some(([v]) => v === s.r)) s.r = opt.defaults.r;
   if (!opt.bins.some(([v]) => v === s.b)) s.b = opt.defaults.b;
   s.k = /^[3-9]$/.test(String(s.k)) ? String(s.k) : '6';
+  if (!(s.h in hingePowers)) s.h = opt.defaults.h;
   if (!opt.log) s.log = '0';
   return { opt, s };
 }
@@ -321,7 +325,9 @@ function viewValues() {
 function scale(key, level = unit) {
   const { opt, s } = current(key);
   const type = opt.type, diverging = isDiverging(type), colors = ramp(type);
-  const log = s.log === '1';
+  const log = s.log === '1', gamma = diverging ? hingePowers[s.h] : 1;
+  // Position of a value on the ramp, 0 to 1 with the center at .5; each side reaches its end at the range limit.
+  const hinge = (v, c, lo, hi) => { const side = (v - c) / Math.max(1e-9, v <= c ? c - lo : hi - c); return .5 + .5 * Math.sign(side) * Math.min(1, Math.abs(side)) ** gamma; };
   const levelName = levels[level].plural;
   let lo, hi, center = diverging ? centerValue(key, s.c) : null, rangeNote = '';
   if (s.b in classificationMethods) {
@@ -331,7 +337,7 @@ function scale(key, level = unit) {
       let edges = classify(values, s.b, +s.k);
       if (diverging && center > lo && center < hi) edges = [...new Set([...edges, center])].sort((a,b)=>a-b);
       const limits = [lo,...edges,hi];
-      const position = v => diverging ? (v <= center ? .5-.5*(center-v)/Math.max(1e-9,center-lo) : .5+.5*(v-center)/Math.max(1e-9,hi-center)) : (v-lo)/Math.max(1e-9,hi-lo);
+      const position = v => diverging ? hinge(v, center, lo, hi) : (v-lo)/Math.max(1e-9,hi-lo);
       const classColors = limits.slice(0,-1).map((v,i)=>mapColorAt(colors,position((v+limits[i+1])/2),type));
       return {kind:'step',type,edges,colors:classColors,lo,hi,note:`${classificationMethods[s.b]}; ${classColors.length} classes across all ${levelName}, one observation per area. Breaks use raw values. ${diverging ? 'The selected center is retained as a boundary; this can add a class. ' : ''}Tied values stay together. These are display classes, not confidence categories.`};
     }
@@ -370,11 +376,12 @@ function scale(key, level = unit) {
   if (log) lo = Math.max(1, lo);
   const tx = v => log ? Math.log1p(Math.max(0, v)) : v;
   const tPos = v => diverging
-    ? (v <= center ? .5 - .5 * (center - v) / Math.max(1e-9, center - lo) : .5 + .5 * (v - center) / Math.max(1e-9, hi - center))
+    ? hinge(v, center, lo, hi)
     : (tx(v) - tx(lo)) / Math.max(1e-9, tx(hi) - tx(lo));
   const units = { share:'Talarico two-party share', margin:'Talarico minus Paxton, points of all ballots', shift:'two-party points', prob:'chance Talarico leads', confidence:'larger candidate’s chance of leading', brown:'Brown share of all ballots', density:'net Talarico minus Paxton votes per square mile', ratio:'turnout ratio between the two elections, shown on a log scale', netvotes:'change in net Democratic minus Republican votes' }[type] || '';
+  const hingeNote = diverging && gamma < 1 ? ' Contrast is stretched near the center so small differences stay visible.' : '';
   const centerNote = diverging && options(key).centers.length > 1 && !['even','zero'].includes(s.c) ? ` Centered on the ${centerText(key, s.c).replace(/^Statewide/, 'statewide')}.` : '';
-  const note = `${units ? `${units[0].toUpperCase()}${units.slice(1)}.` : ''}${centerNote} Colors span ${format(key, lo)} to ${format(key, hi)}${rangeNote ? ` (${rangeNote})` : ''} and saturate beyond.${type === 'shift' && !isCompareMeasure(key) ? ' Grey areas lack a baseline.' : ''}${metricKinds.get(key) === 'bounded' ? ' Estimates above 100% are capped.' : ''}`;
+  const note = `${units ? `${units[0].toUpperCase()}${units.slice(1)}.` : ''}${centerNote}${hingeNote} Colors span ${format(key, lo)} to ${format(key, hi)}${rangeNote ? ` (${rangeNote})` : ''} and saturate beyond.${type === 'shift' && !isCompareMeasure(key) ? ' Grey areas lack a baseline.' : ''}${metricKinds.get(key) === 'bounded' ? ' Estimates above 100% are capped.' : ''}`;
   if (s.b === 'step') {
     let edges;
     if (diverging) {
@@ -394,8 +401,10 @@ function scale(key, level = unit) {
     const classColors = limits.slice(0, -1).map((start, i) => mapColorAt(colors, tPos((start + limits[i + 1]) / 2), type));
     return { kind:'step', type, edges, tx, log, colors:classColors, lo, hi, note };
   }
+  const evenStops = [lo, center - (center - lo) * 2 / 3, center - (center - lo) / 3, center, center + (hi - center) / 3, center + (hi - center) * 2 / 3, hi];
+  const hingeStops = Array.from({ length:17 }, (_, i) => i < 8 ? center - (center - lo) * (8 - i) / 8 : center + (hi - center) * (i - 8) / 8);
   const stops = diverging
-    ? [lo, center - (center - lo) * 2 / 3, center - (center - lo) / 3, center, center + (hi - center) / 3, center + (hi - center) * 2 / 3, hi]
+    ? (gamma === 1 ? evenStops : hingeStops)
     : [0,.25,.5,.75,1].map(f => log ? Math.expm1(tx(lo) + f * (tx(hi) - tx(lo))) : lo + f * (hi - lo));
   for (let i = 1; i < stops.length; i++) if (stops[i] <= stops[i-1]) stops[i] = stops[i-1] + 1e-9;
   const positions = stops.map(v => (tx(v) - tx(stops[0])) / Math.max(1e-9, tx(stops.at(-1)) - tx(stops[0])));
@@ -462,7 +471,7 @@ function drawLegend() {
       <div class="legend-edges">${s.edges.map((edge, i) => (i % every) ? '' : `<span style="left:${(100 * (i + 1) / s.colors.length).toFixed(2)}%">${escapeHTML(format(measure, edge))}</span>`).join('')}</div>`;
   } else {
     const gradient = s.colors.map((color, i) => `${color} ${(100 * s.positions[i]).toFixed(2)}%`).join(',');
-    const picks = isDiverging(s.type) ? [0, 3, 6] : [0, 2, 4];
+    const last = s.stops.length - 1, picks = isDiverging(s.type) ? [0, last / 2, last] : [0, 2, 4];
     body = `<div class="legend-ramp" style="background:linear-gradient(90deg,${gradient})"></div>
       <div class="legend-edges">${picks.map(i => `<span style="left:${(100 * s.positions[i]).toFixed(2)}%">${escapeHTML(format(measure, s.stops[i]))}</span>`).join('')}</div>`;
   }
@@ -531,6 +540,8 @@ function syncControls() {
   panel.querySelector('#outline-width-value').textContent = `${settings.bw}px`;
   panel.querySelector('#outline-width').disabled = settings.ln !== '1';
   panel.querySelector('#scale-log').checked = s.log === '1';
+  panel.querySelector('#scale-hinge-row').hidden = !diverging;
+  panel.querySelector('#scale-hinge').value = s.h;
   panel.querySelector('#fill-opacity').value = settings.op;
   panel.querySelector('#fill-opacity-value').textContent = `${settings.op}%`;
   panel.querySelector('#outline-opacity').value = settings.ol;
@@ -617,6 +628,7 @@ function initDisplayControls() {
   on('#scale-max', 'change', (e, signal) => updateScale({ hi:e.target.value }, signal));
   on('#scale-bins', 'change', (e, signal) => updateScale({ b:e.target.value }, signal));
   on('#scale-classes', 'change', (e, signal) => updateScale({ k:e.target.value }, signal));
+  on('#scale-hinge', 'change', (e, signal) => updateScale({ h:e.target.value }, signal));
   on('#scale-log', 'change', (e, signal) => updateScale({ log:e.target.checked ? '1' : '0' }, signal));
   for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol', '#outline-width':'bw' })) on(id, 'change', e => { settings[key] = String(e.target.value); paint(); });
   for (const [id, key] of Object.entries({ '#outline-on':'ln', '#overlay-county':'oc', '#overlay-cd':'od' })) on(id, 'change', e => { settings[key] = e.target.checked ? '1' : '0'; paint(); });
