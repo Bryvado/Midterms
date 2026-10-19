@@ -78,6 +78,8 @@ cmpTo.addEventListener('change', () => { setCompare({ to:cmpTo.value }); showCom
 cmpMetric.addEventListener('change', () => { if (cmpMetric.value) { useComparison(`cmp_${cmpMetric.value}`); measure.dispatchEvent(new Event('change')); } });
 measure.addEventListener('change', syncCompare);
 window.addEventListener('compare-change', syncCompare);
+// Picking two points in a place's timeline shades the map by that comparison.
+window.addEventListener('show-comparison', showComparison);
 syncCompare();
 optionGroup('Demographics', demographicMeasures.map(metric => [metric.key, measureLabel(metric, currentUnit())]));
 optionGroup('Electorate counts', electorateMeasures.map(metric => [metric.key, metric.label]));
