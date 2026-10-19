@@ -62,20 +62,24 @@ setShadeHandler(meta => runMapUpdate('Shading map…', async signal => {
   await applyMeasure(meta.key, meta, signal);
 }));
 
-// Comparison measures are chosen in the Compare elections group; Show lists one entry only while one is active.
-const cmpOption = new Option('Election comparison', 'cmp_shift');
-cmpOption.hidden = true;
-measure.prepend(cmpOption);
-const useComparison = key => { cmpOption.value = key; cmpOption.hidden = false; measure.value = key; };
-// The Compare elections group in Map controls: changing the pair or metric shades the map by comparison.
-const cmpFrom = $('#cmp-from'), cmpTo = $('#cmp-to'), cmpMetric = $('#cmp-metric');
+// "Compare elections" is one entry in Show. Choosing it reveals the From, To and Metric controls; any other entry hides them.
+const cmpOption = new Option('Compare elections', 'cmp_shift');
+measure.querySelector('option[value="p_talarico"]').after(cmpOption);
+const cmpGroup = $('#compare-group'), cmpFrom = $('#cmp-from'), cmpTo = $('#cmp-to'), cmpMetric = $('#cmp-metric');
 for (const select of [cmpFrom, cmpTo]) select.replaceChildren(...cmpRaces.map(race => new Option(race.label, race.key)));
-cmpMetric.replaceChildren(new Option('Shade the map…', ''), ...cmpMetrics.map(metric => new Option(metric.label, metric.key)));
-const syncCompare = () => { cmpOption.hidden = !measure.value.startsWith('cmp_'); cmpFrom.value = cmpState.from; cmpTo.value = cmpState.to; cmpMetric.value = measure.value.startsWith('cmp_') ? measure.value.slice(4) : ''; };
-const showComparison = () => { if (!measure.value.startsWith('cmp_')) { useComparison(`cmp_${cmpState.metric}`); measure.dispatchEvent(new Event('change')); } };
+cmpMetric.replaceChildren(...cmpMetrics.map(metric => new Option(metric.label, metric.key)));
+const comparing = () => measure.value.startsWith('cmp_');
+const useComparison = key => { cmpOption.value = key; measure.value = key; };
+const syncCompare = () => {
+  cmpOption.value = comparing() ? measure.value : `cmp_${cmpState.metric}`;
+  if (comparing()) measure.value = cmpOption.value;
+  cmpGroup.hidden = !comparing();
+  cmpFrom.value = cmpState.from; cmpTo.value = cmpState.to; cmpMetric.value = comparing() ? measure.value.slice(4) : cmpState.metric;
+};
+const showComparison = () => { if (!comparing()) { useComparison(`cmp_${cmpState.metric}`); measure.dispatchEvent(new Event('change')); } };
 cmpFrom.addEventListener('change', () => { setCompare({ from:cmpFrom.value }); showComparison(); });
 cmpTo.addEventListener('change', () => { setCompare({ to:cmpTo.value }); showComparison(); });
-cmpMetric.addEventListener('change', () => { if (cmpMetric.value) { useComparison(`cmp_${cmpMetric.value}`); measure.dispatchEvent(new Event('change')); } });
+cmpMetric.addEventListener('change', () => { useComparison(`cmp_${cmpMetric.value}`); measure.dispatchEvent(new Event('change')); });
 measure.addEventListener('change', syncCompare);
 window.addEventListener('compare-change', syncCompare);
 // Picking two points in a place's timeline shades the map by that comparison.
