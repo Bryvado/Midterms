@@ -98,7 +98,7 @@ export function initChart(trackRows, pollRows, headline, shifts) {
   track = trackRows.map(row => ({ ...row, time:date(row.date) }));
   // Each poll sits at the midpoint of its field dates; the whisker spans field_start to end_date.
   polls = pollRows.map(row => {
-    const s0 = date(row.field_start || row.end_date), e0 = date(row.end_date);
+    const s0 = date(row.field_start && row.field_start !== 'NA' ? row.field_start : row.end_date), e0 = date(row.end_date);
     return { ...row, start:s0, finish:e0, time:new Date((+s0 + +e0) / 2) };
   });
   maxInfluence = Math.max(...polls.map(row => +row.influence).filter(Number.isFinite), 0);
