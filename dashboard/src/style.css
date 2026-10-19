@@ -445,6 +445,7 @@
 @media(max-width:700px){.fp-scatter{order:5}.fp-scatter #scatter-chart{flex:none;height:300px}.fp-scatter .fp-body{overflow:visible}}
 .fp-scatter #scatter-chance{min-height:1.45em}
 
+.compare-group[hidden]{display:none!important}
 .compare-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:6px 0 2px;padding-top:6px;border-top:1px solid #e6ebea}
 .compare-title{font-size:11px;font-weight:700;color:#455c64}
 .compare-group label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#455c64}
