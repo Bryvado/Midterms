@@ -1,4 +1,4 @@
-// Shared by the simulated-outcomes panel and the election shifts panel: highest-density contours from a grid of cell masses.
+// Shared by the simulated-outcomes panel and the precinct shift explorer: highest-density contours from a grid of cell masses.
 const defaultLevels = [.5, .8, .95];
 // Highest-density regions: cells sorted by mass, cumulative sum, and the mass of the cell that reaches each level is the contour value.
 export function thresholds(cells, levels = defaultLevels) {

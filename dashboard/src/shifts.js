@@ -1,6 +1,6 @@
 import { scaleLinear } from 'd3-scale';
 import { csv, pct, count, signed, escapeHTML } from './data.js';
-import { state, setState, races, raceOf, metrics, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, weightedDeciles, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
+import { state, setState, races, raceOf, metrics, profileNames, profileLabels, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, weightedDeciles, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
 import { contours } from './contours.js';
 import { selectPlace } from './details.js';
 import { countyNames, shortLabel } from './labels.js';
@@ -11,6 +11,7 @@ const panel = document.querySelector('#fp-shifts');
 const $ = selector => panel.querySelector(selector);
 const dark = () => document.documentElement.dataset.layout === 'dark';
 const ink = () => dark() ? { text:'#e5edf2', muted:'#acbfcb', grid:'#364a5b', zero:'#8aa1b2', panel:'#1b2937', fit:'#f4d27a' } : { text:'#1b282d', muted:'#64767b', grid:'#e3e9e8', zero:'#8e9ea3', panel:'#ffffff', fit:'#8a5a00' };
+const profileColors = () => dark() ? ['#e0b155', '#5fcbb0', '#b998dc', '#ff9a63'] : ['#b8892f', '#2f9a80', '#7b55a6', '#d9662a'];
 const demogOptions = [
   ['hisp_cvap_share', 'Hispanic share of citizen adults', 'share'], ['white_cvap_share', 'White share of citizen adults', 'share'], ['black_cvap_share', 'Black share of citizen adults', 'share'],
   ['ba_plus_share', "Bachelor's degree or higher", 'share'], ['med_income', 'Median income (log scale)', 'log'], ['density', 'Population density (log scale)', 'log'], ['share_from', 'Democratic share in the From race', 'share'],
@@ -23,13 +24,15 @@ function build() {
   for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to']]) raceOptions($(id), state[key]);
   $('#sh-level').replaceChildren(...Object.entries(levelInfo).map(([key, info]) => new Option(info.label, key, false, key === state.level)));
   $('#sh-min').replaceChildren(...minOptions.map(v => new Option(v.toLocaleString('en-US'), String(v), false, v === state.min)));
+  $('#sh-profile').replaceChildren(new Option('All profiles', ''), ...profileNames.map(key => new Option(profileLabels[key], key, false, key === state.profile)));
   $('#sh-demog').replaceChildren(...demogOptions.map(([key, label]) => new Option(label, key, false, key === state.demog)));
 }
 function syncControls() {
-  for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to'], ['#sh-level', 'level'], ['#sh-demog', 'demog']]) $(id).value = state[key];
+  for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to'], ['#sh-level', 'level'], ['#sh-profile', 'profile'], ['#sh-demog', 'demog'], ['#sh-color', 'color']]) $(id).value = state[key];
   $('#sh-min').value = String(state.min);
   $('#sh-weight').value = state.weighted ? '1' : '0';
   $('#sh-xrel').checked = state.xrel; $('#sh-yrel').checked = state.yrel; $('#sh-contours').checked = state.contours;
+  $('#sh-county').value = state.county ? counties.get(state.county) || state.county : '';
   for (const button of panel.querySelectorAll('[data-sh-view]')) button.setAttribute('aria-pressed', String(button.dataset.shView === state.view));
   for (const name of ['xy', 'demog', 'table']) $(`#sh-view-${name}`).hidden = state.view !== name;
   $('#sh-demog-rel').checked = state.xrel;
@@ -52,17 +55,26 @@ function renderHeader(ev, nounText) {
 }
 function renderSummary(ev) {
   const cells = [`<div class="sh-stat"><span>Statewide shift</span><strong>${Number.isFinite(ev.stateShift) ? points(ev.stateShift) : 'n/a'}</strong><em>all ${store.n.toLocaleString('en-US')} ${levelInfo[store.level].noun}, from vote totals</em></div>`];
+  if (store.level === 'precinct') {
+    const weights = state.weighted ? tpOf(store, state.from) : null;
+    for (let k = 0; k < profileNames.length; k++) {
+      const idx = [];
+      for (let i = 0; i < store.n; i++) if (ev.status[i] === STATUS.ok && store.profile[i] === k) idx.push(i);
+      const mean = weightedMean(ev.shift, weights, idx);
+      cells.push(`<div class="sh-stat"><span>${profileLabels[profileNames[k]]}</span><strong>${idx.length ? points(mean) : '—'}</strong><em>${idx.length.toLocaleString('en-US')} ${idx.length === 1 ? 'precinct' : 'precincts'}</em></div>`);
+    }
+  }
   $('#sh-summary').innerHTML = cells.join('');
 }
 async function reconcile() {
   if (checked) return checked;
   checked = (async () => {
-    const [countyStore, shifts] = await Promise.all([ensureStore('county'), csv('uniform_shift.csv')]);
+    const [precincts, shifts] = await Promise.all([ensureStore('precinct'), csv('uniform_shift.csv')]);
     const published = new Map(shifts.filter(row => row.component === 'combined').map(row => [row.baseline, +row.baseline_2p]));
     const failed = [];
     for (const key of pastKeys) {
-      const got = statewide(countyStore, key).share, want = published.get(key);
-      if (!Number.isFinite(want) || !(Math.abs(got - want) <= 1e-4)) failed.push(`${raceOf(key).label} (county file ${Number.isFinite(got) ? pct(got, 3) : 'n/a'}, uniform_shift.csv ${Number.isFinite(want) ? pct(want, 3) : 'missing'})`);
+      const got = statewide(precincts, key).share, want = published.get(key);
+      if (!Number.isFinite(want) || !(Math.abs(got - want) <= 1e-4)) failed.push(`${raceOf(key).label} (precinct file ${Number.isFinite(got) ? pct(got, 3) : 'n/a'}, uniform_shift.csv ${Number.isFinite(want) ? pct(want, 3) : 'missing'})`);
     }
     return { failed, total:pastKeys.length };
   })().catch(error => { checked = null; throw error; });
@@ -73,7 +85,7 @@ async function renderCheck() {
   try {
     const { failed, total } = await reconcile();
     box.classList.toggle('warn', failed.length > 0);
-    box.textContent = failed.length ? `Warning: statewide share from the county file does not match uniform_shift.csv within 0.0001 for ${failed.join('; ')}.` : `Statewide check passed: all ${total} past races match uniform_shift.csv within 0.0001.`;
+    box.textContent = failed.length ? `Warning: statewide share from the precinct file does not match uniform_shift.csv within 0.0001 for ${failed.join('; ')}.` : `Statewide check passed: all ${total} past races match uniform_shift.csv within 0.0001.`;
   } catch (error) { box.classList.add('warn'); box.textContent = `Statewide check could not run: ${error.message}`; }
 }
 
@@ -203,11 +215,12 @@ function drawXY() {
     sets = contours(cells);
   }
   const sx = [], sy = [], order = idx.slice().sort((a, b) => wA[b] - wA[a]);
+  const colors = profileColors();
   for (const i of order) {
     const px = plot.px(xs[i]), py = plot.py(ys[i]);
     sx.push(px); sy.push(py);
     ctx.globalAlpha = .45;
-    ctx.fillStyle = shareColor(evX.shareA[i], dark() ? 'dark' : 'light');
+    ctx.fillStyle = state.color === 'share' ? shareColor(evX.shareA[i], dark() ? 'dark' : 'light') : (store.profile[i] === 255 ? c.muted : colors[store.profile[i]]);
     ctx.beginPath(); ctx.arc(px, py, 1.3 + 4.2 * Math.sqrt(Math.min(1, wA[i] / wmax)), 0, 6.2832); ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -228,7 +241,7 @@ function drawXY() {
   $('#sh-xy-stats').innerHTML = fit ? `${state.weighted ? 'Vote-weighted' : 'Unweighted'} correlation <strong>${fit.r.toFixed(2)}</strong> · least-squares slope <strong>${fit.slope.toFixed(2)}</strong> (the line shown) · ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${state.contours ? ' · contours enclose 50%, 80% and 95% of the weight (smoothed bins)' : ''}${outside ? ` · ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}` : '';
   attachHover(canvas, () => xyHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, evX)}<br>${escapeHTML(raceOf(state.y2from).label)} to ${escapeHTML(raceOf(state.y2to).label)}: ${points(evY.shift[i])}`, i => openPlace(store.level, i));
   const legend = $('#sh-xy-legend');
-  legend.innerHTML = `<span>Color: Democratic share in ${escapeHTML(raceOf(state.from).label)}</span><span class="sh-ramp"></span><span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>`;
+  legend.innerHTML = state.color === 'share' ? `<span>Color: Democratic share in ${escapeHTML(raceOf(state.from).label)}</span><span class="sh-ramp"></span><span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>` : `${profileNames.map((key, k) => `<span><i style="background:${colors[k]}"></i>${profileLabels[key]}</span>`).join('')}<span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>`;
 }
 
 // ---- View 2: shift vs demographics ----
@@ -253,7 +266,7 @@ function drawDemog() {
   const xTicks = log ? logTicks(Math.exp(xd[0]), Math.exp(xd[1])).map(Math.log) : scaleLinear().domain(xd).ticks(width < 360 ? 4 : 6);
   const fmtX = key === 'med_income' ? v => `$${Math.round(Math.exp(v) / 1000)}k` : key === 'density' ? v => { const d = Math.exp(v); return d >= 1000 ? `${Math.round(d / 1000)}k` : String(Math.round(d)); } : v => `${Math.round(100 * v)}%`;
   drawFrame(ctx, plot, { xTicks, yTicks:scaleLinear().domain(yd).ticks(6), xFormat:fmtX, yFormat:v => Math.round(100 * v) === 0 ? '0' : `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(100 * v))}`, zeroY:0, xLabel:label, yLabel:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.from).short} to ${raceOf(state.to).short} (points)` });
-  const wA = tpOf(store, state.from), weights = state.weighted ? wA : null;
+  const wA = tpOf(store, state.from), weights = state.weighted ? wA : null, colors = profileColors();
   const sorted = idx.map(i => wA[i]).sort((a, b) => a - b), wmax = quantile(sorted, .98) || 1;
   ctx.save(); ctx.beginPath(); ctx.rect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top); ctx.clip();
   const sx = [], sy = [], order = idx.slice().sort((a, b) => wA[b] - wA[a]);
@@ -261,7 +274,7 @@ function drawDemog() {
     const xv2 = bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i];
     const px = plot.px(xv2), py = plot.py(ys[i]), r = 1.3 + 3.6 * Math.sqrt(Math.min(1, wA[i] / wmax));
     sx.push(px); sy.push(py);
-    const color = shareColor(shareFrom[i], dark() ? 'dark' : 'light');
+    const color = store.profile[i] === 255 ? c.muted : colors[store.profile[i]];
     if (store.imputed[i]) { ctx.globalAlpha = .8; ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, py, r + .5, 0, 6.2832); ctx.stroke(); }
     else { ctx.globalAlpha = .42; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.2832); ctx.fill(); }
   }
@@ -277,13 +290,13 @@ function drawDemog() {
   const imputed = idx.filter(i => store.imputed[i]).length;
   const outside = idx.filter(i => xt[i] < xd[0] || xt[i] > xd[1] || ys[i] < yd[0] || ys[i] > yd[1]).length;
   $('#sh-demog-stats').textContent = `Line: ${state.weighted ? 'vote-weighted' : 'unweighted'} mean shift within deciles of the x measure, each decile holding a tenth of the ${state.weighted ? 'two-party votes' : 'places'}. ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${imputed ? `; ${imputed.toLocaleString('en-US')} with estimated demographics ${imputed === 1 ? 'is' : 'are'} hollow` : ''}${outside ? `; ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}.`;
-  attachHover(canvas, () => demogHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, ev)}<br>${escapeHTML(label)}: ${key === 'med_income' ? `$${count(raw[i])}` : key === 'density' ? `${count(raw[i])} per sq mi` : pct(Math.min(1, Math.max(0, raw[i])))}${store.imputed[i] ? '<br>Demographics estimated from neighboring areas.' : ''}`, i => openPlace(store.level, i));
+  attachHover(canvas, () => demogHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, ev)}<br>${escapeHTML(label)}: ${key === 'med_income' ? `$${count(raw[i])}` : key === 'density' ? `${count(raw[i])} per sq mi` : pct(Math.min(1, Math.max(0, raw[i])))}${store.imputed[i] ? '<br>Demographics estimated from neighboring precincts.' : ''}`, i => openPlace(store.level, i));
 }
 
 // ---- View 3: movers table ----
 const tableState = { sort:'shift', dir:-1, page:0, view:false };
 const columns = [
-  { key:'place', label:'Place', text:true },
+  { key:'place', label:'Place', text:true }, { key:'county', label:'County', text:true }, { key:'profile', label:'Profile', text:true },
   { key:'shareA', label:'Share A', show:v => pct(v) }, { key:'shareB', label:'Share B', show:v => pct(v) },
   { key:'shift', label:'Shift', show:points }, { key:'rshift', label:'Relative shift', show:points },
   { key:'tpA', label:'Votes A', show:count }, { key:'tpB', label:'Votes B', show:count },
@@ -296,13 +309,13 @@ async function tableRows() {
   let boxes = null, view = null;
   if (tableState.view) { boxes = await boxesFor(store.level); view = viewBounds(); }
   if (boxes && view) idx = idx.filter(i => { const b = boxes[store.ids[i]]; return !b || (b[0] <= view[2] && b[2] >= view[0] && b[1] <= view[3] && b[3] >= view[1]); });
-  const cell = (i, key) => key === 'place' ? placeName(i)
+  const cell = (i, key) => key === 'place' ? placeName(i) : key === 'county' ? counties.get(store.county[i]) || '' : key === 'profile' ? (store.profile[i] === 255 ? '' : profileLabels[profileNames[store.profile[i]]])
     : key === 'shareA' ? ev.shareA[i] : key === 'shareB' ? ev.shareB[i] : key === 'shift' ? ev.shift[i] : key === 'rshift' ? ev.shift[i] - ev.stateShift : key === 'tpA' ? ev.tpA[i] : key === 'tpB' ? ev.tpB[i] : key === 'ratio' ? ev.ratio[i] : ev.net[i];
   return { ev, idx, cell };
 }
 async function drawTable() {
   const host = $('#sh-table-body'), { ev, idx, cell } = await tableRows();
-  const col = columns.find(c => c.key === tableState.sort) || columns[3];
+  const col = columns.find(c => c.key === tableState.sort) || columns[5];
   const key = col.key;
   const sorted = idx.slice().sort((a, b) => {
     const x = cell(a, key), y = cell(b, key);
@@ -324,9 +337,9 @@ function downloadCSV() {
   if (!host._rows) return;
   const { sorted, cell } = host._rows;
   const quote = v => `"${String(v).replaceAll('"', '""')}"`;
-  const header = ['region_id', 'place', `share_${state.from}`, `share_${state.to}`, 'shift', 'relative_shift', `two_party_votes_${state.from}`, `two_party_votes_${state.to}`, 'turnout_ratio', 'net_democratic_vote_change'];
+  const header = ['region_id', 'place', 'county', 'profile', `share_${state.from}`, `share_${state.to}`, 'shift', 'relative_shift', `two_party_votes_${state.from}`, `two_party_votes_${state.to}`, 'turnout_ratio', 'net_democratic_vote_change'];
   const lines = [header.join(',')];
-  for (const i of sorted) lines.push([quote(store.ids[i]), quote(cell(i, 'place')), ...['shareA', 'shareB', 'shift', 'rshift', 'tpA', 'tpB', 'ratio', 'net'].map(k => cell(i, k))].join(','));
+  for (const i of sorted) lines.push([quote(store.ids[i]), quote(cell(i, 'place')), quote(cell(i, 'county')), quote(cell(i, 'profile')), ...['shareA', 'shareB', 'shift', 'rshift', 'tpA', 'tpB', 'ratio', 'net'].map(k => cell(i, k))].join(','));
   const url = URL.createObjectURL(new Blob([`${lines.join('\n')}\n`], { type:'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url; link.download = `${store.level}_shifts_${state.from}_${state.to}.csv`;
@@ -349,9 +362,11 @@ async function load() {
   if (loading) return loading;
   const status = $('#sh-status');
   loading = (async () => {
-    status.hidden = false; status.textContent = 'Loading place data…';
+    status.hidden = false; status.textContent = 'Loading precinct data…';
     try {
       [store, counties] = await Promise.all([ensureStore(state.level), countyNames()]);
+      const names = [...counties.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+      $('#sh-county-list').replaceChildren(...names.map(([, name]) => new Option(name)));
       status.hidden = true;
       renderCheck();
       redraw();
@@ -372,10 +387,18 @@ function init() {
   $('#sh-y2to').addEventListener('change', e => set({ y2to:e.target.value }, 'view'));
   $('#sh-min').addEventListener('change', e => set({ min:+e.target.value }, 'filters'));
   $('#sh-weight').addEventListener('change', e => set({ weighted:e.target.value === '1' }, 'view'));
+  $('#sh-profile').addEventListener('change', e => set({ profile:e.target.value }, 'filters'));
   $('#sh-level').addEventListener('change', e => { set({ level:e.target.value }, 'view'); changeLevel(); });
+  $('#sh-county').addEventListener('change', e => {
+    const text = e.target.value.trim().toLowerCase();
+    if (!text) return set({ county:'' }, 'filters');
+    const hit = [...counties.entries()].find(([, name]) => name.toLowerCase() === text);
+    if (hit) set({ county:hit[0] }, 'filters'); else e.target.value = state.county ? counties.get(state.county) || '' : '';
+  });
   $('#sh-xrel').addEventListener('change', e => set({ xrel:e.target.checked }, 'view'));
   $('#sh-demog-rel').addEventListener('change', e => set({ xrel:e.target.checked }, 'view'));
   $('#sh-yrel').addEventListener('change', e => set({ yrel:e.target.checked }, 'view'));
+  $('#sh-color').addEventListener('change', e => set({ color:e.target.value }, 'view'));
   $('#sh-contours').addEventListener('change', e => set({ contours:e.target.checked }, 'view'));
   $('#sh-demog').addEventListener('change', e => set({ demog:e.target.value }, 'view'));
   for (const button of panel.querySelectorAll('[data-sh-view]')) button.addEventListener('click', () => set({ view:button.dataset.shView }, 'view'));
