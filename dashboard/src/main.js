@@ -15,7 +15,7 @@ const $ = selector => document.querySelector(selector);
 const measure = $('#measure');
 const dialog = $('#methods-dialog');
 const methods = () => dialog.showModal();
-for (const button of ['#methods-button','#status-button','#footer-methods']) $(button).addEventListener('click', methods);
+$('#footer-methods').addEventListener('click', methods);
 $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
 
@@ -110,7 +110,7 @@ function optionGroup(label, values) {
   measure.append(group);
 }
 
-function renderSummary(headline, scenarios, gates) {
+function renderSummary(headline, scenarios) {
   const combined = headline.find(row => row.component === 'combined');
   if (!combined) throw new Error('Combined headline estimate is missing.');
   $('#share-value').textContent = pct(combined.mean);
@@ -119,16 +119,6 @@ function renderSummary(headline, scenarios, gates) {
   scenarioRows = scenarios;
   showScenario(measure.value);
   $('#run-date').textContent = `Model run ${combined.run_date}`;
-  const fails = gates.filter(row => row.status === 'FAIL').length;
-  const ungated = gates.filter(row => row.status === 'UNGATED').length;
-  const status = $('#status-button');
-  status.textContent = fails ? `${fails} failed check${fails === 1 ? '' : 's'}` : ungated ? `${ungated} ungated checks` : 'Model checks passed';
-  status.classList.toggle('fail', !!fails);
-  status.classList.toggle('ok', !fails && !ungated);
-  $('#gate-summary').textContent = `${gates.length - fails - ungated} passed · ${ungated} ungated · ${fails} failed. Ungated checks are disclosed assumptions or incomplete coverage, not a pass result.`;
-  const order = { FAIL:0, UNGATED:1, PASS:2 };
-  const sorted = [...gates].sort((a,b) => order[a.status] - order[b.status]);
-  $('#gate-list').innerHTML = sorted.map(row => `<div class="gate ${row.status.toLowerCase()}"><b>${escapeHTML(row.status)}</b>${escapeHTML(row.gate.replaceAll('_',' '))}<br><span>${escapeHTML(row.detail)} · ${escapeHTML(row.affects)}</span></div>`).join('');
 }
 
 const shortLabels = { sen24:'2024 Senate', pres24:'2024 President', gov22:'2022 Governor', sen20:'2020 Senate', pres20:'2020 President', sen18:'2018 Senate', gov18:'2018 Governor', pres16:'2016 President' };
@@ -175,11 +165,11 @@ async function loadScenario() {
 
 await runMapUpdate('Loading forecast map…', async signal => {
   try {
-    const [headline,track,ledger,gates,shifts,scenarios] = await Promise.all([
-      'headline.csv','kalman_track.csv','poll_ledger.csv','gates.csv','uniform_shift.csv','scenarios.csv',
+    const [headline,track,ledger,shifts,scenarios] = await Promise.all([
+      'headline.csv','kalman_track.csv','poll_ledger.csv','uniform_shift.csv','scenarios.csv',
     ].map(csv));
     signal.throwIfAborted();
-    renderSummary(headline,scenarios,gates);
+    renderSummary(headline,scenarios);
     renderShifts(shifts);
     setReference(headline, shifts, shortLabels);
     const requested = initialMeasure();
@@ -200,8 +190,6 @@ await runMapUpdate('Loading forecast map…', async signal => {
     if (signal.aborted) throw error;
     console.error(error);
     $('#run-date').textContent = 'Published data unavailable';
-    $('#status-button').textContent = 'Data unavailable';
-    $('#status-button').classList.add('fail');
     $('#trend-chart').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
   }
 });

@@ -2,7 +2,7 @@ import { csv, pct, count, escapeHTML } from './data.js';
 import { partyColor } from './map.js';
 
 // drivers.csv names levels differently from the map; ids are compared as the strings both files carry.
-const driverLevel = { precinct:'precinct', county:'county', cd:'congressional_district', cousub:'county_subdivision', puma:'puma' };
+const driverLevel = { county:'county', cd:'congressional_district', puma:'puma' };
 const stepNames = [['baseline_adj', 'Baseline adjustment'], ['statewide_shift', 'Statewide shift'], ['reversion', 'Reversion'], ['other', 'Other']];
 const finite = v => v !== '' && v != null && v !== 'NA' && Number.isFinite(+v);
 let index;
@@ -58,9 +58,6 @@ function waterfall(row) {
 
 export function driversHTML(unit, row) {
   if (!row) return `<section class="drivers"><h3>From 2024 to the forecast</h3><p class="note">No driver breakdown is published for this place.</p></section>`;
-  if (unit === 'precinct' && finite(row.expected_ballots) && +row.expected_ballots < .5) {
-    return `<section class="drivers"><h3>From 2024 to the forecast</h3><p class="note">No expected ballots in this precinct, so no breakdown is shown.</p></section>`;
-  }
   const { complete, svg } = waterfall(row);
   const scenario = (name, key) => `<div class="drv-scen"><span>${escapeHTML(name)}</span><strong>${finite(row[key]) ? points(+row[key]) : 'n/a'}</strong></div>`;
   return `<section class="drivers"><h3>From 2024 to the forecast</h3>

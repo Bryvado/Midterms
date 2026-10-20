@@ -4,9 +4,7 @@ import { viewBounds } from './map.js';
 
 const levels = {
   county:{ label:'Counties', details:'county_details.csv', projections:'county_projections.csv' },
-  precinct:{ label:'Precincts', details:'precinct_details.csv', projections:'regional_projections.csv' },
   cd:{ label:'Congressional districts', details:'cd_details.csv', projections:'cd_projections.csv' },
-  cousub:{ label:'County subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv' },
   puma:{ label:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv' },
 };
 const valid = v => v !== '' && v != null && Number.isFinite(+v);
@@ -19,7 +17,7 @@ const columns = [
   { key:'white_cvap_share', label:'White share of citizen adults', show:cap, bounded:true },
   { key:'black_cvap_share', label:'Black share of citizen adults', show:cap, bounded:true },
   { key:'ba_plus_share', label:"Bachelor's degree or higher", show:cap, bounded:true },
-  { key:'med_income', label:'Average of precinct median incomes', show:v => valid(v) ? `$${count(v)}` : 'n/a' },
+  { key:'med_income', label:'Median income (average of local medians)', show:v => valid(v) ? `$${count(v)}` : 'n/a' },
   { key:'registered_2024', label:'Registered voters, 2024', show:count },
   { key:'ballots_mean', label:'Projected 2026 ballots', show:count },
   { key:'mean', label:'Projected Talarico two-party share', show:pct },
@@ -63,7 +61,7 @@ const filterUnit = key => key.startsWith('shift_') ? 'pts' : filterScale(key) ==
 function editFilters(level, onApply) {
   const draft = state.filters.map(f => ({ ...f }));
   const choices = columns.filter(c => !c.text);
-  const label = c => c.key === 'med_income' && level === 'precinct' ? 'Median income' : c.label;
+  const label = c => c.label;
   const dialog = document.createElement('dialog');
   dialog.className = 'list-filter-dialog';
   dialog.innerHTML = `<form><div class="filter-heading"><h2>Filter places</h2><button type="button" class="filter-close" aria-label="Close filters">×</button></div>
@@ -127,7 +125,7 @@ export async function renderList(host, mapUnit, pick) {
   const request = requests.get(host);
   const current = () => requests.get(host) === request;
   const level = listLevel(mapUnit);
-  const label = c => c.key === 'med_income' && level === 'precinct' ? 'Median income' : c.label;
+  const label = c => c.label;
   host.innerHTML = `<p class="note">Loading ${escapeHTML(levels[level].label.toLowerCase())}…</p>`;
   let rows;
   try { rows = await load(level); } catch (error) {

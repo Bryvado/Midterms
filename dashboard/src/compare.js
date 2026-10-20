@@ -37,34 +37,29 @@ export const metrics = [
   { key:'rratio', label:'Turnout ratio relative to statewide' },
   { key:'net', label:'Net Democratic vote change' },
 ];
-export const profileNames = ['rural', 'suburbs', 'urban', 'hispanic'];
-export const profileLabels = { rural:'Rural', suburbs:'Suburbs', urban:'Diverse urban', hispanic:'Hispanic working-class' };
 export const minOptions = [0, 50, 100, 250, 500, 1000];
 export const levelInfo = {
-  precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv' },
   county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv' },
   cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv' },
-  cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv' },
   puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv' },
 };
 
 const params = new URLSearchParams(location.search);
 export const state = {
-  from:'pres20', to:'pres24', metric:'shift', min:100, weighted:true, county:'', profile:'',
-  y2from:'pres24', y2to:'f26', xrel:false, yrel:false, view:'xy', demog:'hisp_cvap_share', color:'profile', contours:false, level:'precinct',
+  from:'pres20', to:'pres24', metric:'shift', min:100, weighted:true,
+  y2from:'pres24', y2to:'f26', xrel:false, yrel:false, view:'xy', demog:'hisp_cvap_share', color:'share', contours:false, level:'county',
 };
 const defaults = { ...state };
-const urlKeys = { from:'cf', to:'cto', min:'cmin', county:'cc', profile:'cp', y2from:'y2f', y2to:'y2t', view:'cv', demog:'cdx', color:'ccol', level:'clv' };
+const urlKeys = { from:'cf', to:'cto', min:'cmin', y2from:'y2f', y2to:'y2t', view:'cv', demog:'cdx', color:'ccol', level:'clv' };
 {
   const raceKeys = races.map(race => race.key);
   const text = (key, ok) => { const v = params.get(urlKeys[key]); if (v != null && ok(v)) state[key] = v; };
   text('from', v => raceKeys.includes(v)); text('to', v => raceKeys.includes(v));
   text('y2from', v => raceKeys.includes(v)); text('y2to', v => raceKeys.includes(v));
   if (params.has('cmin') && minOptions.includes(+params.get('cmin'))) state.min = +params.get('cmin');
-  text('county', v => /^\d{3}$/.test(v)); text('profile', v => profileNames.includes(v));
   text('view', v => ['xy', 'demog', 'table'].includes(v));
   text('demog', v => ['hisp_cvap_share', 'white_cvap_share', 'black_cvap_share', 'ba_plus_share', 'med_income', 'density', 'share_from'].includes(v));
-  text('color', v => ['profile', 'share'].includes(v)); text('level', v => v in levelInfo);
+  text('color', v => v === 'share'); text('level', v => v in levelInfo);
   if (params.get('cw') === '0') state.weighted = false;
   if (params.get('cxr') === '1') state.xrel = true;
   if (params.get('cyr') === '1') state.yrel = true;
@@ -105,7 +100,7 @@ export function loadStore(level) {
     stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => [])]).then(([details, projections, history]) => {
       const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row]));
       const n = details.length;
-      const store = { level, n, ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
+      const store = { level, n, ids:new Array(n), labels:new Array(n), imputed:new Uint8Array(n),
         dem:{}, rep:{}, tal:new Float64Array(n), pax:new Float64Array(n), mean:new Float64Array(n), q05:new Float64Array(n), q95:new Float64Array(n), pTal:new Float64Array(n),
         demog:{ hisp_cvap_share:new Float64Array(n), white_cvap_share:new Float64Array(n), black_cvap_share:new Float64Array(n), ba_plus_share:new Float64Array(n), med_income:new Float64Array(n), population:new Float64Array(n), area_sqmi:new Float64Array(n) },
         cache:new Map(), tp:new Map(), share:new Map(), index:null };
@@ -114,9 +109,6 @@ export function loadStore(level) {
         const row = details[i], p = byId.get(row.region_id) || {};
         store.ids[i] = row.region_id;
         store.labels[i] = p.region_label || row.region_id;
-        store.county[i] = level === 'precinct' || level === 'cousub' ? row.region_id.slice(0, 3) : level === 'county' ? row.region_id : '';
-        const prof = profileNames.indexOf(row.profile);
-        if (prof >= 0) store.profile[i] = prof;
         store.imputed[i] = String(row.demographics_imputed).toUpperCase() === 'TRUE' ? 1 : 0;
         for (const key of pastKeys) { store.dem[key][i] = votes(row[`dem_${key}`]); store.rep[key][i] = votes(row[`rep_${key}`]); }
         const old = byHistory.get(row.region_id);
@@ -164,9 +156,8 @@ export function indexOf(store, id) {
   if (!store.index) store.index = new Map(store.ids.map((value, i) => [value, i]));
   return store.index.get(id);
 }
-export const countyFilterApplies = level => level === 'precinct' || level === 'county' || level === 'cousub';
 export const STATUS = { ok:0, missing:1, below:2, filtered:3 };
-const filterKey = f => `${f.min}|${f.county}|${f.profile}`;
+const filterKey = f => `${f.min}`;
 // Everything derived for one pair at one level under the current filters. Recomputed only when the pair, minimum or filters change.
 export function evaluate(store, from, to, f = state) {
   const key = `${from}|${to}|${filterKey(f)}`;
@@ -177,8 +168,6 @@ export function evaluate(store, from, to, f = state) {
   const stateA = statewide(store, from), stateB = statewide(store, to);
   let bothA = 0, bothB = 0;
   for (let i = 0; i < n; i++) {
-    // The county filter needs a county for every place (not districts or PUMAs); the profile filter exists only for precincts.
-    if ((f.county && countyFilterApplies(store.level) && store.county[i] !== f.county) || (f.profile && store.level === 'precinct' && store.profile[i] !== profileNames.indexOf(f.profile))) { status[i] = STATUS.filtered; counts.filtered++; continue; }
     if (!(tA[i] > 0) || !(tB[i] > 0) || !Number.isFinite(sA[i]) || !Number.isFinite(sB[i])) { status[i] = STATUS.missing; counts.missing++; continue; }
     bothA += tA[i]; bothB += tB[i];
     if (tA[i] < f.min || tB[i] < f.min) { status[i] = STATUS.below; counts.below++; continue; }
@@ -207,10 +196,10 @@ export function metricArray(ev, metric) {
 }
 export const pairLabel = (from = state.from, to = state.to) => `${raceOf(from).label} to ${raceOf(to).label}`;
 export const crossOffice = (from = state.from, to = state.to) => raceOf(from).office !== raceOf(to).office;
-// Vote sources: 2002-2014 moved onto today's precincts from older returns, 2016-2022 and 2024 each come from one exact source.
+// Vote sources: 2002-2014 moved onto today's lines from older returns, 2016-2022 and 2024 each come from one exact source.
 const sourceGroup = key => { const year = raceOf(key).year; return year <= 2014 ? 'moved' : year <= 2022 ? 'older' : 'recent'; };
 export const crossesSources = (from = state.from, to = state.to) => sourceGroup(from) !== sourceGroup(to);
-export const sourceCaveat = 'Part of the precinct-level change can come from how each source assigns votes to precincts, not from voters.';
+export const sourceCaveat = 'Part of the change can come from how each vote source assigns votes to places, not from voters.';
 
 // ---- Weighted summaries ----
 export function weightedMean(values, weights, idx) {
