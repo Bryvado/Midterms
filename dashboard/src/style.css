@@ -199,7 +199,8 @@
 .chart-poll.active .poll-mark{stroke:#1b282d;stroke-width:1.4}
 
 .chart-toolbar{position:relative;display:flex;align-items:center;gap:8px;margin:2px 0 0;min-height:22px}
-.chart-layers{display:flex;align-items:center;gap:9px;flex:1;min-width:0;white-space:nowrap}
+.chart-layers{display:flex;flex-wrap:wrap;align-items:center;gap:2px 9px;flex:1;min-width:0}
+.chart-layers .layer{white-space:nowrap}
 .layer{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:2px 0;font-size:10px;font-weight:600;color:#2f454c}
 .layer.secondary{font-weight:500;color:#71848a}
 .layer:disabled{opacity:.4;cursor:default}
@@ -585,3 +586,13 @@
 .about-body a,.dialog-body a{color:#1d6483;font-weight:600}
 a.text-button{text-decoration:none}
 :root[data-layout=dark] :is(.about-body a,.dialog-body a){color:#7fd0f2}
+
+.chart-ev-range{stroke:#8a7aa8;stroke-width:1.6;stroke-dasharray:3 2}
+.chart-ev-cap{stroke:#8a7aa8;stroke-width:1.4}
+.chart-ev-marker{fill:var(--panel,#fff);stroke:#7a6a9a;stroke-width:1.6}
+.chart-ev-label{fill:#6b5c8a;font:600 10px 'DM Sans',system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
+.sw-ev{width:9px;height:9px;border:1.6px solid #7a6a9a;transform:rotate(45deg);background:transparent}
+:root[data-layout=dark] :is(.chart-ev-range,.chart-ev-cap){stroke:#b3a6d2}
+:root[data-layout=dark] .chart-ev-marker{stroke:#c3b7e0}
+:root[data-layout=dark] .chart-ev-label{fill:#c9bfe6;stroke:var(--panel)}
+:root[data-layout=dark] .sw-ev{border-color:#c3b7e0}
