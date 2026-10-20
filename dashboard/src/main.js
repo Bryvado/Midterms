@@ -5,7 +5,7 @@ import { initAppearance } from './appearance.js';
 import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
-import { initChart, renderChart, setScenario } from './chart.js';
+import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
 import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
 import './shifts.js';
@@ -156,11 +156,19 @@ function renderLedger(rows) {
 }
 
 // The Texas-approval scenario is a layer on the chart, never a replacement for the forecast. A missing file leaves the layer without its label.
-async function loadScenario() {
-  let rows;
-  try { rows = await csv('sensitivities.csv'); } catch { return; }
-  if (!rows.length || !['adopted','p_talarico_win'].every(c => rows.columns.includes(c))) return;
-  setScenario(rows.find(row => String(row.adopted).toUpperCase() !== 'TRUE'));
+// Scenario rows are picked by name, so a new row cannot displace another layer.
+const scenarioNames = { approval:'fundamentals moved by texas approval', earlyVote:'with early vote (tempered composition update)' };
+async function loadScenarios(headline) {
+  const rows = await csv('sensitivities.csv').catch(() => []);
+  const usable = rows.length > 0 && ['scenario','adopted','p_talarico_win'].every(c => rows.columns.includes(c));
+  const pick = name => usable ? rows.find(row => String(row.scenario).trim().toLowerCase() === name && String(row.adopted).toUpperCase() !== 'TRUE') : undefined;
+  const approval = pick(scenarioNames.approval);
+  const early = pick(scenarioNames.earlyVote);
+  const earlyOk = early && ['combined_mean','combined_sd','p_talarico_win'].every(c => early[c] !== '' && early[c] != null && Number.isFinite(+early[c]));
+  setScenario(approval);
+  // The early-vote toggle and simulation option appear only when both the sensitivities row and the "ev" simulations are published.
+  const scenarios = await initScatter(headline, { approval, earlyVote:earlyOk ? early : null });
+  setEarlyVote(earlyOk && scenarios.has('ev') ? early : null);
 }
 
 await runMapUpdate('Loading forecast map…', async signal => {
@@ -184,8 +192,7 @@ await runMapUpdate('Loading forecast map…', async signal => {
     renderLedger(ledger);
     setBaselines(shifts);
     initChart(track,ledger,headline,shifts);
-    loadScenario();
-    csv('sensitivities.csv').catch(() => []).then(rows => initScatter(headline, rows));
+    loadScenarios(headline);
   } catch (error) {
     if (signal.aborted) throw error;
     console.error(error);

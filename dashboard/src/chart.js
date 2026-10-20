@@ -6,11 +6,11 @@ import { marginColor, partyColor } from './map.js';
 let track = [], polls = [], combined = null, baselines = new Map(), current = 'mean';
 // The chart draws into the panel and, when open, the expanded overlay; both share layer and range state.
 const roots = ['#trend-chart', '#trend-chart-big'].map(s => document.querySelector(s)).filter(Boolean);
-const layerKeys = ['dots','avg','fc','fund','fsens'];
-const layers = { dots:true, avg:true, fc:true, fund:false, fsens:false };
-const defaultFlags = '11100';
+const layerKeys = ['dots','avg','fc','fund','fsens','ev'];
+const layers = { dots:true, avg:true, fc:true, fund:false, fsens:false, ev:false };
+const defaultFlags = '111000';
 let range = '6m';
-let maxInfluence = 0, scenario = null, captionText = '';
+let maxInfluence = 0, scenario = null, earlyVote = null, captionText = '';
 // "Show polls as plain dots" switches every encoding off at once, leaving grey dots of one size and opacity.
 const encKeys = ['color','size','shape','fade','ring','whisker'];
 const enc = Object.fromEntries(encKeys.map(key => [key, true]));
@@ -24,10 +24,10 @@ const axisDate = (value, short) => new Intl.DateTimeFormat('en-US',{ timeZone:'U
 const format = (value, shift) => shift ? signed(value) : pct(value);
 const finite = v => v !== '' && v != null && v !== 'NA' && Number.isFinite(+v);
 
-// Layer and range state live in the URL: ct = 0/1 flags (dots, average, projection, adopted fundamentals, approval sensitivity), cx=all for the full series.
+// Layer and range state live in the URL: ct = 0/1 flags (dots, average, projection, adopted fundamentals, approval sensitivity, early-vote scenario), cx=all for the full series.
 const params = new URLSearchParams(location.search);
 const flags = params.get('ct');
-if (flags && /^[01]{4,5}$/.test(flags)) layerKeys.forEach((key, i) => { if (i < flags.length) layers[key] = flags[i] === '1'; });
+if (flags && /^[01]{4,6}$/.test(flags)) layerKeys.forEach((key, i) => { if (i < flags.length) layers[key] = flags[i] === '1'; });
 if (params.get('cx') === 'all') range = 'all';
 if (params.get('pd') === '1') encKeys.forEach(key => { enc[key] = false; });
 
@@ -125,11 +125,17 @@ export function renderChart(measure) {
   const title = current === 'mean' ? 'Polling average and forecast' : `Shift vs ${baselines.get(current.slice(6)) || current.slice(6)}`;
   for (const el of document.querySelectorAll('.trend-title-text')) el.textContent = title;
   for (const el of document.querySelectorAll('.chart-caption')) { el.textContent = current === 'mean' ? captionText : ''; el.hidden = current !== 'mean' || !captionText; }
-  for (const chip of document.querySelectorAll('[data-chart-layer="fc"],[data-chart-layer="fund"],[data-chart-layer="fsens"],[data-chart-layer="dots"]')) chip.disabled = current !== 'mean';
+  for (const chip of document.querySelectorAll('[data-chart-layer="fc"],[data-chart-layer="fund"],[data-chart-layer="fsens"],[data-chart-layer="dots"],[data-chart-layer="ev"]')) chip.disabled = current !== 'mean';
   drawAll();
 }
 
 export function setScenario(row) { scenario = row || null; drawAll(); }
+// The early-vote scenario row from sensitivities.csv, or null when it is not published; its toggle is hidden without it.
+export function setEarlyVote(row) {
+  earlyVote = row || null;
+  for (const chip of document.querySelectorAll('[data-chart-layer="ev"]')) chip.hidden = !earlyVote;
+  drawAll();
+}
 
 function drawAll() {
   if (!track.length) return;
@@ -167,7 +173,7 @@ function draw(root) {
   const margin = { top:10, right:10, bottom:22, left:34 };
   const right = width - margin.right, bottom = height - margin.bottom;
   const shift = current !== 'mean';
-  const show = { dots:layers.dots && !shift, avg:layers.avg, fc:layers.fc && !shift, fund:layers.fund && !shift && has.fund, fsens:layers.fsens && !shift && has.sens };
+  const show = { dots:layers.dots && !shift, avg:layers.avg, fc:layers.fc && !shift, fund:layers.fund && !shift && has.fund, fsens:layers.fsens && !shift && has.sens, ev:layers.ev && !shift && !!earlyVote };
   const valid = track.filter(row => finite(row[current]));
   if (!valid.length) { root.textContent = 'No trend available for this measure.'; return; }
   const end = valid.at(-1).time;
@@ -194,6 +200,9 @@ function draw(root) {
   if (show.fc) edges.push(...forecast.flatMap(row => [+row[flo], +row[fhi]]));
   if (show.fsens) edges.push(...sens.filter(inView).flatMap(row => [+row.fund_appr_lo95, +row.fund_appr_hi95]));
   if (show.fund && finite(fundMean)) edges.push(+fundMean);
+  // The early-vote scenario: its Election Day endpoint with a 95% interval from combined_sd.
+  const ev = show.ev && forecast.length ? { time:forecast.at(-1).time, mean:+earlyVote.combined_mean, lo:+earlyVote.combined_mean - 1.96 * +earlyVote.combined_sd, hi:+earlyVote.combined_mean + 1.96 * +earlyVote.combined_sd, win:+earlyVote.p_talarico_win } : null;
+  if (ev) edges.push(ev.lo, ev.hi);
   const low = Math.min(...edges), high = Math.max(...edges), pad = Math.max(.003, (high - low) * .04);
   const y = scaleLinear().domain([low - pad, high + pad]).range([bottom, margin.top]);
   const step = (high - low) * 100 > 8 ? .02 : .01;
@@ -242,7 +251,10 @@ function draw(root) {
     ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
     ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
   ];
-  let fc = '', scenarioLabel = '';
+  // Drawn just left of the headline endpoint so both stay visible.
+  const evPos = ev ? { x:x(ev.time) - 11, y:y(ev.mean), lo:y(ev.lo), hi:y(ev.hi) } : null;
+  if (evPos) baseObstacles.push({ x:evPos.x, y:evPos.y, r:6 }, { x:evPos.x, y:evPos.lo, r:3 }, { x:evPos.x, y:evPos.hi, r:3 });
+  let fc = '', scenarioLabel = '', evMark = '';
   if (show.fc && forecast.length) {
     const last = forecast.at(-1);
     const ex = x(last.time), ey = combined ? y(+combined.mean) : y(+last[fm]);
@@ -272,10 +284,19 @@ function draw(root) {
     const at = placeLabel(lines, candidates, baseObstacles, { left:margin.left, right, top:margin.top, bottom });
     scenarioLabel = `<text class="chart-sens-label" x="${at.x}" y="${at.y - 13 * (rows - 1)}" text-anchor="${at.anchor}">${lines.map((line, i) => `<tspan x="${at.x}" dy="${i ? 13 : 0}">${escapeHTML(line)}</tspan>`).join('')}</text>`;
   }
+  if (evPos) {
+    const text = `With early vote: Talarico ${pct(ev.win, 0)}`;
+    // Kept beside the marker: above the interval, then level with the point, then below; overlap is preferred to a label far from its marker.
+    const candidates = [{ x:evPos.x - 8, y:evPos.hi - 4, anchor:'end' }, { x:evPos.x - 8, y:evPos.y - 8, anchor:'end' }, { x:evPos.x - 8, y:evPos.y + 14, anchor:'end' }, { x:evPos.x - 8, y:evPos.lo + 12, anchor:'end' }];
+    const at = placeLabel(text, candidates, baseObstacles, { left:margin.left, right, top:margin.top, bottom });
+    const d = 4.2;
+    evMark = `<g class="chart-ev"><line class="chart-ev-range" x1="${evPos.x}" x2="${evPos.x}" y1="${evPos.lo}" y2="${evPos.hi}"/><line class="chart-ev-cap" x1="${evPos.x - 3}" x2="${evPos.x + 3}" y1="${evPos.lo}" y2="${evPos.lo}"/><line class="chart-ev-cap" x1="${evPos.x - 3}" x2="${evPos.x + 3}" y1="${evPos.hi}" y2="${evPos.hi}"/><path class="chart-ev-marker" d="M${evPos.x},${evPos.y - d}L${evPos.x + d},${evPos.y}L${evPos.x},${evPos.y + d}L${evPos.x - d},${evPos.y}Z"/></g>
+      <text class="chart-ev-label" x="${at.x}" y="${at.y}" text-anchor="${at.anchor}">${escapeHTML(text)}</text>`;
+  }
   const clip = `clip-${root.id}`;
   root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHTML(document.querySelector('.trend-title-text')?.textContent || 'Polling chart')}">
     <defs><clipPath id="${clip}"><rect x="${margin.left}" y="${margin.top - 6}" width="${right - margin.left + 6}" height="${bottom - margin.top + 6}"/></clipPath></defs>
-    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${scenarioLabel}${timeTicks}
+    ${ticks}${refLine}<g clip-path="url(#${clip})">${shade}${fund}<g class="poll-marks">${dots}</g>${avg}${fc.replace(/<text[\s\S]*$/, '')}</g>${fc.match(/<text[\s\S]*$/)?.[0] || ''}${scenarioLabel}${evMark}${timeTicks}
     <line class="chart-cursor" x1="0" x2="0" y1="${margin.top}" y2="${bottom}" visibility="hidden"/><circle class="chart-focus" r="4" visibility="hidden"/>
   </svg><div class="chart-tooltip" hidden></div>`;
   const svg = root.querySelector('svg'), tooltip = root.querySelector('.chart-tooltip');
@@ -287,7 +308,17 @@ function draw(root) {
     const rect = svg.getBoundingClientRect();
     const px = (event.clientX - rect.left) * width / rect.width;
     const py = (event.clientY - rect.top) * height / rect.height;
-    if (px < margin.left || px > right || py < margin.top || py > bottom) return hide();
+    if (px < margin.left || px > right + 6 || py < margin.top || py > bottom) return hide();
+    if (evPos && Math.abs(px - evPos.x) < 7 && py >= evPos.hi - 6 && py <= evPos.lo + 6) {
+      circles.forEach(c => c.classList.remove('active')); marksGroup?.classList.remove('dimmed');
+      cursor.setAttribute('visibility','hidden'); focus.setAttribute('visibility','hidden');
+      tooltip.innerHTML = `<strong>With early vote</strong> <span class="muted">(a scenario, not the forecast)</span><br>Election Day: Talarico ${pct(ev.mean)} <span class="muted">(95%: ${pct(ev.lo)}–${pct(ev.hi)})</span><br>Chance Talarico wins: ${pct(ev.win, 0)}`;
+      tooltip.hidden = false;
+      const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+      tooltip.style.left = `${Math.max(4, evPos.x - tw - 10)}px`;
+      tooltip.style.top = `${Math.max(4, Math.min(height - th - 4, evPos.y - th / 2))}px`;
+      return;
+    }
     const candidates = valid.filter(inView);
     const closest = candidates.reduce((a, b) => Math.abs(x(b.time) - px) < Math.abs(x(a.time) - px) ? b : a);
     const pollIndex = visiblePolls.findIndex(row => Math.hypot(x(row.time) - px, y(+row.talarico_2p) - py) < dotR(row) + 4);

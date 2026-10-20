@@ -12,11 +12,12 @@ const views = [['votes', 'Votes'], ['turnout_share', 'Turnout vs margin']];
 const levels = [.5, .8, .95];
 const scenarioLabels = {
   headline:'Headline',
+  ev:'With early vote (composition update)',
   fund50:'Fundamentals 50% of precision (with primary-enthusiasm shift)', fund60:'Fundamentals 60% of precision (with primary-enthusiasm shift)', fund70:'Fundamentals 70% of precision (with primary-enthusiasm shift)',
   ne50:'Fundamentals 50% of precision (without enthusiasm shift)', ne60:'Fundamentals 60% of precision (without enthusiasm shift)', ne70:'Fundamentals 70% of precision (without enthusiasm shift)',
   noenth:'No enthusiasm shift, current weights', appr:'Fundamentals moved by Texas approval',
 };
-const scenarioOrder = ['headline', 'fund50', 'fund60', 'fund70', 'ne50', 'ne60', 'ne70', 'noenth', 'appr'];
+const scenarioOrder = ['headline', 'ev', 'fund50', 'fund60', 'fund70', 'ne50', 'ne60', 'ne70', 'noenth', 'appr'];
 const displayTheme = () => document.documentElement.dataset.layout === 'dark' ? 'dark' : 'light';
 let points = new Map(), density = new Map(), axes = new Map();
 let published = new Map();
@@ -122,7 +123,8 @@ function refresh() {
   draw();
 }
 
-export async function initScatter(headline, sensitivities) {
+// Resolves to the scenario ids offered, so the caller can tell whether the early-vote scenario is available.
+export async function initScatter(headline, picked = {}) {
   try {
     const [pointRows, densityRows, axisRows] = await Promise.all(['sim_scatter_points.csv', 'sim_scatter_density.csv', 'sim_scatter_axes.csv'].map(csv));
     const need = (rows, columns) => columns.every(column => rows.columns.includes(column));
@@ -139,20 +141,23 @@ export async function initScatter(headline, sensitivities) {
     for (const row of axisRows) axes.set(`${row.view}|${row.axis}`, { lo:+row.lo, hi:+row.hi });
   } catch (error) {
     root.innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
-    return;
+    return new Set();
   }
-  // Win probabilities shown here are the ones the dashboard already loads: the combined headline and the Texas-approval scenario.
+  // Win probabilities shown here are the ones the dashboard already loads: the combined headline and the named sensitivity rows.
   const combined = headline.find(row => row.component === 'combined');
   if (combined && Number.isFinite(+combined.p_talarico_win)) published.set('headline', +combined.p_talarico_win);
-  const approval = sensitivities?.find(row => row.scenario === 'fundamentals moved by Texas approval');
+  const { approval, earlyVote } = picked;
   if (approval && Number.isFinite(+approval.p_talarico_win)) published.set('appr', +approval.p_talarico_win);
-  const ids = [...points.keys()].sort((a, b) => (scenarioOrder.indexOf(a) + 1 || 99) - (scenarioOrder.indexOf(b) + 1 || 99));
+  if (earlyVote) published.set('ev', +earlyVote.p_talarico_win);
+  // Without its sensitivities row the early-vote simulations are not offered.
+  const ids = [...points.keys()].filter(id => id !== 'ev' || earlyVote).sort((a, b) => (scenarioOrder.indexOf(a) + 1 || 99) - (scenarioOrder.indexOf(b) + 1 || 99));
   scenario = ids.includes('headline') ? 'headline' : ids[0];
   select.replaceChildren(...ids.map(id => new Option(scenarioLabels[id] || id, id, false, id === scenario)));
   select.title = select.selectedOptions[0].text;
   caption.textContent = `${count(points.get(scenario).length)} simulations shown per scenario; contours from all simulations.`;
   ready = true;
   refresh();
+  return new Set(ids);
 }
 
 select.addEventListener('change', () => { scenario = select.value; select.title = select.selectedOptions[0].text; refresh(); });
