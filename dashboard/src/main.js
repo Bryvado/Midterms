@@ -7,6 +7,7 @@ import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
+import { initEarlyVote, earlyMeasures, isEarlyMeasure } from './early.js';
 import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
 import './shifts.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
@@ -193,6 +194,12 @@ await runMapUpdate('Loading forecast map…', async signal => {
     setBaselines(shifts);
     initChart(track,ledger,headline,shifts);
     loadScenarios(headline);
+    initEarlyVote().then(data => {
+      if (!data) return;
+      optionGroup('Early vote (county level)', earlyMeasures.map(metric => [metric.key, metric.label]));
+      const requested = initialMeasure();
+      if (isEarlyMeasure(requested) && measure.value !== requested) { measure.value = requested; measure.dispatchEvent(new Event('change')); }
+    });
   } catch (error) {
     if (signal.aborted) throw error;
     console.error(error);

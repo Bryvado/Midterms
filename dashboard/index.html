@@ -25,6 +25,7 @@
           <button type="button" data-open-panel="polling" aria-pressed="true">Polling</button>
           <button type="button" data-open-panel="scatter" aria-pressed="false">Simulations</button>
           <button type="button" data-open-panel="shifts" aria-pressed="false">Precinct shifts</button>
+          <button type="button" data-open-panel="early" aria-pressed="false" hidden>Early vote</button>
           <button type="button" data-open-panel="about" aria-pressed="true">How it works</button>
           <button type="button" data-open-panel="place" aria-pressed="true">Selected place</button>
           <button type="button" id="reset-layout" class="reset-layout">Reset layout</button>
@@ -194,6 +195,18 @@
             </details>
             <p id="sh-check" class="note sh-check">Statewide check runs when the data loads.</p>
           </div>
+        </section>
+        <section class="float-panel fp-early" id="fp-early" data-panel="early" aria-label="Early vote" hidden>
+          <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Early vote</h2><button type="button" class="fp-close" aria-label="Close early vote panel">×</button></header>
+          <div class="fp-body ev-body">
+            <div id="ev-strip" class="ev-strip"></div>
+            <h3>Cumulative early votes</h3>
+            <div id="ev-chart" class="ev-chart"></div>
+            <h3>By county</h3>
+            <div id="ev-table"></div>
+            <p class="note">Counts are the Texas Secretary of State's official early-voting totals. Some counties upload late, so early-day numbers can understate turnout. No voter-level data is used or shown.</p>
+          </div>
+          <span class="fp-resize" aria-hidden="true"></span>
         </section>
         <section class="float-panel fp-about" id="fp-about" data-panel="about" aria-label="How the forecast works">
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">How the forecast works</h2><button type="button" class="fp-close" aria-label="Close how the forecast works panel">×</button></header>

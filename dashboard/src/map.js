@@ -3,6 +3,7 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
+import { earlyMeasures, isEarlyMeasure, earlyValues } from './early.js';
 import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -121,7 +122,10 @@ function saveDisplay() {
 let measureRequest = 0;
 let reference = { stateShare:null, baselines:[] };
 let viewRange = null;
-const metricKinds = new Map(placeMeasures.map(metric => [metric.key, metric.kind]));
+const metricKinds = new Map([...placeMeasures.map(metric => [metric.key, metric.kind]), ...earlyMeasures.map(metric => [metric.key, 'bounded'])]);
+// Early-vote measures are county-level only and are not tile columns: the fill looks each county up by region_id.
+let earlyLookup = {};
+const earlyCountyOnly = key => isEarlyMeasure(key) && unit !== 'county';
 export const currentUnit = () => unit;
 const stateValues = new Map();
 // Comparison values depend on the pair and filters, so their cache key carries the comparison version.
@@ -280,6 +284,12 @@ function format(key, v) {
 
 async function loadStateValues(key, level) {
   const id = svKey(key, level);
+  if (isEarlyMeasure(key)) {
+    const values = Object.values(await earlyValues(key)).sort((a, b) => a - b);
+    if (!values.length) throw new Error('Early-vote data is not published.');
+    stateValues.set(id, values);
+    return values;
+  }
   if (stateValues.has(id)) return stateValues.get(id);
   if (isCompareMeasure(key)) {
     const values = metricValues(await ensureStore(level), key.slice(4));
@@ -309,6 +319,7 @@ function viewValues() {
     }
     return values.sort((a,b) => a-b);
   }
+  if (isEarlyMeasure(measure)) return unit === 'county' ? [...new Set(map.queryRenderedFeatures({ layers:[layerName(unit)] }).map(f => String(f.properties.region_id)))].map(id => earlyLookup[id]).filter(Number.isFinite).sort((a, b) => a - b) : [];
   const column = sourceKey(measure), seen = new Set(), values = [];
   const bounded = metricKinds.get(measure) === 'bounded';
   for (const f of map.queryRenderedFeatures({ layers:[layerName(unit)] })) {
@@ -427,16 +438,18 @@ function compareColorExpression(key, level) {
 
 function colorExpression(key, level) {
   if (isCompareMeasure(key)) return compareColorExpression(key, level);
+  if (isEarlyMeasure(key) && level !== 'county') return '#afb8b8';
   const s = scale(key, level);
   const column = sourceKey(key);
-  const raw = ['to-number', ['get', column]];
+  const early = isEarlyMeasure(key), id = ['to-string', ['get', 'region_id']];
+  const raw = early ? ['to-number', ['get', id, ['literal', earlyLookup]]] : ['to-number', ['get', column]];
   let value = metricKinds.get(key) === 'bounded' ? ['min', 1, ['max', 0, raw]] : raw;
   const tx = s.tx || (v => v);
   if (s.log) value = ['ln', ['+', 1, ['max', 0, value]]];
   const paint = s.kind === 'cont'
     ? ['interpolate', ['linear'], value, ...s.stops.flatMap((stop, i) => [tx(stop), s.colors[i]])]
     : ['step', value, s.colors[0], ...s.edges.flatMap((edge, i) => [tx(edge), s.colors[i + 1]])];
-  return ['case', ['has', column], paint, '#afb8b8'];
+  return ['case', early ? ['has', id, ['literal', earlyLookup]] : ['has', column], paint, '#afb8b8'];
 }
 
 function legendTitle() {
@@ -478,6 +491,7 @@ function drawLegend() {
   const endNames = s.type === 'shift' && isCompareMeasure(measure) ? ['Less Democratic', 'More Democratic'] : s.type === 'ratio' ? ['Fewer votes', 'More votes'] : s.type === 'netvotes' ? ['Net Republican', 'Net Democratic'] : ['Paxton', 'Talarico'];
   const ends = isDiverging(s.type) && s.kind !== 'ratings' ? `<div class="legend-ends"><span>${endNames[0]}</span><span>${endNames[1]}</span></div>` : '';
   const lines = Object.entries(overlayStyle).filter(([level]) => settings[level === 'county' ? 'oc' : 'od'] === '1').map(([, style]) => `<div class="legend-line"><span style="border-top:${Math.max(2, style.width)}px ${style.dash ? 'dashed' : 'solid'} ${style[theme]}"></span>${escapeHTML(style.label)}</div>`).join('');
+  if (earlyCountyOnly(measure)) { legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div><div class="legend-note">County-level data. Switch to Counties to shade the map by this measure.</div>`; syncControls(); return; }
   legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}${isCompareMeasure(measure) ? compareLegendExtras() : '<div class="legend-nodata"><span></span>No data</div>'}${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
   syncControls();
 }
@@ -649,6 +663,7 @@ function compareTooltip(props) {
 }
 
 function valueText(props) {
+  if (isEarlyMeasure(measure)) { if (unit !== 'county') return 'county-level data; switch to Counties'; const v = earlyLookup[String(props.region_id)]; return Number.isFinite(v) ? pct(v) : 'no data'; }
   const v = props[sourceKey(measure)];
   const kind = metricKinds.get(measure);
   if (v === '' || v == null) return 'no data';
@@ -750,6 +765,7 @@ export async function setMeasure(next, meta, signal) {
   measure = next;
   if (isCompareMeasure(next)) setCompareMetric(next.slice(4));
   if (meta) metricKinds.set(next, meta.kind);
+  if (isEarlyMeasure(next)) earlyLookup = await earlyValues(next);
   try { await ensureValues(); } catch (error) { if (request === measureRequest) throw error; }
   signal?.throwIfAborted();
   if (request !== measureRequest) return;

@@ -596,3 +596,24 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] .chart-ev-marker{stroke:#c3b7e0}
 :root[data-layout=dark] .chart-ev-label{fill:#c9bfe6;stroke:var(--panel)}
 :root[data-layout=dark] .sw-ev{border-color:#c3b7e0}
+
+.ev-body h3{margin:12px 0 4px;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.ev-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px}
+.ev-stat{border:1px solid #dde5e4;border-radius:6px;padding:6px 8px;display:grid;gap:1px}
+.ev-stat span{font-size:10px;color:#556a71}.ev-stat strong{font-size:16px}.ev-stat em{font-style:normal;font-size:10px;color:#556a71}
+.ev-chart svg{display:block;width:100%;height:auto}
+.ev-grid{stroke:#e3e9e8}.ev-axis{font:9px 'DM Sans',system-ui,sans-serif;fill:#64767b}
+.ev-area.person{fill:#1d6483;opacity:.75}.ev-area.mail{fill:#7fb7cc;opacity:.85}
+.ev-expected{stroke:#8a5a00;stroke-width:1.4;stroke-dasharray:4 3}.ev-expected-label{font:600 9.5px 'DM Sans',system-ui,sans-serif;fill:#8a5a00;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.ev-legend{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10.5px;margin-top:3px}
+.ev-legend span{display:inline-flex;align-items:center;gap:5px}
+.ev-key{display:inline-block;width:12px;height:8px}.ev-key.person{background:#1d6483}.ev-key.mail{background:#7fb7cc}.ev-key.expected{height:0;border-top:2px dashed #8a5a00}
+.ev-table{max-height:320px}.ev-table th button{border:0;background:none;font:inherit;font-weight:700;color:inherit;cursor:pointer;padding:0}
+.ev-table td:not(.name),.ev-table th:not(.name){text-align:right}
+:root[data-layout=dark] .ev-stat{border-color:var(--border)}
+:root[data-layout=dark] :is(.ev-stat span,.ev-stat em,.ev-axis){color:var(--muted);fill:var(--muted)}
+:root[data-layout=dark] .ev-grid{stroke:#364a5b}
+:root[data-layout=dark] .ev-area.person,:root[data-layout=dark] .ev-key.person{fill:#5fcaf2;background:#5fcaf2}
+:root[data-layout=dark] .ev-area.mail,:root[data-layout=dark] .ev-key.mail{fill:#2f7ea3;background:#2f7ea3}
+:root[data-layout=dark] .ev-expected{stroke:#f4d27a}:root[data-layout=dark] .ev-expected-label{fill:#f4d27a;stroke:var(--panel)}
+:root[data-layout=dark] .ev-key.expected{border-color:#f4d27a;background:none}

@@ -13,12 +13,14 @@ const files = [
   'history_races.csv', 'history_precinct.csv', 'history_county.csv', 'history_congressional_district.csv', 'history_county_subdivision.csv', 'history_puma.csv',
 ];
 // Optional files: copied when published, skipped (and their controls hidden) when not.
-const optional = ['sensitivities.csv'];
+const optional = ['sensitivities.csv', 'early_vote_county.csv', 'early_vote_daily.csv'];
 // Start from an empty folder so files dropped from data/published are not served from an earlier run.
 await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await Promise.all(files.map(file => copyFile(path.join(source, file), path.join(target, file))));
-await Promise.all(optional.map(file => copyFile(path.join(source, file), path.join(target, file)).catch(() => {})));
+// optional.json lists which optional files were published, so the page can skip absent ones without a failed request.
+const present = (await Promise.all(optional.map(file => copyFile(path.join(source, file), path.join(target, file)).then(() => file, () => null)))).filter(Boolean);
+await writeFile(path.join(target, 'optional.json'), JSON.stringify(present));
 // Bounding boxes per place, read from the published geometry, so the dashboard can zoom to a place without loading the polygons.
 const geometry = { county:'counties.geojson', precinct:'regions.geojson', cd:'congressional_districts.geojson', cousub:'county_subdivisions.geojson', puma:'pumas.geojson' };
 const walk = (coords, box) => {
