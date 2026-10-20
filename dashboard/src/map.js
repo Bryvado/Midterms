@@ -86,7 +86,9 @@ const legend = document.querySelector('#legend');
 const pane = document.querySelector('.map-pane');
 const levels = {
   county:{ tiles:'counties', details:'county_details.csv', projections:'county_projections.csv', plural:'counties' },
+  precinct:{ tiles:'regions', details:'precinct_details.csv', projections:'regional_projections.csv', plural:'precincts' },
   cd:{ tiles:'districts', details:'cd_details.csv', projections:'cd_projections.csv', plural:'congressional districts' },
+  cousub:{ tiles:'cousubs', details:'cousub_details.csv', projections:'cousub_projections.csv', plural:'county subdivisions' },
   puma:{ tiles:'pumas', details:'puma_details.csv', projections:'puma_projections.csv', plural:'PUMAs' },
 };
 const levelKeys = Object.keys(levels);
@@ -106,7 +108,7 @@ for (const level of levelKeys) {
   levelSettings.set(level, clean);
 }
 if (!params.has('sc')) for (const [key, value] of Object.entries(savedDisplay.scales || {})) {
-  if (/^(county|cd|puma)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
+  if (/^(county|precinct|cd|cousub|puma)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
 }
 const scaleKey = key => `${unit}__${key}`;
 for (const [key, value] of [...scaleState]) if (!key.includes('__')) { scaleState.set(scaleKey(key), value); scaleState.delete(key); }
@@ -702,7 +704,7 @@ window.addEventListener('zoom-place', ({ detail:{ level, id } }) => runMapUpdate
   if (!box || !map) return;
   if (level !== unit) await setUnit(level, signal);
   const wide = window.innerWidth > 700;
-  map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:10, duration:700 });
+  map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding:wide ? { top:70, bottom:50, left:60, right:460 } : 30, maxZoom:level === 'precinct' ? 12 : 10, duration:700 });
 }));
 
 // A new pair, minimum or filter repaints the map when it is shaded by comparison.
@@ -770,7 +772,7 @@ export function setTheme(next) {
 // Count actual tile requests in this transaction; metadata stages have no denominator.
 const requestedTiles = new Set(), pendingTiles = new Set();
 let dataReady = false;
-const geographyName = () => ({county:'counties',cd:'districts',puma:'PUMAs'})[unit];
+const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions',puma:'PUMAs'})[unit];
 function showTileProgress() {
   const total = [...requestedTiles].filter(key => key.startsWith(`${unit}:`)).length;
   const pending = [...pendingTiles].filter(key => key.startsWith(`${unit}:`)).length;
@@ -873,7 +875,7 @@ export function initMap(select) {
   map.on('error', e => {
     failMapUpdate(e.error || new Error('Map resources could not be loaded.'));
     const error = String(e.error?.message || e.error || '');
-    if (/pmtiles|counties|districts|pumas|404|fetch/i.test(error)) {
+    if (/pmtiles|regions|counties|404|fetch/i.test(error)) {
       message.textContent = 'Map tiles could not be loaded. The other data remains available.';
       message.hidden = false;
     }
