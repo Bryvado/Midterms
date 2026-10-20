@@ -33,6 +33,8 @@ function defaults() {
     shifts:{ x:Math.max(GAP, W - 580 - GAP), y:GAP, w:580, h:Math.min(880, H - GAP * 2), open:false },
     scatter:{ x:Math.max(GAP, W - pollW - 460 - GAP * 2), y:GAP, w:460, h:Math.min(560, H - GAP * 2), open:false },
     place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:true },
+    // Bottom center, between the legend and the selected-place panel; closed by default where that gap is too narrow.
+    about:{ x:52 + 250 + GAP * 2, y:null, w:Math.max(300, Math.min(440, W - placeW - 302 - GAP * 4)), h:null, open:W - placeW - 302 - GAP * 4 >= 300, lift:22 },
   };
 }
 

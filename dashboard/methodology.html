@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="How the Texas 2026 Senate forecast is built: data, poll average, fundamentals, polling error, geography, simulation, early vote and validation." />
+    <link rel="icon" href="data:," />
+    <title>Forecast Methodology</title>
+    <style>
+      :root{--bg:#f5f6f5;--panel:#ffffff;--text:#1b282d;--muted:#4f656c;--rule:#dde5e4;--link:#1d6483}
+      @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a22;--panel:#1b2937;--text:#e5edf2;--muted:#acbfcb;--rule:#2e4152;--link:#7fd0f2}}
+      :root[data-theme="dark"]{--bg:#111a22;--panel:#1b2937;--text:#e5edf2;--muted:#acbfcb;--rule:#2e4152;--link:#7fd0f2}
+      *{box-sizing:border-box}
+      body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+      main{max-width:720px;margin:0 auto;padding:28px 16px 64px}
+      .back{display:inline-block;margin-bottom:18px;color:var(--link);font-size:14px;text-decoration:none}
+      .back:hover{text-decoration:underline}
+      .eyebrow{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+      h1{font-family:Georgia,'Times New Roman',serif;font-size:32px;line-height:1.2;margin:4px 0 12px}
+      .lede{font-size:18px;color:var(--muted);margin:0 0 28px}
+      section{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;margin:0 0 14px}
+      h2{font-size:18px;margin:0 0 6px}
+      p{margin:0 0 10px}
+      p:last-child{margin-bottom:0}
+      a{color:var(--link)}
+      footer{color:var(--muted);font-size:13px;margin-top:24px}
+      @media (max-width:520px){h1{font-size:26px}.lede{font-size:16px}section{padding:14px 14px}}
+    </style>
+    <script>
+      try { const pref = JSON.parse(localStorage.getItem('tx-appearance-v1') || 'null'); if (pref?.layout === 'dark' || pref?.layout === 'light') document.documentElement.dataset.theme = pref.layout; } catch {}
+    </script>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./">Back to the forecast</a>
+      <p class="eyebrow">Texas 2026 U.S. Senate</p>
+      <h1>How the forecast is built</h1>
+      <p class="lede">The forecast estimates James Talarico's share of the vote cast for the two major candidates against Ken Paxton, and his chance of winning, with Ted Brown on the ballot as the Libertarian candidate. This page describes each stage in plain terms.</p>
+
+      <section>
+        <h2>Data</h2>
+        <p>The model uses public polls of the race, Texas statewide election results from past years, demographic estimates from the Census Bureau, and early-vote rosters published by the Texas Secretary of State.</p>
+      </section>
+
+      <section>
+        <h2>Poll average</h2>
+        <p>Polls are combined into a daily average with a state-space model, which treats true opinion as something that drifts from day to day and treats each poll as a noisy reading of it. Each poll's error is given a minimum size, so a single very large poll cannot dominate the average.</p>
+      </section>
+
+      <section>
+        <h2>Fundamentals</h2>
+        <p>Alongside the polls, the model forms a prior expectation from Texas's partisan baseline in comparable midterm elections, adjusted for participation in the 2026 primaries. The poll average and this prior are blended and the blend shifts toward the polls as the election nears.</p>
+      </section>
+
+      <section>
+        <h2>Polling error</h2>
+        <p>Polls can miss together, in the same direction, in a way that averaging does not remove. The model adds an allowance for statewide polling misses, estimated from how far polls have missed in past Texas races. That allowance is wider the further the forecast is from election day.</p>
+      </section>
+
+      <section>
+        <h2>Geography</h2>
+        <p>The statewide estimate is distributed across Texas using a model of 2024 results at the precinct level, regional voting patterns, and a calibrated term for how far the shifts seen in 2024 tend to revert. Results are reported for counties, congressional districts and Public Use Microdata Areas (PUMAs) only.</p>
+      </section>
+
+      <section>
+        <h2>Simulation</h2>
+        <p>The forecast runs many thousands of simulated elections. Each simulation draws statewide, regional, county and local variation together, with realistic correlation between them, and includes variation in turnout and in the Libertarian candidate's share. The chance of winning is the share of simulations Talarico wins, and the ranges shown on the map come from the spread of those simulations.</p>
+      </section>
+
+      <section>
+        <h2>Early vote</h2>
+        <p>As early-vote returns arrive, county turnout patterns are updated to reflect where ballots are being cast. The statewide turnout level is not changed by the pace of early voting.</p>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <p>Each stage is checked against past elections before it is used. The checks are run out of sample: a stage is fitted without the election it is tested on, so the test shows how it would have performed in a year it had not seen.</p>
+      </section>
+
+      <footer>The map shows Talarico's share of the two-party vote, Talarico divided by Talarico plus Paxton. Brown's share is shown separately.</footer>
+    </main>
+  </body>
+</html>

@@ -2,7 +2,7 @@ import { races as compareRaces, state, setState, ensureStore, indexOf } from './
 import { pct, count, signed, escapeHTML, csv } from './data.js';
 import { countyNames, shortLabel } from './labels.js';
 
-const historyFiles = { precinct:'history_precinct.csv', county:'history_county.csv', cd:'history_congressional_district.csv', cousub:'history_county_subdivision.csv', puma:'history_puma.csv' };
+const historyFiles = { county:'history_county.csv', cd:'history_congressional_district.csv', puma:'history_puma.csv' };
 const offices = [['sen', 'Senate', 'us_senate'], ['pres', 'President', 'president'], ['gov', 'Governor', 'governor']];
 const compareOffice = { us_senate:'sen', president:'pres', governor:'gov' };
 let office = 'sen';
@@ -42,7 +42,6 @@ const avgTip = 'Average Democratic two-party share across every contested statew
 const clip = (text, max) => text.length > max ? `${text.slice(0, max - 1)}…` : text;
 const placeNameOf = (level, store, i, names) => {
   const label = store.labels[i];
-  if (level === 'precinct') { const m = /VTD (\S+)/.exec(label); return m ? `Pct ${m[1]}` : label; }
   return shortLabel(level, label, names, { keepCounty:true });
 };
 
