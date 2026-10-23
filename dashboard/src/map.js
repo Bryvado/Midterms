@@ -4,6 +4,7 @@ import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
 import { earlyMeasures, isEarlyMeasure, earlyValues } from './early.js';
+import { EV_KEY, evLevels, ensureEv, evColorData, evTooltip, evTitle, withheldText, formatEv } from './evmap.js';
 import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -436,7 +437,32 @@ function compareColorExpression(key, level) {
   return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), paint];
 }
 
+// Early-vote mode: values joined at runtime by region_id for the current date; fixed ranges per measure and level.
+const evWithheldFill = () => theme === 'dark' ? '#5b6670' : '#dde2e2';
+function evColorExpression(level) {
+  const d = evLevels.includes(level) ? evColorData(level) : null;
+  if (!d) return '#afb8b8';
+  const type = d.diverging ? 'share' : 'seq', colors = ramp(type), [lo, hi] = d.range;
+  const id = ['to-string', ['get', 'region_id']], values = ['literal', d.values];
+  const stops = Array.from({ length:9 }, (_, i) => i / 8).flatMap(t => [lo + t * (hi - lo), mapColorAt(colors, t, type)]);
+  const fill = ['interpolate', ['linear'], ['to-number', ['get', id, values]], ...stops];
+  const withheld = d.withheld.length ? ['match', id, d.withheld, evWithheldFill(), '#afb8b8'] : '#afb8b8';
+  return ['case', ['has', id, values], fill, withheld];
+}
+function evHatch() {
+  if (!map || map.hasImage('ev-hatch')) return;
+  const size = 8, canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = 'rgba(95,108,114,.55)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(size, 0); ctx.moveTo(-2, 2); ctx.lineTo(2, -2); ctx.moveTo(size - 2, size + 2); ctx.lineTo(size + 2, size - 2); ctx.stroke();
+  map.addImage('ev-hatch', ctx.getImageData(0, 0, size, size));
+}
+function evHatchFilter(level) {
+  const d = measure === EV_KEY && level === unit && evLevels.includes(level) ? evColorData(level) : null;
+  return ['match', ['to-string', ['get', 'region_id']], d?.withheld.length ? d.withheld : ['__none__'], true, false];
+}
 function colorExpression(key, level) {
+  if (key === EV_KEY) return evColorExpression(level);
   if (isCompareMeasure(key)) return compareColorExpression(key, level);
   if (isEarlyMeasure(key) && level !== 'county') return '#afb8b8';
   const s = scale(key, level);
@@ -472,7 +498,20 @@ function compareLegendExtras() {
   return html + notes.map(text => `<div class="legend-note">${escapeHTML(text)}</div>`).join('');
 }
 
+function drawEvLegend() {
+  const d = evLevels.includes(unit) ? evColorData(unit) : null;
+  if (!d) { legend.innerHTML = `<div class="legend-title">Early vote</div><div class="legend-note">Early vote is published for precincts, PUMAs and counties.</div>`; return; }
+  const type = d.diverging ? 'share' : 'seq', colors = ramp(type), [lo, hi] = d.range;
+  const gradient = Array.from({ length:9 }, (_, i) => `${mapColorAt(colors, i / 8, type)} ${(100 * i / 8).toFixed(1)}%`).join(',');
+  const fmt = v => formatEv(d.measure.kind === 'count' ? 'count' : 'share', v);
+  const ends = d.diverging ? '<div class="legend-ends"><span>More Republican</span><span>More Democratic</span></div>' : '';
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(evTitle())}</div><div class="legend-ramp" style="background:linear-gradient(90deg,${gradient})"></div>
+    <div class="legend-edges"><span style="left:0.00%">${escapeHTML(fmt(lo))}</span><span style="left:50%">${escapeHTML(fmt((lo + hi) / 2))}</span><span style="left:100.00%">${escapeHTML(fmt(hi))}${d.diverging ? '' : '+'}</span></div>${ends}
+    <div class="legend-nodata"><span class="ev-hatch-swatch" style="background-color:${evWithheldFill()}"></span>${escapeHTML(withheldText())}</div><div class="legend-nodata"><span></span>No data</div>
+    <div class="legend-note">${d.diverging ? 'Centered on 50%; the range is symmetric and fixed across dates.' : 'Range fixed across dates so the slider shows real change; values above it saturate.'}</div>`;
+}
 function drawLegend() {
+  if (measure === EV_KEY) { drawEvLegend(); syncControls(); return; }
   let s;
   try { s = scale(measure, unit); } catch { return; }
   let body;
@@ -508,7 +547,7 @@ function writeURL() {
     return pairs.length ? `${key}:${pairs.join(',')}` : '';
   }).filter(Boolean);
   if (entries.length) url.searchParams.set('sc', entries.join(';')); else url.searchParams.delete('sc');
-  if (measure !== 'mean') url.searchParams.set('m', measure); else url.searchParams.delete('m');
+  if (measure !== 'mean' && measure !== EV_KEY) url.searchParams.set('m', measure); else if (measure !== EV_KEY) url.searchParams.delete('m');
   if (unit !== 'county') url.searchParams.set('u', unit); else url.searchParams.delete('u');
   url.searchParams.set('ds', JSON.stringify({levels:Object.fromEntries(levelSettings)}));
   history.replaceState(null, '', url);
@@ -567,6 +606,7 @@ function syncControls() {
 }
 
 async function ensureValues() {
+  if (measure === EV_KEY) { await ensureEv(unit); return; }
   if (isCompareMeasure(measure)) await ensureStore(unit);
   const { s } = current();
   if ((['view','state'].includes(s.r) && s.b !== 'rat') || s.b in classificationMethods) await loadStateValues(measure, unit);
@@ -585,6 +625,10 @@ function paint() {
     map.setPaintProperty(`border-${level}`, 'line-width', +settings.bw);
     map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
   }
+  for (const level of levelKeys) if (map.getLayer(`evhatch-${level}`)) {
+    map.setLayoutProperty(`evhatch-${level}`, 'visibility', measure === EV_KEY && level === unit ? 'visible' : 'none');
+    map.setFilter(`evhatch-${level}`, evHatchFilter(level));
+  }
   for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
 
@@ -597,6 +641,7 @@ async function applyDisplay(signal) {
 
 // Fit to view: recompute the 5th–95th percentile of rendered areas once the map stops moving.
 function refitView() {
+  if (measure === EV_KEY) return;
   const { opt, s } = current();
   if (s.r !== 'view' || s.b === 'rat' || s.b in classificationMethods || !map) return;
   const values = viewValues();
@@ -679,7 +724,8 @@ function valueText(props) {
 function showTooltip(event, props) {
   const label = props.region_label || props.region_id || 'Selected place';
   const showing = document.querySelector('#measure').selectedOptions[0].textContent;
-  if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
+  if (measure === EV_KEY) tooltip.innerHTML = evLevels.includes(unit) ? evTooltip(props, unit) : `<strong>${escapeHTML(label)}</strong>Early vote is published for precincts, PUMAs and counties.`;
+  else if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
   else tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
   const rect = pane.getBoundingClientRect();
   let x = event.originalEvent.clientX - rect.left + 13;
@@ -865,6 +911,8 @@ export function initMap(select) {
       map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':'rgba(0,0,0,0)' } }, labels);
     }
     for (const level of levelKeys) map.addLayer({id:`border-${level}`,type:'line',source:level,'source-layer':'regions',layout:{visibility:levelVisible(level)?'visible':'none'},paint:{'line-color':outline(),'line-width':+settings.bw}},labels);
+    evHatch();
+    for (const level of levelKeys) if (!map.getLayer(`evhatch-${level}`)) map.addLayer({ id:`evhatch-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:measure === EV_KEY && level === unit ? 'visible' : 'none' }, filter:evHatchFilter(level), paint:{ 'fill-pattern':'ev-hatch' } }, labels);
     for (const [level, style] of Object.entries(overlayStyle)) {
       if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
@@ -908,3 +956,6 @@ export function initMap(select) {
   syncUnit(unit);
   return map;
 }
+
+// Date or measure changes in early-vote mode repaint from data already loaded for this level.
+window.addEventListener('evmap-change', () => { if (measure === EV_KEY) { tooltip.hidden = true; paint(); } });

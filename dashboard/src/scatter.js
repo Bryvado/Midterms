@@ -9,7 +9,17 @@ const caption = document.querySelector('#scatter-caption');
 const note = document.querySelector('#scatter-note');
 const chance = document.querySelector('#scatter-chance');
 const views = [['votes', 'Votes'], ['turnout_share', 'Turnout vs margin']];
-const levels = [.5, .8, .95];
+// Density display options: highest-density contours at different levels, a shaded density grid, or none.
+const densityModes = {
+  c3:{ label:'Contours: 50, 80, 95%', levels:[.5, .8, .95] },
+  c4:{ label:'Contours: 25, 50, 75, 95%', levels:[.25, .5, .75, .95] },
+  c9:{ label:'Contours: every 10%', levels:[.1, .2, .3, .4, .5, .6, .7, .8, .9] },
+  heat:{ label:'Shaded density with 50, 80, 95% contours', levels:[.5, .8, .95], heat:true },
+  heatonly:{ label:'Shaded density only', levels:[], heat:true },
+  none:{ label:'No density (points only)', levels:[] },
+};
+let densityMode = 'c3', showPoints = true;
+let levels = densityModes.c3.levels;
 const scenarioLabels = {
   headline:'Headline',
   ev:'With early vote (composition update)',
@@ -26,8 +36,8 @@ const contourCache = new Map();
 
 const cellsFor = (scenarioId, viewId) => density.get(`${scenarioId}|${viewId}`) || [];
 function contoursFor(scenarioId, viewId) {
-  const key = `${scenarioId}|${viewId}`;
-  if (!contourCache.has(key)) contourCache.set(key, contours(cellsFor(scenarioId, viewId)));
+  const key = `${scenarioId}|${viewId}|${levels.join(',')}`;
+  if (!contourCache.has(key)) contourCache.set(key, levels.length ? contours(cellsFor(scenarioId, viewId), levels) : []);
   return contourCache.get(key);
 }
 
@@ -56,9 +66,10 @@ function draw() {
   panel.style.setProperty('--sc-blue', blue); panel.style.setProperty('--sc-red', red);
   const grid = x.ticks(narrow ? 4 : 6).map(v => `<line class="sc-grid" x1="${x(v)}" x2="${x(v)}" y1="${margin.top}" y2="${bottom}"/><text class="sc-axis" x="${x(v)}" y="${bottom + 13}" text-anchor="middle">${tick(v)}</text>`).join('')
     + y.ticks(narrow ? 4 : 6).map(v => `<line class="sc-grid" x1="${margin.left}" x2="${right}" y1="${y(v)}" y2="${y(v)}"/><text class="sc-axis" x="${margin.left - 5}" y="${y(v) + 3}" text-anchor="end">${tick(v)}</text>`).join('');
-  const dots = rows.map((row, i) => { const [px, py] = coords(row, view); return `<circle class="sc-dot" cx="${x(px).toFixed(1)}" cy="${y(py).toFixed(1)}" r="1.5" fill="${row.win ? blue : red}" data-i="${i}"/>`; }).join('');
+  const dots = !showPoints ? '' : rows.map((row, i) => { const [px, py] = coords(row, view); return `<circle class="sc-dot" cx="${x(px).toFixed(1)}" cy="${y(py).toFixed(1)}" r="1.5" fill="${row.win ? blue : red}" data-i="${i}"/>`; }).join('');
   const sets = contoursFor(scenario, view);
-  const lines = sets.map((segments, level) => `<path class="sc-contour c${level}" d="${segments.map(([a, b]) => `M${x(a[0]).toFixed(1)},${y(a[1]).toFixed(1)}L${x(b[0]).toFixed(1)},${y(b[1]).toFixed(1)}`).join('')}"/>`).join('');
+  const many = levels.length > 3;
+  const lines = sets.map((segments, level) => `<path class="sc-contour ${many ? 'cm' : `c${level}`}"${many ? ` style="stroke-width:${(.7 + 1.5 * (1 - levels[level])).toFixed(2)}"` : ''} d="${segments.map(([a, b]) => `M${x(a[0]).toFixed(1)},${y(a[1]).toFixed(1)}L${x(b[0]).toFixed(1)},${y(b[1]).toFixed(1)}`).join('')}"/>`).join('');
   // The tie line sits above the points and contours. Votes: y = x over the shared range; turnout view: y = 0.5.
   let tie, tieLabel;
   if (view === 'votes') {
@@ -72,7 +83,7 @@ function draw() {
   // Contour labels: first clear candidate among the extreme points of each contour, away from the tie label and from each other.
   const taken = [{ l:tieLabel.x - 22, t:tieLabel.y - 11, r:tieLabel.x + 2, b:tieLabel.y + 3 }];
   const labels = sets.map((segments, level) => {
-    if (!segments.length) return '';
+    if (!segments.length || (many && level % 2)) return '';
     const pts = segments.flat().map(([px, py]) => [x(px), y(py)]);
     const pick = [pts.reduce((a, p) => p[1] < a[1] ? p : a), pts.reduce((a, p) => p[0] > a[0] ? p : a), pts.reduce((a, p) => p[1] > a[1] ? p : a), pts.reduce((a, p) => p[0] < a[0] ? p : a)];
     const text = `${Math.round(levels[level] * 100)}%`, w = text.length * 6 + 4;
@@ -83,13 +94,21 @@ function draw() {
     const spot = spots.find(s => fits(s) && clear(s));
     if (!spot) return '';
     taken.push(box(spot));
-    return `<text class="sc-label c${level}" x="${spot.cx}" y="${spot.cy}" text-anchor="middle">${text}</text>`;
+    return `<text class="sc-label ${many ? 'cm' : `c${level}`}" x="${spot.cx}" y="${spot.cy}" text-anchor="middle">${text}</text>`;
   }).join('');
+  // Shaded density: each published grid cell drawn with opacity by its share of the largest cell.
+  let heat = '';
+  if (densityModes[densityMode].heat) {
+    const cells = cellsFor(scenario, view), xs = [...new Set(cells.map(c => c.x))].sort((a, b) => a - b), ys = [...new Set(cells.map(c => c.y))].sort((a, b) => a - b);
+    const step = list => list.slice(1).reduce((min, v, i) => Math.min(min, v - list[i]), Infinity);
+    const dx = step(xs), dy = step(ys), top = Math.max(...cells.map(c => c.m));
+    if (Number.isFinite(dx) && Number.isFinite(dy) && top > 0) heat = cells.map(c => { const a = Math.pow(c.m / top, .6); if (a < .02) return ''; const x0 = Math.round(x(c.x - dx / 2)), x1 = Math.round(x(c.x + dx / 2)), y0 = Math.round(y(c.y + dy / 2)), y1 = Math.round(y(c.y - dy / 2)); return `<rect class="sc-heat" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" opacity="${(.85 * a).toFixed(3)}"/>`; }).join('');
+  }
   const clipId = 'sc-clip';
   root.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Simulated outcomes for ${escapeHTML(scenarioLabels[scenario] || scenario)}, ${view === 'votes' ? 'Talarico votes against Paxton votes' : 'Talarico two-party share against turnout'}">
     <defs><clipPath id="${clipId}"><rect x="${margin.left}" y="${margin.top}" width="${right - margin.left}" height="${bottom - margin.top}"/></clipPath></defs>
     ${grid}<rect class="sc-frame" x="${margin.left}" y="${margin.top}" width="${right - margin.left}" height="${bottom - margin.top}"/>
-    <g clip-path="url(#${clipId})"><g class="sc-points">${dots}</g>${lines}${tie}</g>${labels}
+    <g clip-path="url(#${clipId})">${heat}<g class="sc-points">${dots}</g>${lines}${tie}</g>${labels}
     <text class="sc-tie-label" x="${tieLabel.x}" y="${tieLabel.y}" text-anchor="${tieLabel.anchor}">tie</text>
     <text class="sc-title" x="${(margin.left + right) / 2}" y="${height - 4}" text-anchor="middle">${escapeHTML(xTitle)}</text>
     <text class="sc-title" transform="translate(11 ${(margin.top + bottom) / 2}) rotate(-90)" text-anchor="middle">${escapeHTML(yTitle)}</text>
@@ -114,7 +133,17 @@ function draw() {
   svg.addEventListener('pointerleave', () => { tooltip.hidden = true; ring.setAttribute('visibility', 'hidden'); });
 }
 
+function syncLegend() {
+  const span = document.querySelector('#fp-scatter .sc-contours');
+  if (!span) return;
+  const shown = levels.length > 3 ? [levels[0], levels.at(-1)] : levels;
+  span.hidden = !levels.length && !densityModes[densityMode].heat;
+  span.innerHTML = (densityModes[densityMode].heat ? '<i class="sc-sw heat"></i>Density ' : '') + (levels.length > 3 ? `<i class="sc-sw line cm"></i>Contours every ${Math.round(100 * (levels[1] - levels[0]))}% from ${Math.round(100 * levels[0])}% to ${Math.round(100 * levels.at(-1))}% of simulations` : shown.map((v, i) => `<i class="sc-sw line c${i}"></i>${Math.round(v * 100)}%`).join(' ') + (shown.length ? ' of simulations' : ''));
+  const dotLegend = document.querySelectorAll('#fp-scatter .scatter-legend .dot');
+  dotLegend.forEach(el => { el.parentElement.hidden = !showPoints; });
+}
 function refresh() {
+  syncLegend();
   for (const button of document.querySelectorAll('[data-scatter-view]')) button.setAttribute('aria-pressed', String(button.dataset.scatterView === view));
   note.hidden = view !== 'turnout_share';
   const stated = published.get(scenario);
@@ -165,3 +194,10 @@ for (const button of document.querySelectorAll('[data-scatter-view]')) button.ad
 new ResizeObserver(() => draw()).observe(root);
 window.addEventListener('display-change', () => draw());
 window.addEventListener('panel-layout', () => draw());
+
+const densitySelect = document.querySelector('#scatter-density'), pointsToggle = document.querySelector('#scatter-points');
+if (densitySelect) {
+  densitySelect.replaceChildren(...Object.entries(densityModes).map(([key, mode]) => new Option(mode.label, key, false, key === densityMode)));
+  densitySelect.addEventListener('change', () => { densityMode = densitySelect.value; levels = densityModes[densityMode].levels; refresh(); });
+}
+pointsToggle?.addEventListener('change', () => { showPoints = pointsToggle.checked; refresh(); });
