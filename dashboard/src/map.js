@@ -4,7 +4,7 @@ import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
 import { earlyMeasures, isEarlyMeasure, earlyValues } from './early.js';
-import { EV_KEY, evLevels, ensureEv, evColorData, evTooltip, evTitle, withheldText, formatEv } from './evmap.js';
+import { ev, evWriteURL, EV_KEY, evLevels, ensureEv, evColorData, evTooltip, evTitle, withheldText, formatEv } from './evmap.js';
 import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -439,10 +439,27 @@ function compareColorExpression(key, level) {
 
 // Early-vote mode: values joined at runtime by region_id for the current date; fixed ranges per measure and level.
 const evWithheldFill = () => theme === 'dark' ? '#5b6670' : '#dde2e2';
+// Early vote keeps its own palette choice, separate from the forecast map's Display settings.
+function evRamp(diverging, surfaceTheme = theme) {
+  const palettes = diverging ? divergingPalettes : sequentialPalettes, key = diverging ? ev.dpal : ev.spal;
+  return (palettes[key] || palettes[diverging ? 'redblue' : 'teal'])[surfaceTheme];
+}
+function syncEvPalette() {
+  const select = document.querySelector('#ev-palette');
+  if (!select) return;
+  const d = evColorData(unit), diverging = d ? d.diverging : false;
+  const palettes = diverging ? divergingPalettes : sequentialPalettes;
+  setOptions(select, Object.entries(palettes).filter(([k]) => k !== 'custom').map(([k, v]) => [k, v.label]), diverging ? ev.dpal : ev.spal);
+}
+document.querySelector('#ev-palette')?.addEventListener('change', e => {
+  const d = evColorData(unit);
+  if (d?.diverging) ev.dpal = e.target.value; else ev.spal = e.target.value;
+  evWriteURL(); paint();
+});
 function evColorExpression(level) {
   const d = evLevels.includes(level) ? evColorData(level) : null;
   if (!d) return '#afb8b8';
-  const type = d.diverging ? 'share' : 'seq', colors = ramp(type), [lo, hi] = d.range;
+  const type = d.diverging ? 'share' : 'seq', colors = evRamp(d.diverging), [lo, hi] = d.range;
   const id = ['to-string', ['get', 'region_id']], values = ['literal', d.values];
   const stops = Array.from({ length:9 }, (_, i) => i / 8).flatMap(t => [lo + t * (hi - lo), mapColorAt(colors, t, type)]);
   const fill = ['interpolate', ['linear'], ['to-number', ['get', id, values]], ...stops];
@@ -499,9 +516,10 @@ function compareLegendExtras() {
 }
 
 function drawEvLegend() {
+  syncEvPalette();
   const d = evLevels.includes(unit) ? evColorData(unit) : null;
   if (!d) { legend.innerHTML = `<div class="legend-title">Early vote</div><div class="legend-note">Early vote is published for precincts, PUMAs and counties.</div>`; return; }
-  const type = d.diverging ? 'share' : 'seq', colors = ramp(type), [lo, hi] = d.range;
+  const type = d.diverging ? 'share' : 'seq', colors = evRamp(d.diverging), [lo, hi] = d.range;
   const gradient = Array.from({ length:9 }, (_, i) => `${mapColorAt(colors, i / 8, type)} ${(100 * i / 8).toFixed(1)}%`).join(',');
   const fmt = v => formatEv(d.measure.kind === 'count' ? 'count' : 'share', v);
   const ends = d.diverging ? '<div class="legend-ends"><span>More Republican</span><span>More Democratic</span></div>' : '';
@@ -917,12 +935,14 @@ export function initMap(select) {
       if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
     }
+    addLinkLayers(labels);
     for (const id of earlyLabels) map.moveLayer(id, labels);
     message.hidden = true;
     scheduleFit();
   });
   map.on('moveend', scheduleFit);
   map.on('mousemove', e => {
+    if (drawing) { drawPreview(e.lngLat); return; }
     if (!map.getLayer(layerName(unit))) return;
     const features = map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] });
     const feature = features[0];
@@ -932,10 +952,15 @@ export function initMap(select) {
   });
   map.on('mouseleave', () => { tooltip.hidden = true; });
   map.on('click', e => {
+    if (drawing) { drawClick(e); return; }
     if (!map.getLayer(layerName(unit))) return;
     const feature = map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] })[0];
-    if (feature) { tooltip.hidden = true; onSelect(unit, feature.properties); }
+    if (feature) {
+      tooltip.hidden = true; onSelect(unit, feature.properties);
+      window.dispatchEvent(new CustomEvent('map-place-click', { detail:{ level:unit, id:String(feature.properties.region_id) } }));
+    }
   });
+  map.on('dblclick', e => { if (drawing) { e.preventDefault(); finishDraw(); } });
   map.on('error', e => {
     failMapUpdate(e.error || new Error('Map resources could not be loaded.'));
     const error = String(e.error?.message || e.error || '');
@@ -959,3 +984,77 @@ export function initMap(select) {
 
 // Date or measure changes in early-vote mode repaint from data already loaded for this level.
 window.addEventListener('evmap-change', () => { if (measure === EV_KEY) { tooltip.hidden = true; paint(); } });
+
+// Linked selection from the Precinct shifts chart: selected places get a highlight fill and outline at their level.
+const brush = { level:null, ids:[] };
+const brushFilter = level => ['in', ['to-string', ['get', 'region_id']], ['literal', brush.level === level ? brush.ids : []]];
+// An area drawn on the map, as a closed ring of [lng, lat] points.
+let area = null, drawing = null;
+const areaData = () => {
+  const ring = drawing ? drawing.pts.concat(drawing.cursor ? [drawing.cursor] : []) : area;
+  if (!ring || ring.length < 2) return { type:'FeatureCollection', features:[] };
+  const closed = !drawing && ring.length > 2;
+  return { type:'FeatureCollection', features:[{ type:'Feature', properties:{}, geometry:closed ? { type:'Polygon', coordinates:[[...ring, ring[0]]] } : { type:'LineString', coordinates:ring } }] };
+};
+function addLinkLayers(before) {
+  for (const level of levelKeys) {
+    if (map.getLayer(`brush-fill-${level}`)) continue;
+    map.addLayer({ id:`brush-fill-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:brush.level === level && level === unit ? 'visible' : 'none' }, filter:brushFilter(level), paint:{ 'fill-color':'#f2c230', 'fill-opacity':.45 } }, before);
+    map.addLayer({ id:`brush-line-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:brush.level === level && level === unit ? 'visible' : 'none' }, filter:brushFilter(level), paint:{ 'line-color':'#c98a00', 'line-width':1.6 } }, before);
+  }
+  if (!map.getSource('draw-area')) map.addSource('draw-area', { type:'geojson', data:areaData() });
+  if (!map.getLayer('draw-area-fill')) map.addLayer({ id:'draw-area-fill', type:'fill', source:'draw-area', filter:['==', ['geometry-type'], 'Polygon'], paint:{ 'fill-color':'#6a5acd', 'fill-opacity':.08 } });
+  if (!map.getLayer('draw-area-line')) map.addLayer({ id:'draw-area-line', type:'line', source:'draw-area', paint:{ 'line-color':'#6a5acd', 'line-width':2, 'line-dasharray':[2, 1.5] } });
+}
+function paintBrush() {
+  if (!map?.getLayer(`brush-fill-${levelKeys[0]}`)) return;
+  for (const level of levelKeys) for (const kind of ['fill', 'line']) {
+    map.setLayoutProperty(`brush-${kind}-${level}`, 'visibility', brush.level === level && level === unit && brush.ids.length ? 'visible' : 'none');
+    map.setFilter(`brush-${kind}-${level}`, brushFilter(level));
+  }
+}
+export async function setBrush(level, ids) {
+  brush.level = ids?.length ? level : null; brush.ids = ids || [];
+  if (brush.level && brush.level !== unit) await runMapUpdate('Loading selection…', signal => setUnit(level, signal));
+  paintBrush();
+}
+window.addEventListener('unit-change', paintBrush);
+const paintArea = () => map?.getSource('draw-area')?.setData(areaData());
+export function setArea(ring) { area = ring; paintArea(); }
+// Click to add corners, then double-click or click the first corner to close the area; Escape cancels.
+export function startDraw(done) {
+  if (!map) return;
+  drawing = { pts:[], cursor:null, done };
+  area = null;
+  map.doubleClickZoom.disable();
+  map.getCanvas().style.cursor = 'crosshair';
+  tooltip.hidden = true;
+  paintArea();
+  window.addEventListener('keydown', drawKey);
+}
+function endDraw(ring) {
+  const done = drawing.done;
+  drawing = null;
+  window.removeEventListener('keydown', drawKey);
+  map.getCanvas().style.cursor = '';
+  setTimeout(() => map.doubleClickZoom.enable(), 300);
+  area = ring; paintArea();
+  done(ring);
+}
+const drawKey = event => { if (event.key === 'Escape' && drawing) endDraw(null); };
+export const cancelDraw = () => { if (drawing) endDraw(null); };
+function drawPreview(lngLat) { drawing.cursor = [lngLat.lng, lngLat.lat]; paintArea(); }
+function drawClick(e) {
+  const pts = drawing.pts;
+  if (pts.length >= 3) {
+    const first = map.project(pts[0]);
+    if (Math.hypot(first.x - e.point.x, first.y - e.point.y) < 10) return finishDraw();
+  }
+  pts.push([e.lngLat.lng, e.lngLat.lat]); paintArea();
+}
+function finishDraw() {
+  if (!drawing) return;
+  // A double-click also lands two clicks; drop a repeated final corner.
+  const pts = drawing.pts.filter((p, i, all) => !i || Math.hypot(p[0] - all[i - 1][0], p[1] - all[i - 1][1]) > 1e-9);
+  endDraw(pts.length >= 3 ? pts : null);
+}

@@ -61,6 +61,7 @@
             <label class="check ev-toggle"><input id="ev-toggle" type="checkbox"> Early vote</label>
             <div id="ev-controls" class="ev-controls" hidden>
               <label>Measure <select id="ev-measure"></select></label>
+              <label>Colors <select id="ev-palette"></select></label>
               <div class="ev-date-row"><button type="button" id="ev-play" class="ev-play" aria-pressed="false">Play</button><input id="ev-date" type="range" min="0" max="0" step="1" value="0" aria-label="Early-voting date"><span id="ev-date-label" class="ev-date-label"></span></div>
               <p class="note ev-note">Early vote is published for precincts, PUMAs and counties.</p>
             </div>
@@ -178,6 +179,15 @@
             <p id="sh-caveats" class="note sh-caveats"></p>
             <div id="sh-summary" class="sh-summary"></div>
             <div class="range-switch sh-tabs" role="group" aria-label="Precinct shifts view"><button type="button" data-sh-view="xy" aria-pressed="true">Shift vs shift</button><button type="button" data-sh-view="demog" aria-pressed="false">Shift vs demographics</button><button type="button" data-sh-view="table" aria-pressed="false">Movers table</button></div>
+            <div id="sh-tools" class="sh-row sh-tools">
+              <div class="range-switch" role="group" aria-label="Chart tool"><button type="button" data-sh-tool="pick" aria-pressed="true" title="Click a point to open the place. Drag to pan, scroll to zoom.">Pan</button><button type="button" data-sh-tool="lasso" aria-pressed="false" title="Drag around points to select them and highlight them on the map. Hold Shift to add to the selection.">Lasso select</button><button type="button" data-sh-tool="zoom" aria-pressed="false" title="Drag a box to zoom into it.">Zoom box</button></div>
+              <button type="button" id="sh-zoom-reset" class="text-button">Reset zoom</button>
+              <button type="button" id="sh-sel-clear" class="text-button" hidden>Clear selection</button>
+              <label class="check"><input id="sh-restrict" type="checkbox"> Only places in the map view</label>
+              <button type="button" id="sh-draw" class="text-button">Draw area on map</button>
+              <button type="button" id="sh-area-clear" class="text-button" hidden>Clear area</button>
+              <span id="sh-sel-status" class="sh-sel-status"></span>
+            </div>
             <div id="sh-views" class="sh-views">
               <section id="sh-view-xy">
                 <div class="sh-row"><span class="sh-axis">X axis: the pair above</span><label class="check"><input id="sh-xrel" type="checkbox"> Relative</label><span class="sh-axis">Y axis</span><label>From <select id="sh-y2from"></select></label><label>To <select id="sh-y2to"></select></label><label class="check"><input id="sh-yrel" type="checkbox"> Relative</label></div>

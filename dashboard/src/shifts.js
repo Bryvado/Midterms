@@ -4,7 +4,7 @@ import { state, setState, races, raceOf, metrics, profileNames, profileLabels, m
 import { contours } from './contours.js';
 import { selectPlace } from './details.js';
 import { countyNames, shortLabel } from './labels.js';
-import { viewBounds, shareColor } from './map.js';
+import { viewBounds, shareColor, setBrush, setArea, startDraw, cancelDraw } from './map.js';
 import { boxesFor } from './list.js';
 
 const panel = document.querySelector('#fp-shifts');
@@ -17,7 +17,58 @@ const demogOptions = [
   ['ba_plus_share', "Bachelor's degree or higher", 'share'], ['med_income', 'Median income (log scale)', 'log'], ['density', 'Population density (log scale)', 'log'], ['share_from', 'Democratic share in the From race', 'share'],
 ];
 const points = v => `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts`;
-let store = null, counties = new Map(), loading = null, checked = null;
+let store = null, counties = new Map(), loading = null, checked = null, boxes = null, indexOf = null;
+// Linked brushing with the map: a lasso selection, the place last clicked on the map, chart zoom, and spatial restrictions.
+const link = { tool:'pick', sel:null, focus:-1, zoom:null, inView:false, area:null };
+const zoomKey = () => [state.view, state.level, state.from, state.to, state.y2from, state.y2to, state.xrel, state.yrel, state.demog].join('|');
+const inside = (x, y, ring) => { let hit = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) hit = !hit; } return hit; };
+// Places pass when their bounding box meets the map view, and when the center of their bounding box falls inside the drawn area.
+function restrict(idx) {
+  if (!boxes || (!link.inView && !link.area)) return idx;
+  const view = link.inView ? viewBounds() : null;
+  return idx.filter(i => {
+    const b = boxes[store.ids[i]];
+    if (!b) return false;
+    if (view && !(b[0] <= view[2] && b[2] >= view[0] && b[1] <= view[3] && b[3] >= view[1])) return false;
+    return !link.area || inside((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, link.area);
+  });
+}
+const domainFor = (xd, yd) => link.zoom?.key === zoomKey() ? [link.zoom.xd, link.zoom.yd] : [xd, yd];
+function restrictText() {
+  const parts = [];
+  if (link.inView) parts.push('places in the map view');
+  if (link.area) parts.push('places inside the drawn area');
+  return parts.length ? ` Showing only ${parts.join(' and ')}.` : '';
+}
+function syncTools() {
+  for (const button of panel.querySelectorAll('[data-sh-tool]')) button.setAttribute('aria-pressed', String(button.dataset.shTool === link.tool));
+  $('#sh-tools').hidden = state.view === 'table';
+  $('#sh-zoom-reset').disabled = link.zoom?.key !== zoomKey();
+  $('#sh-sel-clear').hidden = !link.sel;
+  $('#sh-area-clear').hidden = !link.area;
+  $('#sh-restrict').checked = link.inView;
+  $('#sh-sel-status').textContent = link.sel ? `${link.sel.size.toLocaleString('en-US')} selected, highlighted on the map` : '';
+}
+function setSelection(set) {
+  link.sel = set && set.size ? set : null;
+  setBrush(store.level, link.sel ? [...link.sel].map(i => store.ids[i]) : null);
+  redraw();
+}
+// Points drawn in a fixed order: unselected first and faded when a selection exists, then the selection, then the focused place.
+function pointStyle(i, ctx, base) {
+  if (!link.sel) { ctx.globalAlpha = base; return false; }
+  const on = link.sel.has(i);
+  ctx.globalAlpha = on ? .9 : .1;
+  return on;
+}
+function drawFocus(ctx, hit) {
+  if (link.focus < 0) return;
+  const k = hit.idx.indexOf(link.focus);
+  if (k < 0) return;
+  const c = ink();
+  ctx.globalAlpha = 1;
+  for (const [color, width] of [[c.panel, 4.5], [c.text, 2]]) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.arc(hit.sx[k], hit.sy[k], 8, 0, 6.2832); ctx.stroke(); }
+}
 
 function raceOptions(select, value) { select.replaceChildren(...races.map(race => new Option(race.label, race.key, false, race.key === value))); }
 function build() {
@@ -137,31 +188,82 @@ function makePlot(width, height, xd, yd, xScale = x => x, yScale = y => y) {
     px:v => left + (sx(v) - sx(x0)) / (sx(x1) - sx(x0)) * (right - left),
     py:v => bottom - (sy(v) - sy(y0)) / (sy(y1) - sy(y0)) * (bottom - top) };
 }
-// Hit test and tooltip over a set of drawn points.
+// Hit test, tooltip, pan, wheel zoom, box zoom and lasso over a set of drawn points.
+function placeTip(canvas, tip, x, y, html) {
+  const rect = canvas.getBoundingClientRect();
+  tip.innerHTML = html; tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = `${x + 12 + tw > rect.width ? Math.max(4, x - tw - 12) : x + 12}px`;
+  tip.style.top = `${Math.max(4, Math.min(rect.height - th - 4, y - th / 2))}px`;
+}
+function nearest(hit, mx, my, limit) {
+  let best = -1, bestD = limit;
+  for (let k = 0; k < hit.sx.length; k++) { const d = (hit.sx[k] - mx) ** 2 + (hit.sy[k] - my) ** 2; if (d < bestD) { bestD = d; best = k; } }
+  return best;
+}
 function attachHover(canvas, getHit, tipHTML, onPick) {
   const wrap = canvas.parentElement, tip = wrap.querySelector('.chart-tooltip');
+  let overlay = wrap.querySelector('.sh-overlay');
+  if (!overlay) { overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); overlay.classList.add('sh-overlay'); wrap.append(overlay); }
+  canvas._tip = (k, hit) => placeTip(canvas, tip, hit.sx[k], hit.sy[k], tipHTML(hit.idx[k]));
+  const local = event => { const rect = canvas.getBoundingClientRect(); return [event.clientX - rect.left, event.clientY - rect.top]; };
+  const toData = (plot, px, py) => [plot.x0 + (px - plot.left) / (plot.right - plot.left) * (plot.x1 - plot.x0), plot.y0 + (plot.bottom - py) / (plot.bottom - plot.top) * (plot.y1 - plot.y0)];
+  const setZoom = (xd, yd) => { link.zoom = { key:zoomKey(), xd, yd }; redraw(); };
+  let drag = null, frame = 0;
+  canvas.onpointerdown = event => {
+    const hit = getHit();
+    if (!hit || event.button !== 0) return;
+    canvas.setPointerCapture(event.pointerId);
+    const p = local(event);
+    drag = { tool:link.tool, start:p, last:p, path:[p], moved:false, plot:hit.plot, add:event.shiftKey };
+    tip.hidden = true;
+  };
   canvas.onpointermove = event => {
-    const hit = getHit(), rect = canvas.getBoundingClientRect();
+    const hit = getHit(), [mx, my] = local(event);
     if (!hit) return;
-    const mx = event.clientX - rect.left, my = event.clientY - rect.top;
-    let best = -1, bestD = 64;
-    for (let k = 0; k < hit.sx.length; k++) { const d = (hit.sx[k] - mx) ** 2 + (hit.sy[k] - my) ** 2; if (d < bestD) { bestD = d; best = k; } }
-    if (best < 0) { tip.hidden = true; canvas.style.cursor = ''; return; }
-    canvas.style.cursor = 'pointer';
-    tip.innerHTML = tipHTML(hit.idx[best]); tip.hidden = false;
-    const tw = tip.offsetWidth, th = tip.offsetHeight;
-    tip.style.left = `${hit.sx[best] + 12 + tw > rect.width ? Math.max(4, hit.sx[best] - tw - 12) : hit.sx[best] + 12}px`;
-    tip.style.top = `${Math.max(4, Math.min(rect.height - th - 4, hit.sy[best] - th / 2))}px`;
+    if (drag) {
+      if (Math.hypot(mx - drag.start[0], my - drag.start[1]) > 4) drag.moved = true;
+      if (!drag.moved) return;
+      if (drag.tool === 'lasso') { drag.path.push([mx, my]); overlay.innerHTML = `<polygon points="${drag.path.map(p => p.join(',')).join(' ')}"/>`; }
+      else if (drag.tool === 'zoom') { const [a, b] = drag.start; overlay.innerHTML = `<rect x="${Math.min(a, mx)}" y="${Math.min(b, my)}" width="${Math.abs(mx - a)}" height="${Math.abs(my - b)}"/>`; }
+      else {
+        const plot = hit.plot, [ax, ay] = toData(plot, drag.last[0], drag.last[1]), [bx, by] = toData(plot, mx, my);
+        drag.last = [mx, my];
+        link.zoom = { key:zoomKey(), xd:[plot.x0 - (bx - ax), plot.x1 - (bx - ax)], yd:[plot.y0 - (by - ay), plot.y1 - (by - ay)] };
+        cancelAnimationFrame(frame); frame = requestAnimationFrame(redraw);
+      }
+      return;
+    }
+    const best = nearest(hit, mx, my, 64);
+    canvas.style.cursor = best >= 0 ? 'pointer' : link.tool === 'pick' ? 'grab' : 'crosshair';
+    if (best < 0) { tip.hidden = true; return; }
+    canvas._tip(best, hit);
   };
-  canvas.onpointerleave = () => { tip.hidden = true; canvas.style.cursor = ''; };
-  canvas.onclick = event => {
-    const hit = getHit(), rect = canvas.getBoundingClientRect();
+  canvas.onpointerup = event => {
+    const hit = getHit(), d = drag;
+    drag = null; overlay.innerHTML = '';
+    if (!hit || !d) return;
+    const [mx, my] = local(event);
+    if (!d.moved) { const best = nearest(hit, mx, my, 100); if (best >= 0) onPick(hit.idx[best]); return; }
+    if (d.tool === 'lasso' && d.path.length > 2) {
+      const set = new Set(d.add && link.sel ? link.sel : []);
+      for (let k = 0; k < hit.sx.length; k++) if (inside(hit.sx[k], hit.sy[k], d.path)) set.add(hit.idx[k]);
+      setSelection(set);
+    } else if (d.tool === 'zoom') {
+      const [ax, ay] = toData(d.plot, d.start[0], d.start[1]), [bx, by] = toData(d.plot, mx, my);
+      if (Math.abs(mx - d.start[0]) > 6 && Math.abs(my - d.start[1]) > 6) setZoom([Math.min(ax, bx), Math.max(ax, bx)], [Math.min(ay, by), Math.max(ay, by)]);
+    }
+  };
+  canvas.onpointerleave = () => { if (!drag) tip.hidden = true; canvas.style.cursor = ''; };
+  canvas.onwheel = event => {
+    const hit = getHit();
     if (!hit) return;
-    const mx = event.clientX - rect.left, my = event.clientY - rect.top;
-    let best = -1, bestD = 100;
-    for (let k = 0; k < hit.sx.length; k++) { const d = (hit.sx[k] - mx) ** 2 + (hit.sy[k] - my) ** 2; if (d < bestD) { bestD = d; best = k; } }
-    if (best >= 0) onPick(hit.idx[best]);
+    event.preventDefault();
+    const plot = hit.plot, [mx, my] = local(event), [cx, cy] = toData(plot, mx, my), f = event.deltaY > 0 ? 1.2 : 1 / 1.2;
+    link.zoom = { key:zoomKey(), xd:[cx - (cx - plot.x0) * f, cx + (plot.x1 - cx) * f], yd:[cy - (cy - plot.y0) * f, cy + (plot.y1 - cy) * f] };
+    cancelAnimationFrame(frame); frame = requestAnimationFrame(redraw);
   };
+  canvas.onclick = null;
 }
 export function openPlace(level, index) {
   const s = store && store.level === level ? store : null;
@@ -176,6 +278,15 @@ function pairTip(i, from, to, ev, heading) {
   return `${heading ? `<strong>${escapeHTML(heading)}</strong>` : ''}${escapeHTML(a.label)}: ${pct(ev.shareA[i])} of ${count(tpA)} votes<br>${escapeHTML(b.label)}: ${pct(ev.shareB[i])} of ${count(tpB)} votes<br>Shift: ${points(ev.shift[i])}`;
 }
 
+// Unselected points first, then selected ones on top; within each, larger places first so small ones stay visible.
+const byDrawOrder = (idx, w) => idx.slice().sort((a, b) => (link.sel ? (link.sel.has(a) - link.sel.has(b)) : 0) || w[b] - w[a]);
+function selectionText(idx, xs, ys, weights) {
+  if (!link.sel) return '';
+  const chosen = idx.filter(i => link.sel.has(i));
+  const fit = chosen.length >= 3 ? weightedFit(xs, ys, weights, chosen) : null;
+  return ` · selection: ${chosen.length.toLocaleString('en-US')} shown${fit ? `, correlation ${fit.r.toFixed(2)}, slope ${fit.slope.toFixed(2)}` : ''}`;
+}
+
 // ---- View 1: shift vs shift ----
 let xyHit = null;
 function drawXY() {
@@ -184,9 +295,10 @@ function drawXY() {
   const xs = metricArray(evX, state.xrel ? 'rshift' : 'shift'), ys = metricArray(evY, state.yrel ? 'rshift' : 'shift');
   const idx = [];
   for (let i = 0; i < store.n; i++) if (Number.isFinite(xs[i]) && Number.isFinite(ys[i])) idx.push(i);
+  idx.splice(0, idx.length, ...restrict(idx));
   const { ctx, width, height } = setup(canvas);
   if (idx.length < 3) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText('Too few places have both shifts under the current filters.', width / 2, height / 2); xyHit = null; $('#sh-xy-stats').textContent = ''; return; }
-  const xd = domainOf(idx.map(i => xs[i]), { zero:true }), yd = domainOf(idx.map(i => ys[i]), { zero:true });
+  const [xd, yd] = domainFor(domainOf(idx.map(i => xs[i]), { zero:true }), domainOf(idx.map(i => ys[i]), { zero:true }));
   const plot = makePlot(width, height, xd, yd);
   const pts = v => Math.round(100 * v) === 0 ? '0' : `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(100 * v))}`;
   const ticks = (d, step = 0) => scaleLinear().domain(d).ticks(width < 360 ? 4 : 6);
@@ -214,14 +326,16 @@ function drawXY() {
     for (let gy = 0; gy < bins; gy++) for (let gx = 0; gx < bins; gx++) if (smooth[gy][gx] / total > 1e-6) cells.push({ x:xd[0] + (gx + .5) / bins * (xd[1] - xd[0]), y:yd[0] + (gy + .5) / bins * (yd[1] - yd[0]), m:smooth[gy][gx] / total });
     sets = contours(cells);
   }
-  const sx = [], sy = [], order = idx.slice().sort((a, b) => wA[b] - wA[a]);
+  const sx = [], sy = [], order = byDrawOrder(idx, wA), shown = [];
   const colors = profileColors();
   for (const i of order) {
     const px = plot.px(xs[i]), py = plot.py(ys[i]);
-    sx.push(px); sy.push(py);
-    ctx.globalAlpha = .45;
+    if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) continue;
+    sx.push(px); sy.push(py); shown.push(i);
+    const on = pointStyle(i, ctx, .45);
     ctx.fillStyle = state.color === 'share' ? shareColor(evX.shareA[i], dark() ? 'dark' : 'light') : (store.profile[i] === 255 ? c.muted : colors[store.profile[i]]);
     ctx.beginPath(); ctx.arc(px, py, 1.3 + 4.2 * Math.sqrt(Math.min(1, wA[i] / wmax)), 0, 6.2832); ctx.fill();
+    if (on) { ctx.strokeStyle = c.text; ctx.lineWidth = .8; ctx.stroke(); }
   }
   ctx.globalAlpha = 1;
   if (state.contours && sets) {
@@ -237,8 +351,9 @@ function drawXY() {
   }
   ctx.restore();
   const outside = idx.filter(i => xs[i] < xd[0] || xs[i] > xd[1] || ys[i] < yd[0] || ys[i] > yd[1]).length;
-  xyHit = { sx, sy, idx:order };
-  $('#sh-xy-stats').innerHTML = fit ? `${state.weighted ? 'Vote-weighted' : 'Unweighted'} correlation <strong>${fit.r.toFixed(2)}</strong> · least-squares slope <strong>${fit.slope.toFixed(2)}</strong> (the line shown) · ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${state.contours ? ' · contours enclose 50%, 80% and 95% of the weight (smoothed bins)' : ''}${outside ? ` · ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}` : '';
+  xyHit = { sx, sy, idx:shown, plot };
+  drawFocus(ctx, xyHit);
+  $('#sh-xy-stats').innerHTML = fit ? `${state.weighted ? 'Vote-weighted' : 'Unweighted'} correlation <strong>${fit.r.toFixed(2)}</strong> · least-squares slope <strong>${fit.slope.toFixed(2)}</strong> (the line shown) · ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${state.contours ? ' · contours enclose 50%, 80% and 95% of the weight (smoothed bins)' : ''}${outside ? ` · ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}${selectionText(idx, xs, ys, weights)}.${restrictText()}` : '';
   attachHover(canvas, () => xyHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, evX)}<br>${escapeHTML(raceOf(state.y2from).label)} to ${escapeHTML(raceOf(state.y2to).label)}: ${points(evY.shift[i])}`, i => openPlace(store.level, i));
   const legend = $('#sh-xy-legend');
   legend.innerHTML = state.color === 'share' ? `<span>Color: Democratic share in ${escapeHTML(raceOf(state.from).label)}</span><span class="sh-ramp"></span><span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>` : `${profileNames.map((key, k) => `<span><i style="background:${colors[k]}"></i>${profileLabels[key]}</span>`).join('')}<span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>`;
@@ -254,14 +369,15 @@ function drawDemog() {
   const log = kind === 'log';
   const idx = [];
   for (let i = 0; i < store.n; i++) if (Number.isFinite(ys[i]) && Number.isFinite(raw[i]) && (!log || raw[i] > 0)) idx.push(i);
+  idx.splice(0, idx.length, ...restrict(idx));
   const { ctx, width, height } = setup(canvas);
   if (idx.length < 3) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText('Too few places have this measure and a shift under the current filters.', width / 2, height / 2); demogHit = null; $('#sh-demog-stats').textContent = ''; return; }
   const xs = log ? Float64Array.from(raw, v => v > 0 ? Math.log(v) : NaN) : raw;
   const bounded = kind === 'share';
   const xv = idx.map(i => bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i]);
-  const xd = bounded ? domainOf(xv, { lowQ:0, highQ:1 }) : domainOf(xv.slice(), { lowQ:.003, highQ:.997 });
-  if (bounded) { xd[0] = Math.max(0, xd[0]); xd[1] = Math.min(1, xd[1]); }
-  const yd = domainOf(idx.map(i => ys[i]), { zero:true });
+  const xd0 = bounded ? domainOf(xv, { lowQ:0, highQ:1 }) : domainOf(xv.slice(), { lowQ:.003, highQ:.997 });
+  if (bounded) { xd0[0] = Math.max(0, xd0[0]); xd0[1] = Math.min(1, xd0[1]); }
+  const [xd, yd] = domainFor(xd0, domainOf(idx.map(i => ys[i]), { zero:true }));
   const plot = makePlot(width, height, xd, yd);
   const xTicks = log ? logTicks(Math.exp(xd[0]), Math.exp(xd[1])).map(Math.log) : scaleLinear().domain(xd).ticks(width < 360 ? 4 : 6);
   const fmtX = key === 'med_income' ? v => `$${Math.round(Math.exp(v) / 1000)}k` : key === 'density' ? v => { const d = Math.exp(v); return d >= 1000 ? `${Math.round(d / 1000)}k` : String(Math.round(d)); } : v => `${Math.round(100 * v)}%`;
@@ -269,14 +385,15 @@ function drawDemog() {
   const wA = tpOf(store, state.from), weights = state.weighted ? wA : null, colors = profileColors();
   const sorted = idx.map(i => wA[i]).sort((a, b) => a - b), wmax = quantile(sorted, .98) || 1;
   ctx.save(); ctx.beginPath(); ctx.rect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top); ctx.clip();
-  const sx = [], sy = [], order = idx.slice().sort((a, b) => wA[b] - wA[a]);
+  const sx = [], sy = [], order = byDrawOrder(idx, wA), shown = [];
   for (const i of order) {
     const xv2 = bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i];
     const px = plot.px(xv2), py = plot.py(ys[i]), r = 1.3 + 3.6 * Math.sqrt(Math.min(1, wA[i] / wmax));
-    sx.push(px); sy.push(py);
+    if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) continue;
+    sx.push(px); sy.push(py); shown.push(i);
     const color = store.profile[i] === 255 ? c.muted : colors[store.profile[i]];
-    if (store.imputed[i]) { ctx.globalAlpha = .8; ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, py, r + .5, 0, 6.2832); ctx.stroke(); }
-    else { ctx.globalAlpha = .42; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.2832); ctx.fill(); }
+    if (store.imputed[i]) { pointStyle(i, ctx, .8); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, py, r + .5, 0, 6.2832); ctx.stroke(); }
+    else { const on = pointStyle(i, ctx, .42); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.2832); ctx.fill(); if (on) { ctx.strokeStyle = c.text; ctx.lineWidth = .8; ctx.stroke(); } }
   }
   ctx.globalAlpha = 1;
   const xt = new Float64Array(store.n); for (const i of idx) xt[i] = bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i];
@@ -286,10 +403,11 @@ function drawDemog() {
   ctx.stroke();
   for (const d of deciles) { ctx.fillStyle = c.panel; ctx.strokeStyle = c.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(plot.px(d.x), plot.py(d.y), 3.6, 0, 6.2832); ctx.fill(); ctx.stroke(); }
   ctx.restore();
-  demogHit = { sx, sy, idx:order };
+  demogHit = { sx, sy, idx:shown, plot };
+  drawFocus(ctx, demogHit);
   const imputed = idx.filter(i => store.imputed[i]).length;
   const outside = idx.filter(i => xt[i] < xd[0] || xt[i] > xd[1] || ys[i] < yd[0] || ys[i] > yd[1]).length;
-  $('#sh-demog-stats').textContent = `Line: ${state.weighted ? 'vote-weighted' : 'unweighted'} mean shift within deciles of the x measure, each decile holding a tenth of the ${state.weighted ? 'two-party votes' : 'places'}. ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${imputed ? `; ${imputed.toLocaleString('en-US')} with estimated demographics ${imputed === 1 ? 'is' : 'are'} hollow` : ''}${outside ? `; ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}.`;
+  $('#sh-demog-stats').textContent = `Line: ${state.weighted ? 'vote-weighted' : 'unweighted'} mean shift within deciles of the x measure, each decile holding a tenth of the ${state.weighted ? 'two-party votes' : 'places'}. ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${imputed ? `; ${imputed.toLocaleString('en-US')} with estimated demographics ${imputed === 1 ? 'is' : 'are'} hollow` : ''}${outside ? `; ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}${selectionText(idx, xt, ys, weights)}.${restrictText()}`;
   attachHover(canvas, () => demogHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, ev)}<br>${escapeHTML(label)}: ${key === 'med_income' ? `$${count(raw[i])}` : key === 'density' ? `${count(raw[i])} per sq mi` : pct(Math.min(1, Math.max(0, raw[i])))}${store.imputed[i] ? '<br>Demographics estimated from neighboring precincts.' : ''}`, i => openPlace(store.level, i));
 }
 
@@ -306,8 +424,9 @@ async function tableRows() {
   const ev = evaluate(store, state.from, state.to);
   let idx = [];
   for (let i = 0; i < store.n; i++) if (ev.status[i] === STATUS.ok) idx.push(i);
-  let boxes = null, view = null;
-  if (tableState.view) { boxes = await boxesFor(store.level); view = viewBounds(); }
+  let view = null;
+  if (link.area) idx = restrict(idx);
+  if (tableState.view) view = viewBounds();
   if (boxes && view) idx = idx.filter(i => { const b = boxes[store.ids[i]]; return !b || (b[0] <= view[2] && b[2] >= view[0] && b[1] <= view[3] && b[3] >= view[1]); });
   const cell = (i, key) => key === 'place' ? placeName(i) : key === 'county' ? counties.get(store.county[i]) || '' : key === 'profile' ? (store.profile[i] === 255 ? '' : profileLabels[profileNames[store.profile[i]]])
     : key === 'shareA' ? ev.shareA[i] : key === 'shareB' ? ev.shareB[i] : key === 'shift' ? ev.shift[i] : key === 'rshift' ? ev.shift[i] - ev.stateShift : key === 'tpA' ? ev.tpA[i] : key === 'tpB' ? ev.tpB[i] : key === 'ratio' ? ev.ratio[i] : ev.net[i];
@@ -352,7 +471,8 @@ let drawing = 0;
 async function redraw() {
   if (panel.hidden || !store || store.level !== state.level) return;
   const request = ++drawing;
-  syncControls();
+  syncControls(); syncTools();
+  for (const tip of panel.querySelectorAll('.sh-canvas .chart-tooltip')) tip.hidden = true;
   const ev = evaluate(store, state.from, state.to);
   renderHeader(ev, levelInfo[store.level].noun);
   renderSummary(ev);
@@ -364,7 +484,8 @@ async function load() {
   loading = (async () => {
     status.hidden = false; status.textContent = 'Loading precinct data…';
     try {
-      [store, counties] = await Promise.all([ensureStore(state.level), countyNames()]);
+      [store, counties, boxes] = await Promise.all([ensureStore(state.level), countyNames(), boxesFor(state.level).catch(() => null)]);
+      indexOf = new Map(Array.from(store.ids, (id, i) => [String(id), i]));
       const names = [...counties.entries()].sort((a, b) => a[1].localeCompare(b[1]));
       $('#sh-county-list').replaceChildren(...names.map(([, name]) => new Option(name)));
       status.hidden = true;
@@ -375,7 +496,8 @@ async function load() {
   return loading;
 }
 async function changeLevel() {
-  loading = null; store = null;
+  loading = null; store = null; boxes = null; indexOf = null;
+  link.sel = null; link.focus = -1; link.zoom = null; setBrush(null, null);
   await load();
 }
 function init() {
@@ -411,8 +533,31 @@ function init() {
   $('#sh-view-table').addEventListener('keydown', event => { const row = event.target.closest('tr[data-i]'); if (row && event.key === 'Enter') openPlace(store.level, +row.dataset.i); });
   $('#sh-inview').addEventListener('change', e => { tableState.view = e.target.checked; tableState.page = 0; drawTable(); });
   $('#sh-csv').addEventListener('click', downloadCSV);
+  for (const button of panel.querySelectorAll('[data-sh-tool]')) button.addEventListener('click', () => { link.tool = button.dataset.shTool; syncTools(); });
+  $('#sh-zoom-reset').addEventListener('click', () => { link.zoom = null; redraw(); });
+  $('#sh-sel-clear').addEventListener('click', () => setSelection(null));
+  $('#sh-restrict').addEventListener('change', e => { link.inView = e.target.checked; redraw(); });
+  $('#sh-draw').addEventListener('click', () => {
+    $('#sh-draw').textContent = 'Drawing: click corners, double-click to finish';
+    startDraw(ring => { $('#sh-draw').textContent = 'Draw area on map'; link.area = ring; redraw(); });
+  });
+  $('#sh-area-clear').addEventListener('click', () => { cancelDraw(); link.area = null; setArea(null); redraw(); });
+  // A place clicked on the map is ringed on the chart and its tooltip opened, when the chart shows that level.
+  window.addEventListener('map-place-click', ({ detail }) => {
+    if (panel.hidden || !store || !indexOf || detail.level !== store.level || state.view === 'table') return;
+    const i = indexOf.get(detail.id);
+    if (i === undefined) return;
+    link.focus = i;
+    let hit = state.view === 'xy' ? xyHit : demogHit;
+    if (link.zoom && hit && !hit.idx.includes(i)) link.zoom = null;
+    redraw();
+    hit = state.view === 'xy' ? xyHit : demogHit;
+    const canvas = $(state.view === 'xy' ? '#sh-xy-canvas' : '#sh-demog-canvas'), k = hit ? hit.idx.indexOf(i) : -1;
+    if (k >= 0) canvas._tip(k, hit);
+    else { const tip = canvas.parentElement.querySelector('.chart-tooltip'); placeTip(canvas, tip, 60, 30, `<strong>${escapeHTML(placeName(i))}</strong>Not on this chart: it is missing a race or excluded by the filters.`); }
+  });
   window.addEventListener('compare-change', () => { tableState.page = 0; if (!panel.hidden) { load(); redraw(); } });
-  window.addEventListener('view-change', () => { if (!panel.hidden && state.view === 'table' && tableState.view) drawTable(); });
+  window.addEventListener('view-change', () => { if (panel.hidden) return; if (state.view === 'table' && tableState.view) drawTable(); else if (state.view !== 'table' && link.inView) redraw(); });
   window.addEventListener('display-change', () => redraw());
   window.addEventListener('panel-layout', () => { if (!panel.hidden) { load(); redraw(); } });
   new ResizeObserver(() => { if (!panel.hidden) redraw(); }).observe($('#sh-views'));

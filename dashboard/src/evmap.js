@@ -13,7 +13,7 @@ export const evMeasures = [
 ];
 export const EV_KEY = 'evmap';
 const params = new URLSearchParams(location.search);
-export const ev = { on:params.has('ev'), measure:evMeasures.some(m => m.key === params.get('ev')) ? params.get('ev') : 'pct_registered', date:params.get('evd') || null };
+export const ev = { on:params.has('ev'), measure:evMeasures.some(m => m.key === params.get('ev')) ? params.get('ev') : 'pct_registered', date:params.get('evd') || null, spal:params.get('evs') || 'teal', dpal:params.get('evdp') || 'redblue' };
 const num = v => v === '' || v == null || v === 'NA' ? NaN : +v;
 const measureOf = key => evMeasures.find(m => m.key === key) || evMeasures[0];
 const quantile = (sorted, q) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))] : NaN;
@@ -102,11 +102,12 @@ const select = box?.querySelector('#ev-measure');
 const slider = box?.querySelector('#ev-date');
 const dateLabel = box?.querySelector('#ev-date-label');
 const play = box?.querySelector('#ev-play');
+export const evWriteURL = () => writeURL();
 let timer = null;
 const emit = () => window.dispatchEvent(new Event('evmap-change'));
 function writeURL() {
   const url = new URL(location.href);
-  if (ev.on) { url.searchParams.set('ev', ev.measure); if (ev.date) url.searchParams.set('evd', ev.date); } else { url.searchParams.delete('ev'); url.searchParams.delete('evd'); }
+  if (ev.on) { url.searchParams.set('ev', ev.measure); if (ev.date) url.searchParams.set('evd', ev.date); url.searchParams.set('evs', ev.spal); url.searchParams.set('evdp', ev.dpal); } else for (const key of ['ev', 'evd', 'evs', 'evdp']) url.searchParams.delete(key);
   history.replaceState(null, '', url);
 }
 function syncDateControl(data) {
