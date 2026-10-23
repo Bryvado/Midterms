@@ -58,6 +58,12 @@
                 <select id="measure" aria-label="Map measure"><option value="mean">Projected share</option><option value="margin">Projected margin</option><option value="brown_share">Brown share</option><option value="result_confidence">Result confidence</option><option value="vote_density">Net vote density</option><option value="p_talarico">Chance Talarico leads</option></select>
               </label>
             </div>
+            <label class="check ev-toggle"><input id="ev-toggle" type="checkbox"> Early vote</label>
+            <div id="ev-controls" class="ev-controls" hidden>
+              <label>Measure <select id="ev-measure"></select></label>
+              <div class="ev-date-row"><button type="button" id="ev-play" class="ev-play" aria-pressed="false">Play</button><input id="ev-date" type="range" min="0" max="0" step="1" value="0" aria-label="Early-voting date"><span id="ev-date-label" class="ev-date-label"></span></div>
+              <p class="note ev-note">Early vote is published for precincts, PUMAs and counties.</p>
+            </div>
             <div class="compare-group" id="compare-group" role="group" aria-label="Compare elections" hidden>
               <span class="compare-title">Compare elections</span>
               <label>From <select id="cmp-from"></select></label>
@@ -141,6 +147,8 @@
             <p id="scatter-caption" class="chart-caption">Loading simulations…</p>
             <div class="scatter-controls">
               <select id="scatter-scenario" aria-label="Scenario"></select>
+              <select id="scatter-density" aria-label="Density display"></select>
+              <label class="check sc-points-toggle"><input id="scatter-points" type="checkbox" checked> Show points</label>
               <span class="range-switch" role="group" aria-label="Scatter view"><button type="button" data-scatter-view="votes" aria-pressed="true">Votes</button><button type="button" data-scatter-view="turnout_share" aria-pressed="false">Turnout vs margin</button></span>
             </div>
             <p id="scatter-chance" class="chart-caption"></p>

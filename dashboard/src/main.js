@@ -8,6 +8,7 @@ import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit
 import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
 import { initEarlyVote, earlyMeasures, isEarlyMeasure } from './early.js';
+import { ev, EV_KEY, evLevels } from './evmap.js';
 import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
 import './shifts.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
@@ -207,3 +208,14 @@ await runMapUpdate('Loading forecast map…', async signal => {
     $('#trend-chart').innerHTML = `<p class="note">${escapeHTML(error.message)}</p>`;
   }
 });
+
+// Early-vote mode swaps the map measure; leaving it reapplies whatever Show selects.
+window.addEventListener('evmap-mode', ({ detail }) => runMapUpdate(detail.on ? 'Loading early vote…' : 'Shading map…', async signal => {
+  if (detail.on) {
+    if (!evLevels.includes(currentUnit())) await setUnit('county', signal);
+    await setMeasure(EV_KEY, undefined, signal);
+    $('#map-message').hidden = true;
+  } else await applyMeasure(measure.value, undefined, signal);
+}));
+// A shared link with early vote on enters the mode once the initial map has loaded.
+if (ev.on) window.dispatchEvent(new CustomEvent('evmap-mode', { detail:{ on:true } }));
