@@ -2,13 +2,12 @@ import { runMapUpdate } from './map-loading.js';
 import './style.css';
 import './layout.js';
 import { initAppearance } from './appearance.js';
+import './evtab.js';
 import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
 import { csv, pct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
-import { initEarlyVote, earlyMeasures, isEarlyMeasure } from './early.js';
-import { ev, EV_KEY, evLevels } from './evmap.js';
 import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
 import './shifts.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
@@ -195,12 +194,6 @@ await runMapUpdate('Loading forecast map…', async signal => {
     setBaselines(shifts);
     initChart(track,ledger,headline,shifts);
     loadScenarios(headline);
-    initEarlyVote().then(data => {
-      if (!data) return;
-      optionGroup('Early vote (county level)', earlyMeasures.map(metric => [metric.key, metric.label]));
-      const requested = initialMeasure();
-      if (isEarlyMeasure(requested) && measure.value !== requested) { measure.value = requested; measure.dispatchEvent(new Event('change')); }
-    });
   } catch (error) {
     if (signal.aborted) throw error;
     console.error(error);
@@ -209,13 +202,3 @@ await runMapUpdate('Loading forecast map…', async signal => {
   }
 });
 
-// Early-vote mode swaps the map measure; leaving it reapplies whatever Show selects.
-window.addEventListener('evmap-mode', ({ detail }) => runMapUpdate(detail.on ? 'Loading early vote…' : 'Shading map…', async signal => {
-  if (detail.on) {
-    if (!evLevels.includes(currentUnit())) await setUnit('county', signal);
-    await setMeasure(EV_KEY, undefined, signal);
-    $('#map-message').hidden = true;
-  } else await applyMeasure(measure.value, undefined, signal);
-}));
-// A shared link with early vote on enters the mode once the initial map has loaded.
-if (ev.on) window.dispatchEvent(new CustomEvent('evmap-mode', { detail:{ on:true } }));

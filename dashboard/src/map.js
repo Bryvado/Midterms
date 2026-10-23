@@ -3,8 +3,6 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
-import { earlyMeasures, isEarlyMeasure, earlyValues } from './early.js';
-import { ev, evWriteURL, EV_KEY, evLevels, ensureEv, evColorData, evTooltip, evTitle, withheldText, formatEv } from './evmap.js';
 import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -123,10 +121,7 @@ function saveDisplay() {
 let measureRequest = 0;
 let reference = { stateShare:null, baselines:[] };
 let viewRange = null;
-const metricKinds = new Map([...placeMeasures.map(metric => [metric.key, metric.kind]), ...earlyMeasures.map(metric => [metric.key, 'bounded'])]);
-// Early-vote measures are county-level only and are not tile columns: the fill looks each county up by region_id.
-let earlyLookup = {};
-const earlyCountyOnly = key => isEarlyMeasure(key) && unit !== 'county';
+const metricKinds = new Map(placeMeasures.map(metric => [metric.key, metric.kind]));
 export const currentUnit = () => unit;
 const stateValues = new Map();
 // Comparison values depend on the pair and filters, so their cache key carries the comparison version.
@@ -285,12 +280,6 @@ function format(key, v) {
 
 async function loadStateValues(key, level) {
   const id = svKey(key, level);
-  if (isEarlyMeasure(key)) {
-    const values = Object.values(await earlyValues(key)).sort((a, b) => a - b);
-    if (!values.length) throw new Error('Early-vote data is not published.');
-    stateValues.set(id, values);
-    return values;
-  }
   if (stateValues.has(id)) return stateValues.get(id);
   if (isCompareMeasure(key)) {
     const values = metricValues(await ensureStore(level), key.slice(4));
@@ -320,7 +309,6 @@ function viewValues() {
     }
     return values.sort((a,b) => a-b);
   }
-  if (isEarlyMeasure(measure)) return unit === 'county' ? [...new Set(map.queryRenderedFeatures({ layers:[layerName(unit)] }).map(f => String(f.properties.region_id)))].map(id => earlyLookup[id]).filter(Number.isFinite).sort((a, b) => a - b) : [];
   const column = sourceKey(measure), seen = new Set(), values = [];
   const bounded = metricKinds.get(measure) === 'bounded';
   for (const f of map.queryRenderedFeatures({ layers:[layerName(unit)] })) {
@@ -437,62 +425,18 @@ function compareColorExpression(key, level) {
   return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), paint];
 }
 
-// Early-vote mode: values joined at runtime by region_id for the current date; fixed ranges per measure and level.
-const evWithheldFill = () => theme === 'dark' ? '#5b6670' : '#dde2e2';
-// Early vote keeps its own palette choice, separate from the forecast map's Display settings.
-function evRamp(diverging, surfaceTheme = theme) {
-  const palettes = diverging ? divergingPalettes : sequentialPalettes, key = diverging ? ev.dpal : ev.spal;
-  return (palettes[key] || palettes[diverging ? 'redblue' : 'teal'])[surfaceTheme];
-}
-function syncEvPalette() {
-  const select = document.querySelector('#ev-palette');
-  if (!select) return;
-  const d = evColorData(unit), diverging = d ? d.diverging : false;
-  const palettes = diverging ? divergingPalettes : sequentialPalettes;
-  setOptions(select, Object.entries(palettes).filter(([k]) => k !== 'custom').map(([k, v]) => [k, v.label]), diverging ? ev.dpal : ev.spal);
-}
-document.querySelector('#ev-palette')?.addEventListener('change', e => {
-  const d = evColorData(unit);
-  if (d?.diverging) ev.dpal = e.target.value; else ev.spal = e.target.value;
-  evWriteURL(); paint();
-});
-function evColorExpression(level) {
-  const d = evLevels.includes(level) ? evColorData(level) : null;
-  if (!d) return '#afb8b8';
-  const type = d.diverging ? 'share' : 'seq', colors = evRamp(d.diverging), [lo, hi] = d.range;
-  const id = ['to-string', ['get', 'region_id']], values = ['literal', d.values];
-  const stops = Array.from({ length:9 }, (_, i) => i / 8).flatMap(t => [lo + t * (hi - lo), mapColorAt(colors, t, type)]);
-  const fill = ['interpolate', ['linear'], ['to-number', ['get', id, values]], ...stops];
-  const withheld = d.withheld.length ? ['match', id, d.withheld, evWithheldFill(), '#afb8b8'] : '#afb8b8';
-  return ['case', ['has', id, values], fill, withheld];
-}
-function evHatch() {
-  if (!map || map.hasImage('ev-hatch')) return;
-  const size = 8, canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = 'rgba(95,108,114,.55)'; ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(size, 0); ctx.moveTo(-2, 2); ctx.lineTo(2, -2); ctx.moveTo(size - 2, size + 2); ctx.lineTo(size + 2, size - 2); ctx.stroke();
-  map.addImage('ev-hatch', ctx.getImageData(0, 0, size, size));
-}
-function evHatchFilter(level) {
-  const d = measure === EV_KEY && level === unit && evLevels.includes(level) ? evColorData(level) : null;
-  return ['match', ['to-string', ['get', 'region_id']], d?.withheld.length ? d.withheld : ['__none__'], true, false];
-}
 function colorExpression(key, level) {
-  if (key === EV_KEY) return evColorExpression(level);
   if (isCompareMeasure(key)) return compareColorExpression(key, level);
-  if (isEarlyMeasure(key) && level !== 'county') return '#afb8b8';
   const s = scale(key, level);
   const column = sourceKey(key);
-  const early = isEarlyMeasure(key), id = ['to-string', ['get', 'region_id']];
-  const raw = early ? ['to-number', ['get', id, ['literal', earlyLookup]]] : ['to-number', ['get', column]];
+  const raw = ['to-number', ['get', column]];
   let value = metricKinds.get(key) === 'bounded' ? ['min', 1, ['max', 0, raw]] : raw;
   const tx = s.tx || (v => v);
   if (s.log) value = ['ln', ['+', 1, ['max', 0, value]]];
   const paint = s.kind === 'cont'
     ? ['interpolate', ['linear'], value, ...s.stops.flatMap((stop, i) => [tx(stop), s.colors[i]])]
     : ['step', value, s.colors[0], ...s.edges.flatMap((edge, i) => [tx(edge), s.colors[i + 1]])];
-  return ['case', early ? ['has', id, ['literal', earlyLookup]] : ['has', column], paint, '#afb8b8'];
+  return ['case', ['has', column], paint, '#afb8b8'];
 }
 
 function legendTitle() {
@@ -515,21 +459,7 @@ function compareLegendExtras() {
   return html + notes.map(text => `<div class="legend-note">${escapeHTML(text)}</div>`).join('');
 }
 
-function drawEvLegend() {
-  syncEvPalette();
-  const d = evLevels.includes(unit) ? evColorData(unit) : null;
-  if (!d) { legend.innerHTML = `<div class="legend-title">Early vote</div><div class="legend-note">Early vote is published for precincts, PUMAs and counties.</div>`; return; }
-  const type = d.diverging ? 'share' : 'seq', colors = evRamp(d.diverging), [lo, hi] = d.range;
-  const gradient = Array.from({ length:9 }, (_, i) => `${mapColorAt(colors, i / 8, type)} ${(100 * i / 8).toFixed(1)}%`).join(',');
-  const fmt = v => formatEv(d.measure.kind === 'count' ? 'count' : 'share', v);
-  const ends = d.diverging ? '<div class="legend-ends"><span>More Republican</span><span>More Democratic</span></div>' : '';
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(evTitle())}</div><div class="legend-ramp" style="background:linear-gradient(90deg,${gradient})"></div>
-    <div class="legend-edges"><span style="left:0.00%">${escapeHTML(fmt(lo))}</span><span style="left:50%">${escapeHTML(fmt((lo + hi) / 2))}</span><span style="left:100.00%">${escapeHTML(fmt(hi))}${d.diverging ? '' : '+'}</span></div>${ends}
-    <div class="legend-nodata"><span class="ev-hatch-swatch" style="background-color:${evWithheldFill()}"></span>${escapeHTML(withheldText())}</div><div class="legend-nodata"><span></span>No data</div>
-    <div class="legend-note">${d.diverging ? 'Centered on 50%; the range is symmetric and fixed across dates.' : 'Range fixed across dates so the slider shows real change; values above it saturate.'}</div>`;
-}
 function drawLegend() {
-  if (measure === EV_KEY) { drawEvLegend(); syncControls(); return; }
   let s;
   try { s = scale(measure, unit); } catch { return; }
   let body;
@@ -548,7 +478,6 @@ function drawLegend() {
   const endNames = s.type === 'shift' && isCompareMeasure(measure) ? ['Less Democratic', 'More Democratic'] : s.type === 'ratio' ? ['Fewer votes', 'More votes'] : s.type === 'netvotes' ? ['Net Republican', 'Net Democratic'] : ['Paxton', 'Talarico'];
   const ends = isDiverging(s.type) && s.kind !== 'ratings' ? `<div class="legend-ends"><span>${endNames[0]}</span><span>${endNames[1]}</span></div>` : '';
   const lines = Object.entries(overlayStyle).filter(([level]) => settings[level === 'county' ? 'oc' : 'od'] === '1').map(([, style]) => `<div class="legend-line"><span style="border-top:${Math.max(2, style.width)}px ${style.dash ? 'dashed' : 'solid'} ${style[theme]}"></span>${escapeHTML(style.label)}</div>`).join('');
-  if (earlyCountyOnly(measure)) { legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div><div class="legend-note">County-level data. Switch to Counties to shade the map by this measure.</div>`; syncControls(); return; }
   legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}${isCompareMeasure(measure) ? compareLegendExtras() : '<div class="legend-nodata"><span></span>No data</div>'}${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
   syncControls();
 }
@@ -565,7 +494,7 @@ function writeURL() {
     return pairs.length ? `${key}:${pairs.join(',')}` : '';
   }).filter(Boolean);
   if (entries.length) url.searchParams.set('sc', entries.join(';')); else url.searchParams.delete('sc');
-  if (measure !== 'mean' && measure !== EV_KEY) url.searchParams.set('m', measure); else if (measure !== EV_KEY) url.searchParams.delete('m');
+  if (measure !== 'mean') url.searchParams.set('m', measure); else url.searchParams.delete('m');
   if (unit !== 'county') url.searchParams.set('u', unit); else url.searchParams.delete('u');
   url.searchParams.set('ds', JSON.stringify({levels:Object.fromEntries(levelSettings)}));
   history.replaceState(null, '', url);
@@ -624,7 +553,6 @@ function syncControls() {
 }
 
 async function ensureValues() {
-  if (measure === EV_KEY) { await ensureEv(unit); return; }
   if (isCompareMeasure(measure)) await ensureStore(unit);
   const { s } = current();
   if ((['view','state'].includes(s.r) && s.b !== 'rat') || s.b in classificationMethods) await loadStateValues(measure, unit);
@@ -643,10 +571,6 @@ function paint() {
     map.setPaintProperty(`border-${level}`, 'line-width', +settings.bw);
     map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
   }
-  for (const level of levelKeys) if (map.getLayer(`evhatch-${level}`)) {
-    map.setLayoutProperty(`evhatch-${level}`, 'visibility', measure === EV_KEY && level === unit ? 'visible' : 'none');
-    map.setFilter(`evhatch-${level}`, evHatchFilter(level));
-  }
   for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
 
@@ -659,7 +583,6 @@ async function applyDisplay(signal) {
 
 // Fit to view: recompute the 5th–95th percentile of rendered areas once the map stops moving.
 function refitView() {
-  if (measure === EV_KEY) return;
   const { opt, s } = current();
   if (s.r !== 'view' || s.b === 'rat' || s.b in classificationMethods || !map) return;
   const values = viewValues();
@@ -726,7 +649,6 @@ function compareTooltip(props) {
 }
 
 function valueText(props) {
-  if (isEarlyMeasure(measure)) { if (unit !== 'county') return 'county-level data; switch to Counties'; const v = earlyLookup[String(props.region_id)]; return Number.isFinite(v) ? pct(v) : 'no data'; }
   const v = props[sourceKey(measure)];
   const kind = metricKinds.get(measure);
   if (v === '' || v == null) return 'no data';
@@ -742,8 +664,7 @@ function valueText(props) {
 function showTooltip(event, props) {
   const label = props.region_label || props.region_id || 'Selected place';
   const showing = document.querySelector('#measure').selectedOptions[0].textContent;
-  if (measure === EV_KEY) tooltip.innerHTML = evLevels.includes(unit) ? evTooltip(props, unit) : `<strong>${escapeHTML(label)}</strong>Early vote is published for precincts, PUMAs and counties.`;
-  else if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
+  if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
   else tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
   const rect = pane.getBoundingClientRect();
   let x = event.originalEvent.clientX - rect.left + 13;
@@ -829,7 +750,6 @@ export async function setMeasure(next, meta, signal) {
   measure = next;
   if (isCompareMeasure(next)) setCompareMetric(next.slice(4));
   if (meta) metricKinds.set(next, meta.kind);
-  if (isEarlyMeasure(next)) earlyLookup = await earlyValues(next);
   try { await ensureValues(); } catch (error) { if (request === measureRequest) throw error; }
   signal?.throwIfAborted();
   if (request !== measureRequest) return;
@@ -929,8 +849,6 @@ export function initMap(select) {
       map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':'rgba(0,0,0,0)' } }, labels);
     }
     for (const level of levelKeys) map.addLayer({id:`border-${level}`,type:'line',source:level,'source-layer':'regions',layout:{visibility:levelVisible(level)?'visible':'none'},paint:{'line-color':outline(),'line-width':+settings.bw}},labels);
-    evHatch();
-    for (const level of levelKeys) if (!map.getLayer(`evhatch-${level}`)) map.addLayer({ id:`evhatch-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:measure === EV_KEY && level === unit ? 'visible' : 'none' }, filter:evHatchFilter(level), paint:{ 'fill-pattern':'ev-hatch' } }, labels);
     for (const [level, style] of Object.entries(overlayStyle)) {
       if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
@@ -982,8 +900,6 @@ export function initMap(select) {
   return map;
 }
 
-// Date or measure changes in early-vote mode repaint from data already loaded for this level.
-window.addEventListener('evmap-change', () => { if (measure === EV_KEY) { tooltip.hidden = true; paint(); } });
 
 // Linked selection from the Precinct shifts chart: selected places get a highlight fill and outline at their level.
 const brush = { level:null, ids:[] };
@@ -1058,3 +974,6 @@ function finishDraw() {
   const pts = drawing.pts.filter((p, i, all) => !i || Math.hypot(p[0] - all[i - 1][0], p[1] - all[i - 1][1]) > 1e-9);
   endDraw(pts.length >= 3 ? pts : null);
 }
+
+// The Early vote tab runs its own map; it shares the basemap, tiles, palettes and theme with this one.
+export const mapBasics = () => ({ style:styles[basemap], theme, bounds, tileURL, tiles:Object.fromEntries(levelKeys.map(level => [level, levels[level].tiles])), sequentialPalettes, divergingPalettes, colorAt:mapColorAt, labels:target => applyMapLabels(target, theme) });
