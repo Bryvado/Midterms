@@ -685,3 +685,14 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] .evt-dot.paxton{fill:#ef8a7f}:root[data-layout=dark] .evt-dot.talarico{fill:#5fcaf2}
 :root[data-layout=dark] :is(.evt-ring,.evt-ci){stroke:#fff}
 :root[data-layout=dark] .evt-table tbody tr.active td{background:#4a4232}
+.evt-display{position:relative}
+.evt-display summary{cursor:pointer;font-size:12px;font-weight:700;color:#315e70;padding:6px 10px;border:1px solid #cfd9d9;border-radius:5px;background:#fff;list-style:none}
+.evt-display summary::-webkit-details-marker{display:none}
+.evt-display-body{position:absolute;z-index:6;top:calc(100% + 4px);left:0;width:260px;display:grid;gap:8px;padding:10px 12px;background:#fff;border:1px solid #dde5e4;border-radius:7px;box-shadow:0 6px 20px rgba(23,41,43,.18)}
+.evt-display-body label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:11.5px;font-weight:700;color:#455c64}
+.evt-display-body label input[type=range]{grid-column:1/-1;width:100%}
+.evt-display-body label.check{display:flex;align-items:center;gap:6px}
+.evt-display-body output{font-weight:600;font-variant-numeric:tabular-nums}
+.evt-display-body .text-button{justify-self:start;padding:2px 0}
+:root[data-layout=dark] .evt-display summary,:root[data-layout=dark] .evt-display-body{background:var(--panel);border-color:var(--border);color:var(--text)}
+:root[data-layout=dark] .evt-display-body label{color:var(--text)}
