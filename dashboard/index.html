@@ -229,6 +229,15 @@
           <div class="segmented" role="group" aria-label="Early-vote geography"><button type="button" data-evt-level="precinct">Precincts</button><button type="button" data-evt-level="puma">PUMAs</button><button type="button" data-evt-level="county">Counties</button></div>
           <label class="evt-field">Measure <select id="evt-measure"></select></label>
           <label class="evt-field">Colors <select id="evt-palette"></select></label>
+          <details class="evt-display"><summary>Display</summary>
+            <div class="evt-display-body">
+              <label>Fill opacity <input id="evt-op" type="range" min="10" max="100" step="5"><output id="evt-op-v"></output></label>
+              <label class="check"><input id="evt-ln" type="checkbox"> Boundary lines</label>
+              <label>Line width <input id="evt-bw" type="range" min="0" max="3" step="0.1"><output id="evt-bw-v"></output></label>
+              <label>Line opacity <input id="evt-ol" type="range" min="5" max="100" step="5"><output id="evt-ol-v"></output></label>
+              <button type="button" class="text-button" id="evt-display-reset">Reset</button>
+            </div>
+          </details>
           <div class="evt-date"><button type="button" id="evt-play" aria-pressed="false">Play</button><input id="evt-date" type="range" min="0" max="0" step="1" value="0" aria-label="Early-voting date"><span id="evt-date-label"></span></div>
         </div>
         <div id="evt-summary" class="evt-summary" aria-live="polite"></div>

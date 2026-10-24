@@ -61,6 +61,13 @@ function load(level) {
 
 const $ = selector => document.querySelector(selector);
 const tab = $('#ev-tab');
+// Fill and boundary display, kept per geography in this browser.
+const displayDefaults = { precinct:{ op:90, ln:true, bw:.3, ol:25 }, puma:{ op:90, ln:true, bw:.7, ol:25 }, county:{ op:90, ln:true, bw:.7, ol:25 } };
+let display;
+try { display = JSON.parse(localStorage.getItem('evt-display-v1') || 'null'); } catch { display = null; }
+display = Object.fromEntries(Object.entries(displayDefaults).map(([level, d]) => [level, { ...d, ...(display?.[level] || {}) }]));
+const saveDisplay = () => { try { localStorage.setItem('evt-display-v1', JSON.stringify(display)); } catch {} };
+const lineColor = d => `rgba(${mapBasics().theme === 'dark' ? '240,247,247' : '40,60,65'},${d.ln ? d.ol / 100 : 0})`;
 let data = null, county = null, map = null, mapReady = false, timer = null, started = false;
 const labelOf = (level, id, d = level === st.level ? data : county) => d?.forecast.get(id)?.label || (level === 'county' ? `County ${id}` : id);
 const rowAt = (d, id) => d?.byDate.get(st.date)?.get(id) || null;
@@ -107,9 +114,9 @@ function addLayers() {
   for (const level of Object.keys(files)) {
     if (!map.getSource(level)) map.addSource(level, { type:'vector', url:b.tileURL(b.tiles[level]), promoteId:'region_id' });
     const vis = level === st.level ? 'visible' : 'none';
-    map.addLayer({ id:`evt-fill-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'fill-color':'#afb8b8', 'fill-opacity':.88 } }, before);
+    map.addLayer({ id:`evt-fill-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'fill-color':'#afb8b8', 'fill-opacity':display[level].op / 100 } }, before);
     map.addLayer({ id:`evt-hatch-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'fill-pattern':'evt-hatch' } }, before);
-    map.addLayer({ id:`evt-line-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'line-color':b.theme === 'dark' ? 'rgba(240,247,247,.25)' : 'rgba(40,60,65,.25)', 'line-width':level === 'precinct' ? .3 : .7 } }, before);
+    map.addLayer({ id:`evt-line-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'line-color':lineColor(display[level]), 'line-width':display[level].bw } }, before);
     map.addLayer({ id:`evt-hi-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.6 } }, before);
   }
   // The county table can highlight a county at any geography.
@@ -118,11 +125,27 @@ function addLayers() {
   mapReady = true;
   paintMap();
 }
+function paintDisplay() {
+  if (!mapReady) return;
+  const d = display[st.level];
+  map.setPaintProperty(`evt-fill-${st.level}`, 'fill-opacity', d.op / 100);
+  map.setPaintProperty(`evt-line-${st.level}`, 'line-color', lineColor(d));
+  map.setPaintProperty(`evt-line-${st.level}`, 'line-width', d.bw);
+}
+function syncDisplay() {
+  const d = display[st.level];
+  $('#evt-op').value = d.op; $('#evt-op-v').textContent = `${d.op}%`;
+  $('#evt-ln').checked = d.ln;
+  $('#evt-bw').value = d.bw; $('#evt-bw-v').textContent = `${(+d.bw).toFixed(1)} px`;
+  $('#evt-ol').value = d.ol; $('#evt-ol-v').textContent = `${d.ol}%`;
+  $('#evt-bw').disabled = $('#evt-ol').disabled = !d.ln;
+}
 function paintMap() {
   if (!mapReady || !data) return;
   const d = colorData();
   for (const level of Object.keys(files)) for (const kind of ['fill', 'hatch', 'line', 'hi']) map.setLayoutProperty(`evt-${kind}-${level}`, 'visibility', level === st.level ? 'visible' : 'none');
   map.setPaintProperty(`evt-fill-${st.level}`, 'fill-color', fillExpression(d));
+  paintDisplay();
   map.setFilter(`evt-hatch-${st.level}`, idFilter(d.withheld));
   paintHighlight();
   drawLegend(d);
@@ -353,7 +376,7 @@ function syncControls() {
   $('#evt-date-label').textContent = `Through ${dateText(st.date)}`;
 }
 function renderAll() {
-  syncControls(); drawSummary(); paintMap(); drawTrend(); drawScatter(); drawTable(); drawCard(); writeURL();
+  syncControls(); syncDisplay(); drawSummary(); paintMap(); drawTrend(); drawScatter(); drawTable(); drawCard(); writeURL();
 }
 async function setLevel(level) {
   st.level = level; st.hover = null;
@@ -389,6 +412,10 @@ async function start() {
     $('#evt-play').textContent = 'Pause'; $('#evt-play').setAttribute('aria-pressed', 'true');
     timer = setInterval(() => { const next = county.dates.indexOf(st.date) + 1; if (next >= county.dates.length) return stop(); setDate(next); }, 1100);
   });
+  for (const [id, key, parse] of [['#evt-op', 'op', Number], ['#evt-bw', 'bw', Number], ['#evt-ol', 'ol', Number], ['#evt-ln', 'ln', null]]) {
+    $(id).addEventListener('input', e => { display[st.level][key] = parse ? parse(e.target.value) : e.target.checked; saveDisplay(); syncDisplay(); paintDisplay(); });
+  }
+  $('#evt-display-reset').addEventListener('click', () => { display[st.level] = { ...displayDefaults[st.level] }; saveDisplay(); syncDisplay(); paintDisplay(); });
   $('#evt-trend').addEventListener('click', e => { const hit = e.target.closest('[data-date]'); if (hit) { stop(); setDate(county.dates.indexOf(hit.dataset.date)); } });
   const scatter = $('#evt-scatter');
   scatter.addEventListener('pointermove', e => {
