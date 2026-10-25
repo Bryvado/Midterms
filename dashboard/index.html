@@ -251,10 +251,15 @@
         </div>
         <div class="evt-charts">
           <section class="evt-chart"><h3 id="evt-trend-title">Cumulative early ballots, statewide</h3><div id="evt-trend"></div></section>
+          <section class="evt-chart"><h3>Pace vs the state, by forecast</h3>
+            <div class="evt-toggle" role="group" aria-label="Group pace by"><button type="button" data-bars="lean" aria-pressed="true">By forecast lean</button><button type="button" data-bars="bins" aria-pressed="false">By forecast share, 10 bins</button></div>
+            <div id="evt-bars"></div><p id="evt-bars-note" class="note"></p></section>
+          <section class="evt-chart"><h3>Pace vs forecast share</h3><div id="evt-pace-scatter"><div class="chart-tooltip" hidden></div></div><p id="evt-pace-note" class="note"></p></section>
+          <section class="evt-chart"><h3>Furthest ahead and behind the state's pace</h3><div id="evt-rank"></div><p id="evt-rank-note" class="note"></p></section>
           <section class="evt-chart"><h3>D share of early voters with a primary history vs forecast share</h3><div id="evt-scatter"><div class="chart-tooltip" hidden></div></div><p id="evt-scatter-note" class="note"></p></section>
         </div>
         <section class="evt-table-wrap"><h3>Counties</h3><div id="evt-table"></div></section>
-        <p class="note evt-foot">Pace against the model's expected ballots, and the charts built on it, will appear once expected ballots are published for each area. Areas with fewer than 10 early voters are withheld, and no count below 10 is shown.</p>
+        <p class="note evt-foot" id="evt-method"><strong>Method.</strong> Primary history covers the 2020, 2022, 2024 and 2026 primaries. For 2020–2024 it counts early votes only (the state's early-vote rosters), so some voters with Election Day primary votes in those years show fewer primaries than they cast. 2026 includes early voting and Election Day. Figures are suppressed for fewer than 5 voters. The pace baseline is the model's expected ballots for the region, not past turnout. Statewide totals at the top and the first chart are the state's official daily count, which uses a different day boundary from the area files, so the two can differ slightly on the same date.</p>
       </main>
       <div id="appearance-menu" class="appearance-menu" popover="auto" aria-label="Appearance settings">
         <h2>Appearance</h2>
