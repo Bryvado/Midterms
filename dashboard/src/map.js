@@ -74,7 +74,7 @@ const parseScales = text => {
     const key = entry.slice(0, split), rest = entry.slice(split + 1);
     if (!key || !rest || !/^[\w]+$/.test(key)) continue;
     const s = {};
-    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log','k','h'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
+    for (const pair of rest.split(',')) { const [k, v] = pair.split('='); if (['c','r','lo','hi','b','log','k','h','o','m'].includes(k) && v != null && /^[-\w.:]+$/.test(v)) s[k] = v; }
     scaleState.set(key, s);
   }
 };
@@ -146,6 +146,14 @@ const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat(
 // Only the active unit's fill draws; county and district outlines are available as line overlays.
 const levelVisible = level => level === unit;
 const fillOpacity = () => +settings.op / 100;
+function fillOpacityFor(level) {
+  if (!fadeOn()) return fillOpacity();
+  let limit;
+  try { const sc = scale(measure, level); limit = Math.max(Math.abs(sc.lo), Math.abs(sc.hi)); } catch { limit = NaN; }
+  if (!(limit > 0)) return fillOpacity();
+  const factor = ['min', 1, ['max', .04, ['*', +current().s.m / limit, ['abs', ['coalesce', ['to-number', ['get', 'net_votes_per_sqmi']], 0]]]]];
+  return ['*', fillOpacity(), factor];
+}
 const outline = () => settings.ln === '1' ? `rgba(${outlineColor[theme]},${+settings.ol / 100})` : 'rgba(0,0,0,0)';
 const quantile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
 
@@ -161,6 +169,9 @@ function metricType(key) {
   return 'share';
 }
 // Contrast near the center: exponent applied to the distance from the center, so small values away from 0 still get a visible tint. Differences between elections are heavy-tailed, so they start stretched.
+// Net vote density can fade each area's fill by its density: opacity follows |density| relative to the color scale's limit, times a multiplier.
+const fadeMultipliers = ['0.5', '1', '2', '4', '8', '16', '32'];
+const fadeOn = () => measure === 'vote_density' && current().s.o === '1';
 const hingePowers = { '0':1, '1':.5, '2':1 / 3 };
 const defaultHinge = type => ['shift','ratio','netvotes','density'].includes(type) ? '1' : '0';
 const isDiverging = type => ['density','prob','shift','share','margin','ratio','netvotes'].includes(type);
@@ -212,7 +223,7 @@ function options(key) {
   const bins = [['cont','Continuous'],['step','Round-number steps'],...Object.entries(classificationMethods)];
   if (type === 'margin' || type === 'prob') bins.push(['rat','Ratings categories']);
   const log = type === 'seq' && ['count','money'].includes(metricKinds.get(key) || (isCount(key) ? 'count' : ''));
-  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', k:'6', h:defaultHinge(type), log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
+  return { type, centers, ranges, bins, log, defaults:{ c:centers[0]?.[0] || '', r:range, b:'cont', k:'6', h:defaultHinge(type), o:'0', m:'1', log:log && (metricKinds.get(key) === 'count' || isCount(key)) ? '1' : '0' } };
 }
 
 function current(key = measure) {
@@ -223,6 +234,8 @@ function current(key = measure) {
   if (!opt.bins.some(([v]) => v === s.b)) s.b = opt.defaults.b;
   s.k = /^[3-9]$/.test(String(s.k)) ? String(s.k) : '6';
   if (!(s.h in hingePowers)) s.h = opt.defaults.h;
+  if (!fadeMultipliers.includes(String(s.m))) s.m = '1';
+  if (s.o !== '1') s.o = '0';
   if (!opt.log) s.log = '0';
   return { opt, s };
 }
@@ -478,7 +491,7 @@ function drawLegend() {
   const endNames = s.type === 'shift' && isCompareMeasure(measure) ? ['Less Democratic', 'More Democratic'] : s.type === 'ratio' ? ['Fewer votes', 'More votes'] : s.type === 'netvotes' ? ['Net Republican', 'Net Democratic'] : ['Paxton', 'Talarico'];
   const ends = isDiverging(s.type) && s.kind !== 'ratings' ? `<div class="legend-ends"><span>${endNames[0]}</span><span>${endNames[1]}</span></div>` : '';
   const lines = Object.entries(overlayStyle).filter(([level]) => settings[level === 'county' ? 'oc' : 'od'] === '1').map(([, style]) => `<div class="legend-line"><span style="border-top:${Math.max(2, style.width)}px ${style.dash ? 'dashed' : 'solid'} ${style[theme]}"></span>${escapeHTML(style.label)}</div>`).join('');
-  legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}${isCompareMeasure(measure) ? compareLegendExtras() : '<div class="legend-nodata"><span></span>No data</div>'}${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}`;
+  legend.innerHTML = `<div class="legend-title">${escapeHTML(legendTitle())}</div>${body}${ends}${isCompareMeasure(measure) ? compareLegendExtras() : '<div class="legend-nodata"><span></span>No data</div>'}${lines}${s.note ? `<div class="legend-note">${escapeHTML(s.note)}</div>` : ''}${fadeOn() ? `<div class="legend-note">Opacity follows the density: fully opaque at the color scale's limit${+current().s.m === 1 ? '' : `, reached ${current().s.m}× sooner`}, fading toward zero density.</div>` : ''}`;
   syncControls();
 }
 
@@ -540,6 +553,10 @@ function syncControls() {
   panel.querySelector('#outline-width-value').textContent = `${settings.bw}px`;
   panel.querySelector('#outline-width').disabled = settings.ln !== '1';
   panel.querySelector('#scale-log').checked = s.log === '1';
+  panel.querySelector('#scale-fade-row').hidden = measure !== 'vote_density';
+  panel.querySelector('#scale-fade').checked = s.o === '1';
+  panel.querySelector('#scale-fade-mult-row').hidden = measure !== 'vote_density' || s.o !== '1';
+  panel.querySelector('#scale-fade-mult').value = s.m;
   panel.querySelector('#scale-hinge-row').hidden = !diverging;
   panel.querySelector('#scale-hinge').value = s.h;
   panel.querySelector('#fill-opacity').value = settings.op;
@@ -566,7 +583,7 @@ function paint() {
   if (!map?.getLayer('county-fill')) return;
   for (const level of levelKeys) {
     map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
-    map.setPaintProperty(layerName(level), 'fill-opacity', fillOpacity());
+    map.setPaintProperty(layerName(level), 'fill-opacity', fillOpacityFor(level));
     map.setPaintProperty(`border-${level}`, 'line-color', outline());
     map.setPaintProperty(`border-${level}`, 'line-width', +settings.bw);
     map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
@@ -597,6 +614,7 @@ function refitView() {
   viewRange = { key:measure, level:unit, domain };
   drawLegend();
   map.setPaintProperty(layerName(unit), 'fill-color', colorExpression(measure, unit));
+  map.setPaintProperty(layerName(unit), 'fill-opacity', fillOpacityFor(unit));
 }
 function scheduleFit() { if (map) map.once('idle', refitView); }
 
@@ -628,6 +646,8 @@ function initDisplayControls() {
   on('#scale-max', 'change', (e, signal) => updateScale({ hi:e.target.value }, signal));
   on('#scale-bins', 'change', (e, signal) => updateScale({ b:e.target.value }, signal));
   on('#scale-classes', 'change', (e, signal) => updateScale({ k:e.target.value }, signal));
+  on('#scale-fade', 'change', (e, signal) => updateScale({ o:e.target.checked ? '1' : '0' }, signal));
+  on('#scale-fade-mult', 'change', (e, signal) => updateScale({ m:e.target.value }, signal));
   on('#scale-hinge', 'change', (e, signal) => updateScale({ h:e.target.value }, signal));
   on('#scale-log', 'change', (e, signal) => updateScale({ log:e.target.checked ? '1' : '0' }, signal));
   for (const [id, key] of Object.entries({ '#fill-opacity':'op', '#outline-opacity':'ol', '#outline-width':'bw' })) on(id, 'change', e => { settings[key] = String(e.target.value); paint(); });
@@ -846,7 +866,7 @@ export function initMap(select) {
     for (const level of levelKeys) {
       if (map.getLayer(layerName(level))) continue;
       if (!map.getSource(level)) map.addSource(level, { type:'vector', url:tileURL(levels[level].tiles), promoteId:'region_id' });
-      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacity(), 'fill-outline-color':'rgba(0,0,0,0)' } }, labels);
+      map.addLayer({ id:layerName(level), type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:levelVisible(level) ? 'visible' : 'none' }, paint:{ 'fill-color':colorExpression(measure, level), 'fill-opacity':fillOpacityFor(level), 'fill-outline-color':'rgba(0,0,0,0)' } }, labels);
     }
     for (const level of levelKeys) map.addLayer({id:`border-${level}`,type:'line',source:level,'source-layer':'regions',layout:{visibility:levelVisible(level)?'visible':'none'},paint:{'line-color':outline(),'line-width':+settings.bw}},labels);
     for (const [level, style] of Object.entries(overlayStyle)) {
