@@ -343,21 +343,26 @@ function drawTrend() {
     all = [...new Set([...county.dates, ...daily.keys()])].sort();
     $('#evt-trend-title').textContent = 'Cumulative early ballots, statewide (official count)';
   }
-  const rows = series.filter(r => Number.isFinite(r.person) && Number.isFinite(r.mail) && !(r.person > 0 && r.person < MIN) && !(r.mail > 0 && r.mail < MIN) && r.total >= MIN);
+  // The published total drives the chart. The in-person split is drawn only on dates where both subtype counts are published.
+  const rows = series.filter(r => r.total >= MIN);
+  const split = r => Number.isFinite(r.person) && Number.isFinite(r.mail) && !(r.person > 0 && r.person < MIN) && !(r.mail > 0 && r.mail < MIN);
   if (!rows.length) { host.innerHTML = '<p class="note">Fewer than 5 early voters on every date, so nothing is shown.</p>'; return; }
   const x = d => m.left + (all.length === 1 ? 0 : all.indexOf(d) / (all.length - 1)) * (width - m.left - m.right);
-  const top = Math.max(...rows.map(r => r.person + r.mail), Number.isFinite(expected) ? expected : 0) * 1.08, y = v => height - m.bottom - v / top * (height - m.top - m.bottom);
-  const area = (lo, hi) => `M${rows.map(r => `${x(r.date).toFixed(1)},${y(hi(r)).toFixed(1)}`).join('L')}L${[...rows].reverse().map(r => `${x(r.date).toFixed(1)},${y(lo(r)).toFixed(1)}`).join('L')}Z`;
+  const top = Math.max(...rows.map(r => r.total), Number.isFinite(expected) ? expected : 0) * 1.08, y = v => height - m.bottom - v / top * (height - m.top - m.bottom);
+  const area = (list, hi) => `M${list.map(r => `${x(r.date).toFixed(1)},${y(hi(r)).toFixed(1)}`).join('L')}L${[...list].reverse().map(r => `${x(r.date).toFixed(1)},${y(0).toFixed(1)}`).join('L')}Z`;
+  const runs = [];
+  for (const r of rows) { if (!split(r)) { runs.push(null); continue; } if (runs.at(-1)) runs.at(-1).push(r); else runs.push([r]); }
+  const personAreas = runs.filter(run => run && run.length > 1).map(run => `<path class="evt-area person" d="${area(run, r => r.person)}"/>`).join('');
   const short = v => v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : String(Math.round(v));
   const ticks = scaleLinear().domain([0, top]).ticks(4);
   host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Cumulative early ballots by date">
     ${ticks.map(v => `<line class="evt-grid" x1="${m.left}" x2="${width - m.right}" y1="${y(v)}" y2="${y(v)}"/><text class="evt-axis" x="${m.left - 5}" y="${y(v) + 3}" text-anchor="end">${short(v)}</text>`).join('')}
-    <path class="evt-area person" d="${area(() => 0, r => r.person)}"/><path class="evt-area mail" d="${area(r => r.person, r => r.person + r.mail)}"/>
+    <path class="evt-area mail" d="${area(rows, r => r.total)}"/>${personAreas}
     ${Number.isFinite(expected) ? `<line class="evt-expected" x1="${m.left}" x2="${width - m.right}" y1="${y(expected)}" y2="${y(expected)}"/><text class="evt-axis" x="${width - m.right}" y="${y(expected) - 4}" text-anchor="end">Expected ballots: ${short(expected)}</text>` : ''}
     <line class="evt-now" x1="${x(st.date)}" x2="${x(st.date)}" y1="${m.top}" y2="${height - m.bottom}"/>
     ${all.map((d, i) => (i % 2 && i !== all.length - 1) ? '' : `<text class="evt-axis" x="${x(d)}" y="${height - 7}" text-anchor="${i === 0 ? 'start' : i === all.length - 1 ? 'end' : 'middle'}">${escapeHTML(dateText(d))}</text>`).join('')}
     ${all.filter(d => county.dates.includes(d)).map(d => `<rect class="evt-hit" data-date="${d}" x="${x(d) - 12}" y="${m.top}" width="24" height="${height - m.top - m.bottom}"/>`).join('')}
-  </svg><div class="evt-keys"><span><i class="evt-key person"></i>In person</span><span><i class="evt-key mail"></i>Mail</span><span><i class="evt-key expected"></i>Expected ballots</span><span>Click a date to move the slider.</span></div>`;
+  </svg><div class="evt-keys"><span><i class="evt-key person"></i>In person</span><span><i class="evt-key mail"></i>All early ballots</span><span><i class="evt-key expected"></i>Expected ballots</span><span>In-person split shown where in-person and mail counts are both published. Click a date to move the slider.</span></div>`;
 }
 
 // ---- Scatter charts ----
@@ -462,8 +467,8 @@ function drawRank() {
   const rows = data.byDate.get(st.date) || new Map(), list = [];
   for (const [id, row] of rows) { const e = num(row.early_ballots), p = paceOf(row); if (tierOf(e) === 'high' && Number.isFinite(p) && p > 0) list.push({ id, p, e, ci:paceInterval(p, e) }); }
   list.sort((a, b) => b.p - a.p);
-  const ahead = list.slice(0, 15), behind = list.slice(-15).reverse().filter(a => !ahead.includes(a));
-  if (!ahead.length) { host.innerHTML = '<p class="note">No areas have 250 or more early ballots on this date.</p>'; return; }
+  const ahead = list.filter(a => a.p >= 1).slice(0, 15), behind = list.filter(a => a.p < 1).slice(-15).reverse();
+  if (!list.length) { host.innerHTML = '<p class="note">No areas have 250 or more early ballots on this date.</p>'; return; }
   const lo = Math.log(.25), hi = Math.log(4);
   const x = v => m.left + (Math.log(Math.max(.25, Math.min(4, v))) - lo) / (hi - lo) * (width - m.left - m.right);
   const block = (title, items, y0) => `<text class="evt-axis label" x="4" y="${y0 + 10}">${escapeHTML(title)}</text>` + items.map((a, i) => {
@@ -474,10 +479,10 @@ function drawRank() {
       <text class="evt-axis" x="${width - m.right + 6}" y="${y + 12}">${times(a.p)} · fcst ${f ? pct(f.confidence, 0) : 'n/a'}</text>
       <title>${escapeHTML(`${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast confidence ${f ? pct(f.confidence, 0) : 'n/a'}`)}</title></g>`;
   }).join('');
-  const h1 = 16 + ahead.length * rowH, h2 = 16 + behind.length * rowH, height = m.top + h1 + h2 + 24;
+  const h1 = ahead.length ? 16 + ahead.length * rowH : 0, h2 = behind.length ? 16 + behind.length * rowH : 0, height = m.top + h1 + h2 + 24;
   host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Areas furthest ahead of and behind the state's pace">
     <line class="evt-now" x1="${x(1)}" x2="${x(1)}" y1="${m.top}" y2="${height - 18}"/>
-    ${block('Furthest ahead', ahead, m.top)}${block('Furthest behind', behind, m.top + h1 + 4)}
+    ${ahead.length ? block('Furthest ahead', ahead, m.top) : ''}${behind.length ? block('Furthest behind', behind, m.top + h1 + 4) : ''}
     <text class="evt-axis" x="${x(1)}" y="${height - 5}" text-anchor="middle">1.00×</text></svg>`;
   $('#evt-rank-note').textContent = `High-reliability ${levelNames[st.level]} only (250 or more early ballots). Dots are pace with a 90% interval from the number of early ballots, on a log axis from 0.25× to 4× (values beyond the edge sit on it); the right column is the model's forecast confidence, not an early-vote result.`;
   drawFocus();
