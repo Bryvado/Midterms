@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import { scaleLinear } from 'd3-scale';
-import { base, csv, pct, count, escapeHTML } from './data.js';
+import { base, csv, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
@@ -49,10 +49,10 @@ const paceInterval = (pace, n) => { const f = Math.exp(1.645 / Math.sqrt(n)); re
 // Primary-history bins in table order, and in bar order (R on the left, none and both in the middle, D on the right).
 const binRows = [
   ['r_only_1of4', 'R primary only: 1 of 4', 'r1'], ['r_only_2of4', 'R primary only: 2 of 4', 'r2'], ['r_only_3of4', 'R primary only: 3 of 4', 'r3'], ['r_only_4of4', 'R primary only: 4 of 4', 'r4'],
-  ['both_parties', 'Both parties', 'both'], ['no_primary', 'No primary history', 'none'],
+  ['no_primary', 'No primary history', 'none'], ['both_parties', 'Both parties', 'both'],
   ['d_only_1of4', 'D primary only: 1 of 4', 'd1'], ['d_only_2of4', 'D primary only: 2 of 4', 'd2'], ['d_only_3of4', 'D primary only: 3 of 4', 'd3'], ['d_only_4of4', 'D primary only: 4 of 4', 'd4'],
 ];
-const barOrder = ['r_only_4of4', 'r_only_3of4', 'r_only_2of4', 'r_only_1of4', 'no_primary', 'both_parties', 'd_only_1of4', 'd_only_2of4', 'd_only_3of4', 'd_only_4of4'];
+const barOrder = binRows.map(b => b[0]);
 
 const cache = new Map();
 function load(level) {
@@ -237,7 +237,7 @@ function primaryBlock(row) {
 }
 function forecastBlock(f) {
   if (!f || !Number.isFinite(f.mean)) return '';
-  return `<div class="evt-forecast"><div class="evt-fhead">Model forecast, not an early-vote result</div>Talarico ${pct(f.mean)} · win probability ${pct(f.p, 0)} · confidence ${pct(f.confidence, 0)} · ${escapeHTML(leanLabel[lean(f.p)] || '')}</div>`;
+  return `<div class="evt-forecast"><div class="evt-fhead">Model forecast, not an early-vote result</div>Talarico ${pct(f.mean)} · win probability ${probPct(f.p)} · confidence ${probPct(f.confidence)} · ${escapeHTML(leanLabel[lean(f.p)] || '')}</div>`;
 }
 function tooltipHTML(level, id) {
   const d = level === st.level ? data : county, row = rowAt(d, id), f = d?.forecast.get(id);
@@ -255,9 +255,25 @@ function tooltipHTML(level, id) {
     + (Number.isFinite(ds) && Number.isFinite(n) ? `<div>${escapeHTML(`D share with a primary history: ${pct(ds)} of ${showN(n)}`)}</div>` : '<div>D share: fewer than 5 with a primary history</div>')
     + forecastBlock(f);
 }
+// The map is created while the tab can still be laying out, so it follows its container: whenever the box changes from empty
+// to a real size, or resizes, it resizes the canvas and, the first time it has a size, refits to Texas.
+let fitted = false;
+function watchMapSize() {
+  const wrap = $('.evt-map-wrap');
+  const fit = () => {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!map || !w || !h) return;
+    map.resize();
+    if (!fitted) { fitted = true; map.fitBounds(mapBasics().bounds, { padding:24, duration:0 }); }
+  };
+  new ResizeObserver(fit).observe(wrap);
+  new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) fit(); }).observe(wrap);
+  fit();
+}
 function initMap() {
   const b = mapBasics();
-  map = new maplibregl.Map({ container:'evt-map', style:b.style, bounds:b.bounds, fitBoundsOptions:{ padding:24 }, attributionControl:false });
+  map = new maplibregl.Map({ container:'evt-map', style:b.style, bounds:b.bounds, fitBoundsOptions:{ padding:24 }, attributionControl:false, cooperativeGestures:true });
+  watchMapSize();
   map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
   map.on('style.load', addLayers);
@@ -314,16 +330,16 @@ function drawSummary() {
   const rows = [...(county.byDate.get(st.date) || new Map()).values()];
   const primary = rows.filter(r => Number.isFinite(num(r.with_primary_history)) && Number.isFinite(num(r.d_primary)));
   const n = primary.reduce((t, r) => t + num(r.with_primary_history), 0), dCount = primary.reduce((t, r) => t + num(r.d_primary), 0);
-  const share = n > 0 ? dCount / n : NaN, [lo, hi] = n > 0 ? shareInterval(share, n) : [NaN, NaN];
+  const share = n > 0 ? dCount / n : NaN;
   const withheld = rows.filter(r => !Number.isFinite(num(r.early_ballots))).length;
   const none = 'official count starts Oct 19';
   const o = key => row ? num(row[key]) : NaN;
   $('#evt-summary').innerHTML = cell('Early ballots, official count', row ? count(o('total_early')) : '—', row ? `through ${dateText(st.date, true)}, ${count(o('counties_reporting'))} counties reporting` : none)
-    + cell('In person · mail', row ? `${count(o('in_person'))} · ${count(o('mail'))}` : '—', row && o('total_early') > 0 ? `${pct(o('in_person') / o('total_early'), 0)} in person` : '')
-    + cell('% of registered', row ? pct(o('pct_registered')) : '—', row ? `${count(o('registered'))} registered` : '')
-    + cell('% of 2022 turnout', row ? pct(o('pct_of_2022_total')) : '—', row ? `${count(o('turnout_2022'))} voted in 2022` : '')
-    + cell("% of the model's expected ballots", row ? pct(o('pct_of_expected')) : '—', row ? `${count(o('expected_ballots'))} expected` : '')
-    + cell('D share, primary history', pct(share), Number.isFinite(lo) ? `90% interval ${pct(lo)}–${pct(hi)}; published counties${withheld ? `, ${withheld} withheld` : ''}` : '');
+    + cell('In person · mail, official count', row ? `${count(o('in_person'))} · ${count(o('mail'))}` : '—', row && o('total_early') > 0 ? `${pct(o('in_person') / o('total_early'), 0)} in person` : '')
+    + cell('% of registered, official count', row ? pct(o('pct_registered')) : '—', row ? `${count(o('registered'))} registered` : '')
+    + cell('% of 2022 turnout, official count', row ? pct(o('pct_of_2022_total')) : '—', row ? `${count(o('turnout_2022'))} voted in 2022` : '')
+    + cell('% of expected ballots, official count', row ? pct(o('pct_of_expected')) : '—', row ? `${count(o('expected_ballots'))} expected. Pace uses roster ballots: ${pct(baselineFor(st.date))}` : '')
+    + cell('D share, primary history, rosters', pct(share), `published counties${withheld ? `, ${withheld} withheld` : ''}`);
 }
 
 // ---- Cumulative chart: the official statewide count, or the selected area from the map file ----
@@ -462,6 +478,8 @@ function drawBars() {
 }
 
 // ---- Ranked list: furthest ahead and furthest behind among high-reliability areas ----
+// The favored candidate and their win probability, for example "Talarico 99%".
+const favored = f => !f || !Number.isFinite(f.p) ? 'n/a' : f.p === .5 ? 'even' : f.p > .5 ? `Talarico ${probPct(f.p)}` : `Paxton ${probPct(1 - f.p)}`;
 function drawRank() {
   const host = $('#evt-rank'), width = Math.max(300, host.clientWidth || 420), rowH = 17, m = { left:Math.round(width * .4), right:Math.round(width * .22), top:4 };
   const rows = data.byDate.get(st.date) || new Map(), list = [];
@@ -476,15 +494,15 @@ function drawRank() {
     return `<g class="evt-rank-row" data-id="${escapeHTML(a.id)}"><rect class="evt-rank-bg" x="0" y="${y}" width="${width}" height="${rowH}"/>
       <text class="evt-axis" x="4" y="${y + 12}">${escapeHTML(label)}</text>
       <line class="evt-ci" x1="${x(a.ci[0])}" x2="${x(a.ci[1])}" y1="${y + rowH / 2}" y2="${y + rowH / 2}"/><circle class="evt-rank-dot ${a.p >= 1 ? 'ahead' : 'behind'}" cx="${x(a.p)}" cy="${y + rowH / 2}" r="3.6"/>
-      <text class="evt-axis" x="${width - m.right + 6}" y="${y + 12}">${times(a.p)} · fcst ${f ? pct(f.confidence, 0) : 'n/a'}</text>
-      <title>${escapeHTML(`${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast confidence ${f ? pct(f.confidence, 0) : 'n/a'}`)}</title></g>`;
+      <text class="evt-axis" x="${width - m.right + 6}" y="${y + 12}">${times(a.p)} · ${favored(f)}</text>
+      <title>${escapeHTML(`${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast: ${favored(f)}`)}</title></g>`;
   }).join('');
   const h1 = ahead.length ? 16 + ahead.length * rowH : 0, h2 = behind.length ? 16 + behind.length * rowH : 0, height = m.top + h1 + h2 + 24;
   host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Areas furthest ahead of and behind the state's pace">
     <line class="evt-now" x1="${x(1)}" x2="${x(1)}" y1="${m.top}" y2="${height - 18}"/>
     ${ahead.length ? block('Furthest ahead', ahead, m.top) : ''}${behind.length ? block('Furthest behind', behind, m.top + h1 + 4) : ''}
     <text class="evt-axis" x="${x(1)}" y="${height - 5}" text-anchor="middle">1.00×</text></svg>`;
-  $('#evt-rank-note').textContent = `High-reliability ${levelNames[st.level]} only (250 or more early ballots). Dots are pace with a 90% interval from the number of early ballots, on a log axis from 0.25× to 4× (values beyond the edge sit on it); the right column is the model's forecast confidence, not an early-vote result.`;
+  $('#evt-rank-note').textContent = `High-reliability ${levelNames[st.level]} only (250 or more early ballots). Dots are pace with a 90% interval from the number of early ballots, on a log axis from 0.25× to 4× (values beyond the edge sit on it); the right column is the model's favored candidate and win probability, not an early-vote result.`;
   drawFocus();
 }
 
@@ -516,7 +534,7 @@ function drawTable() {
     if (c.type === 'count') return Number.isFinite(num(r.row.early_ballots)) ? showN(v) : 'fewer than 5';
     if (c.type === 'pace') return Number.isFinite(v) ? times(v) : 'fewer than 5';
     if (c.type === 'dshare') { const n = num(r.row.with_primary_history); if (!Number.isFinite(v) || !Number.isFinite(n)) return '<span class="muted">fewer than 5</span>'; const [lo, hi] = shareInterval(v, n); return `${pct(v)} <span class="muted">(${pct(lo)}–${pct(hi)})</span>`; }
-    return Number.isFinite(v) ? pct(v, c.key === 'p' || c.key === 'confidence' ? 0 : 1) : c.key === 'forecast' || c.key === 'p' || c.key === 'confidence' ? 'n/a' : 'fewer than 5';
+    return Number.isFinite(v) ? (c.key === 'p' || c.key === 'confidence' ? probPct(v) : pct(v, 1)) : c.key === 'forecast' || c.key === 'p' || c.key === 'confidence' ? 'n/a' : 'fewer than 5';
   };
   $('#evt-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${columns.map(c => `<th class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (tableState.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${escapeHTML(c.label)}</button></th>`).join('')}</tr></thead>
     <tbody>${rows.map(r => `<tr data-id="${escapeHTML(r.id)}" tabindex="0">${columns.map(c => `<td class="${c.text ? 'name' : ''}">${show(r, c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -648,7 +666,7 @@ function showView(view) {
   tab.hidden = !early;
   document.querySelector('#app').classList.toggle('ev-view', early);
   for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-selected', String(b.dataset.view === view));
-  if (early) { start().then(() => map?.resize()); } else stop();
+  if (early) { start().then(() => { map?.resize(); }); } else stop();
   writeURL();
   window.dispatchEvent(new Event('panel-layout'));
 }

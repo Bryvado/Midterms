@@ -148,19 +148,18 @@
 .site-header{flex-wrap:nowrap;gap:14px;padding:0 14px;height:44px;min-height:44px}
 .site-header .identity{flex:none}
 .site-header h1{font-size:15px;white-space:nowrap;letter-spacing:-.01em}
-.topstats{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:#43575e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topstats{flex:none;display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:#43575e;white-space:nowrap}
 .topstats strong{font-size:14px;color:#1b282d;font-variant-numeric:tabular-nums}
 .topstats .ts-item{flex:none}
 .topstats .ts-sep{color:#a3b1b4}
-.topstats #range-card{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.topstats #range-card{flex:none}
 .topstats #range-card.scenario-active{background:#f1eaf8;border-radius:4px;padding:1px 6px;box-shadow:none;color:#4d2a6d}
 .site-header .panel-toggles{flex:none;margin-left:0}
 .site-header .panel-toggles button{padding:3px 8px;font-size:10.5px}
 .site-header .header-actions{flex:none;gap:10px}
 .site-header .run-date{font-size:11px}
 @media(max-width:1380px){.site-header .run-date{display:none}}
-@media(max-width:1180px){.topstats .ts-sep-range,.topstats #range-card{display:none}}
-@media(max-width:700px){.site-header{height:auto;flex-wrap:wrap;padding:8px 12px}.topstats{order:2;width:100%;flex-basis:100%}}
+@media(max-width:700px){.site-header{height:auto;flex-wrap:wrap;padding:8px 12px}.topstats{order:2;width:100%;flex-basis:100%;flex-wrap:wrap;white-space:normal}}
 
 /* Polling panel: the chart dominates and grows with the panel. */
 .fp-polling .fp-body{display:flex;flex-direction:column;container-type:normal;gap:0}
@@ -729,3 +728,27 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] .evt-rank-row.active .evt-rank-bg,:root[data-layout=dark] .evt-rank-row:hover .evt-rank-bg{fill:#4a4232}
 :root[data-layout=dark] .evt-forecast{background:var(--control)}
 :root[data-layout=dark] .evt-stack{background:#364a5b}
+
+/* Header: when the chips would crowd the headline summary they collapse into one Panels menu. */
+.site-header{position:relative}
+.panels-menu{display:none;flex:none;border:1px solid #d3dcdc;background:#fff;color:#22404a;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:700}
+.site-header.compact .panels-menu{display:inline-flex}
+.site-header.compact .panel-toggles{display:none}
+.site-header.compact .panel-toggles.open{display:flex;position:absolute;z-index:30;top:calc(100% + 4px);right:12px;flex-direction:column;align-items:stretch;width:190px;padding:8px;background:#fff;border:1px solid #d3dcdc;border-radius:8px;box-shadow:0 8px 24px rgba(23,41,43,.22)}
+.site-header.compact .panel-toggles.open button{text-align:left;border-radius:6px;padding:6px 9px;font-size:12px}
+#app.ev-view .panels-menu{display:none!important}
+:root[data-layout=dark] .panels-menu{background:var(--control);color:var(--text);border-color:var(--border)}
+:root[data-layout=dark] .site-header.compact .panel-toggles.open{background:var(--panel);border-color:var(--border)}
+
+/* Selected place: the list always shows at least five rows; a short panel scrolls instead. The List select spans the row so its text is whole. */
+.list-geography,.list-search{grid-column:1/-1}
+.list-controls select{text-overflow:clip}
+.fp-place .place-content:has(.list-scroll){min-height:500px}
+.fp-place .place-content:has(.list-scroll) .list-scroll{min-height:232px}
+
+/* Early vote on narrow screens: every grid track may shrink to the viewport, so wide tables scroll inside their own box. */
+.ev-tab{grid-template-columns:minmax(0,1fr)}
+.evt-main{grid-template-columns:minmax(0,1fr) 300px}
+.evt-charts{grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))}
+@media(max-width:850px){.evt-main{grid-template-columns:minmax(0,1fr)}.evt-controls{gap:8px}.evt-field select{max-width:100%}.evt-date{min-width:0;flex-basis:100%}}
+@media(max-width:850px){.evt-field{min-width:0;max-width:100%}.evt-field select{min-width:0;flex:1}.evt-controls>.evt-field:first-of-type{flex:1 1 100%}.evt-legend{width:min(250px,calc(100% - 20px))}}
