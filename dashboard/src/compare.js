@@ -63,7 +63,8 @@ const urlKeys = { from:'cf', to:'cto', min:'cmin', county:'cc', profile:'cp', y2
   if (params.has('cmin') && minOptions.includes(+params.get('cmin'))) state.min = +params.get('cmin');
   text('county', v => /^\d{3}$/.test(v)); text('profile', v => profileNames.includes(v));
   text('view', v => ['xy', 'demog', 'table'].includes(v));
-  text('demog', v => ['hisp_cvap_share', 'white_cvap_share', 'black_cvap_share', 'ba_plus_share', 'med_income', 'density', 'share_from'].includes(v));
+  // Any measure key is accepted here; the picker falls back to the default when the key is not offered at the level.
+  text('demog', v => /^[a-z0-9_]{1,48}$/.test(v));
   text('color', v => ['profile', 'share'].includes(v)); text('level', v => v in levelInfo);
   if (params.get('cw') === '0') state.weighted = false;
   if (params.get('cxr') === '1') state.xrel = true;

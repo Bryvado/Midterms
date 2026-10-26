@@ -193,9 +193,18 @@
                 <p id="sh-xy-stats" class="note"></p>
               </section>
               <section id="sh-view-demog" hidden>
-                <div class="sh-row"><label>X axis <select id="sh-demog"></select></label><label class="check"><input id="sh-demog-rel" type="checkbox"> Relative to statewide</label></div>
-                <div class="sh-canvas"><canvas id="sh-demog-canvas" role="img" aria-label="Scatter of precinct shifts against a demographic measure"></canvas><div class="chart-tooltip" hidden></div></div>
-                <p id="sh-demog-stats" class="note"></p>
+                <div class="sh-row sh-presets" id="sh-presets" hidden><span class="sh-presets-label">Presets</span><button type="button" class="text-button" data-sh-preset="age">Age vs shift</button><button type="button" class="text-button" data-sh-preset="rent">Rent vs shift</button><button type="button" class="text-button" data-sh-preset="moved">Newcomers vs shift</button><button type="button" class="text-button" data-sh-preset="value">Home value vs forecast</button><button type="button" class="text-button" data-sh-preset="educ">Education vs shift</button></div>
+                <div class="xy-pickers"><div id="sh-px"></div><div id="sh-py"></div><div id="sh-pc"></div></div>
+                <div class="sh-row"><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-sh-mode="binned" aria-pressed="true">Binned</button><button type="button" data-sh-mode="points" aria-pressed="false">Points</button></div><label class="check"><input id="sh-demog-rel" type="checkbox"> Shift relative to statewide</label><button type="button" class="text-button" id="sh-demog-clear" hidden>Clear selection box</button></div>
+                <p class="note xy-method" id="sh-method" hidden></p>
+                <div id="sh-plot"></div>
+                <div class="xy-foot"><span id="sh-demog-stats"></span><span id="sh-demog-legend" class="xy-legend"></span></div>
+                <section class="sh-rank" id="sh-rank" hidden>
+                  <header class="sh-rank-head"><h3 id="sh-rank-title">Which demographics track the 2024 vote</h3><div class="evt-seg evt-seg-sm" role="group" aria-label="Correlation target"><button type="button" data-sh-target="pres24" aria-pressed="true">2024 Harris share</button><button type="button" data-sh-target="y" aria-pressed="false">Y axis measure</button></div></header>
+                  <p class="note" id="sh-rank-note"></p>
+                  <ol class="sh-rank-list" id="sh-rank-list"></ol>
+                  <div class="sh-rank-foot"><button type="button" class="text-button" id="sh-rank-more">Show all</button><span class="xy-legend" id="sh-rank-legend"></span></div>
+                </section>
               </section>
               <section id="sh-view-table" hidden>
                 <div class="sh-row"><label class="check"><input id="sh-inview" type="checkbox"> Only places in the map view</label><button type="button" id="sh-csv" class="text-button">Download CSV</button></div>
@@ -253,14 +262,21 @@
           <aside id="evt-card" class="evt-card"><p class="note">Click an area on the map, a point on the chart or a county in the table to see its details here.</p></aside>
         </div>
         <div class="evt-charts">
-          <section class="evt-chart"><h3 id="evt-trend-title">Cumulative early ballots, statewide</h3><div id="evt-trend"></div></section>
-          <section class="evt-chart"><h3>Pace vs the state, by forecast</h3>
-            <div class="evt-toggle" role="group" aria-label="Group pace by"><button type="button" data-bars="lean" aria-pressed="true">By forecast lean</button><button type="button" data-bars="bins" aria-pressed="false">By forecast share, 10 bins</button></div>
-            <div id="evt-bars"></div><p id="evt-bars-note" class="note"></p></section>
-          <section class="evt-chart"><h3>Pace vs forecast share</h3><div id="evt-pace-scatter"><div class="chart-tooltip" hidden></div></div><p id="evt-pace-note" class="note"></p></section>
-          <section class="evt-chart"><h3>Furthest ahead and behind the state's pace</h3><div id="evt-rank"></div><p id="evt-rank-note" class="note"></p></section>
-          <section class="evt-chart"><h3>D share of early voters with a primary history vs forecast share</h3><div id="evt-scatter"><div class="chart-tooltip" hidden></div></div><p id="evt-scatter-note" class="note"></p></section>
+          <section class="evt-chart"><header class="evt-chart-head"><h3>Cumulative early ballots</h3></header><p class="evt-sub" id="evt-trend-sub"></p><div id="evt-trend" class="evt-chart-body"></div></section>
+          <section class="evt-chart"><header class="evt-chart-head"><h3>Pace vs the state, by forecast</h3><button type="button" class="evt-info" popovertarget="evt-pop-bars" aria-label="About this chart">i</button><div id="evt-pop-bars" class="evt-pop" popover></div></header>
+            <div class="evt-seg" role="group" aria-label="Group pace by"><button type="button" data-bars="lean" aria-pressed="true">By forecast lean</button><button type="button" data-bars="bins" aria-pressed="false">By forecast share</button></div>
+            <div id="evt-bars" class="evt-chart-body"></div></section>
+          <section class="evt-chart"><header class="evt-chart-head"><h3>Pace vs forecast share</h3><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-scatter-mode="pace" data-mode="binned" aria-pressed="true">Binned</button><button type="button" data-scatter-mode="pace" data-mode="points" aria-pressed="false">Points</button></div><button type="button" class="evt-info" popovertarget="evt-pop-pace" aria-label="About this chart">i</button><div id="evt-pop-pace" class="evt-pop" popover></div></header><div id="evt-pace-scatter" class="evt-chart-body"><div class="chart-tooltip" hidden></div></div><p id="evt-pace-note" class="evt-caption"></p></section>
+          <section class="evt-chart"><header class="evt-chart-head"><h3>Furthest ahead and behind the state</h3><button type="button" class="evt-info" popovertarget="evt-pop-rank" aria-label="About this list">i</button><div id="evt-pop-rank" class="evt-pop" popover></div></header><div id="evt-rank" class="evt-chart-body evt-rank"></div><button type="button" class="text-button evt-more" id="evt-rank-more">Show 15</button></section>
+          <section class="evt-chart"><header class="evt-chart-head"><h3>D share of primary-history voters vs forecast</h3><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-scatter-mode="dshare" data-mode="binned" aria-pressed="true">Binned</button><button type="button" data-scatter-mode="dshare" data-mode="points" aria-pressed="false">Points</button></div><button type="button" class="evt-info" popovertarget="evt-pop-dshare" aria-label="About this chart">i</button><div id="evt-pop-dshare" class="evt-pop" popover></div></header><div id="evt-scatter" class="evt-chart-body"><div class="chart-tooltip" hidden></div></div><p id="evt-scatter-note" class="evt-caption"></p></section>
         </div>
+        <section class="evt-demog xy-panel" id="evt-demog" hidden>
+          <header class="evt-chart-head"><h3>Early vote vs demographics</h3><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-evd-mode="binned" aria-pressed="true">Binned</button><button type="button" data-evd-mode="points" aria-pressed="false">Points</button></div><label class="check xy-size"><input type="checkbox" id="evd-size" checked> Size by expected ballots</label><button type="button" class="text-button" id="evd-clear" hidden>Clear selection box</button></header>
+          <div class="xy-pickers"><div id="evd-x"></div><div id="evd-y"></div><div id="evd-c"></div></div>
+          <p class="note xy-method" id="evd-method"></p>
+          <div id="evd-plot"></div>
+          <div class="xy-foot"><span id="evd-stats"></span><span id="evd-legend" class="xy-legend"></span></div>
+        </section>
         <section class="evt-table-wrap"><h3>Counties</h3><div id="evt-table"></div></section>
         <p class="note evt-foot" id="evt-method"><strong>Method.</strong> Primary history covers the 2020, 2022, 2024 and 2026 primaries. For 2020–2024 it counts early votes only (the state's early-vote rosters), so some voters with Election Day primary votes in those years show fewer primaries than they cast. 2026 includes early voting and Election Day. Figures are suppressed for fewer than 5 voters. The pace baseline is the model's expected ballots for the region, not past turnout. Statewide totals at the top and the first chart are the state's official daily count, which uses a different day boundary from the area files, so the two can differ slightly on the same date.</p>
       </main>

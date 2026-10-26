@@ -2,6 +2,8 @@ import maplibregl from 'maplibre-gl';
 import { scaleLinear } from 'd3-scale';
 import { base, csv, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
+import { loadDemographics, modelEntries, earlyVoteEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
+import { createXYPlot, colorLegend } from './xyplot.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
 // statewide totals and the daily chart come from the official early_vote_daily file. Blank cells are suppressed
@@ -163,6 +165,7 @@ function addLayers() {
     map.addLayer({ id:`evt-hi-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.6 } }, before);
   }
   // The county table can highlight a county at any geography.
+  for (const level of Object.keys(files)) map.addLayer({ id:`evt-brush-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:level === st.level ? 'visible' : 'none' }, filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':1.8 } }, before);
   map.addLayer({ id:'evt-hi-countytable', type:'line', source:'county', 'source-layer':'regions', filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':2.4, 'line-dasharray':[2, 1] } }, before);
   b.labels(map);
   mapReady = true;
@@ -196,6 +199,7 @@ function paintMap() {
 }
 function paintHighlight() {
   if (!mapReady) return;
+  for (const level of Object.keys(files)) { map.setLayoutProperty(`evt-brush-${level}`, 'visibility', level === st.level ? 'visible' : 'none'); map.setFilter(`evt-brush-${level}`, idFilter(level === st.level ? demog.brushed : [])); }
   const ids = [st.hover, st.sel].filter(x => x && x.level === st.level).map(x => x.id);
   map.setFilter(`evt-hi-${st.level}`, idFilter(ids));
   const counties = [st.hover, st.sel].filter(x => x && x.level === 'county' && st.level !== 'county').map(x => x.id);
@@ -316,11 +320,11 @@ function drawFocus() {
 function setHover(next) {
   if (st.hover?.id === next?.id && st.hover?.level === next?.level) return;
   st.hover = next;
-  paintHighlight(); drawFocus(); markTable();
+  paintHighlight(); drawFocus(); markTable(); drawDemog();
 }
 function setSelection(next) {
   st.sel = next;
-  paintHighlight(); drawFocus(); markTable(); drawCard(); drawTrend();
+  paintHighlight(); drawFocus(); markTable(); drawCard(); drawTrend(); drawDemog();
 }
 
 // ---- Summary: the official state count for the selected date ----
@@ -344,7 +348,7 @@ function drawSummary() {
 
 // ---- Cumulative chart: the official statewide count, or the selected area from the map file ----
 function drawTrend() {
-  const host = $('#evt-trend'), width = Math.max(280, host.clientWidth || 420), height = 210, m = { top:12, right:14, bottom:24, left:48 };
+  const host = $('#evt-trend'), width = Math.max(260, host.clientWidth || 360), height = 200, m = { top:12, right:12, bottom:24, left:44 };
   const target = st.sel ? (st.sel.level === st.level ? data : county) : null;
   let series, all, expected = NaN;
   if (st.sel && target) {
@@ -352,42 +356,52 @@ function drawTrend() {
     series = list.map(row => ({ date:row.date, person:num(row.in_person), mail:num(row.mail), total:num(row.early_ballots) }));
     expected = num(list.at(-1)?.expected_ballots);
     all = county.dates;
-    $('#evt-trend-title').textContent = `Cumulative early ballots, ${labelOf(st.sel.level, st.sel.id, target)}`;
+    $('#evt-trend-sub').textContent = labelOf(st.sel.level, st.sel.id, target);
   } else {
     series = [...daily.values()].map(r => ({ date:r.date, person:num(r.in_person), mail:num(r.mail), total:num(r.total_early) }));
     expected = num([...daily.values()].at(-1)?.expected_ballots);
     all = [...new Set([...county.dates, ...daily.keys()])].sort();
-    $('#evt-trend-title').textContent = 'Cumulative early ballots, statewide (official count)';
+    $('#evt-trend-sub').textContent = 'Statewide, official count';
   }
   // The published total drives the chart. The in-person split is drawn only on dates where both subtype counts are published.
   const rows = series.filter(r => r.total >= MIN);
   const split = r => Number.isFinite(r.person) && Number.isFinite(r.mail) && !(r.person > 0 && r.person < MIN) && !(r.mail > 0 && r.mail < MIN);
   if (!rows.length) { host.innerHTML = '<p class="note">Fewer than 5 early voters on every date, so nothing is shown.</p>'; return; }
   const x = d => m.left + (all.length === 1 ? 0 : all.indexOf(d) / (all.length - 1)) * (width - m.left - m.right);
-  const top = Math.max(...rows.map(r => r.total), Number.isFinite(expected) ? expected : 0) * 1.08, y = v => height - m.bottom - v / top * (height - m.top - m.bottom);
+  const top = Math.max(...rows.map(r => r.total), Number.isFinite(expected) ? expected : 0) * 1.12, y = v => height - m.bottom - v / top * (height - m.top - m.bottom);
   const area = (list, hi) => `M${list.map(r => `${x(r.date).toFixed(1)},${y(hi(r)).toFixed(1)}`).join('L')}L${[...list].reverse().map(r => `${x(r.date).toFixed(1)},${y(0).toFixed(1)}`).join('L')}Z`;
   const runs = [];
   for (const r of rows) { if (!split(r)) { runs.push(null); continue; } if (runs.at(-1)) runs.at(-1).push(r); else runs.push([r]); }
   const personAreas = runs.filter(run => run && run.length > 1).map(run => `<path class="evt-area person" d="${area(run, r => r.person)}"/>`).join('');
   const short = v => v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : String(Math.round(v));
   const ticks = scaleLinear().domain([0, top]).ticks(4);
+  // About five date ticks; the last date always shows, and a tick that would crowd its neighbour is skipped.
+  const step = Math.max(1, Math.ceil((all.length - 1) / 4)), picks = [], gap = 40;
+  for (let i = 0; i < all.length; i += step) picks.push(i);
+  if (picks.at(-1) !== all.length - 1) { if (x(all.at(-1)) - x(all[picks.at(-1)]) < gap) picks.pop(); picks.push(all.length - 1); }
+  // The expected-ballots line is labelled in place, inside the plot, so the text can never run past the edge.
+  const ey = Number.isFinite(expected) ? Math.max(m.top + 10, y(expected) - 4) : 0;
   host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Cumulative early ballots by date">
     ${ticks.map(v => `<line class="evt-grid" x1="${m.left}" x2="${width - m.right}" y1="${y(v)}" y2="${y(v)}"/><text class="evt-axis" x="${m.left - 5}" y="${y(v) + 3}" text-anchor="end">${short(v)}</text>`).join('')}
     <path class="evt-area mail" d="${area(rows, r => r.total)}"/>${personAreas}
-    ${Number.isFinite(expected) ? `<line class="evt-expected" x1="${m.left}" x2="${width - m.right}" y1="${y(expected)}" y2="${y(expected)}"/><text class="evt-axis" x="${width - m.right}" y="${y(expected) - 4}" text-anchor="end">Expected ballots: ${short(expected)}</text>` : ''}
+    ${Number.isFinite(expected) ? `<line class="evt-expected" x1="${m.left}" x2="${width - m.right}" y1="${y(expected)}" y2="${y(expected)}"/><text class="evt-axis evt-expected-label" x="${width - m.right - 2}" y="${ey}" text-anchor="end">Expected ${short(expected)}</text>` : ''}
     <line class="evt-now" x1="${x(st.date)}" x2="${x(st.date)}" y1="${m.top}" y2="${height - m.bottom}"/>
-    ${all.map((d, i) => (i % 2 && i !== all.length - 1) ? '' : `<text class="evt-axis" x="${x(d)}" y="${height - 7}" text-anchor="${i === 0 ? 'start' : i === all.length - 1 ? 'end' : 'middle'}">${escapeHTML(dateText(d))}</text>`).join('')}
+    ${picks.map(i => `<text class="evt-axis" x="${x(all[i])}" y="${height - 7}" text-anchor="${i === 0 ? 'start' : i === all.length - 1 ? 'end' : 'middle'}">${escapeHTML(dateText(all[i]))}</text>`).join('')}
     ${all.filter(d => county.dates.includes(d)).map(d => `<rect class="evt-hit" data-date="${d}" x="${x(d) - 12}" y="${m.top}" width="24" height="${height - m.top - m.bottom}"/>`).join('')}
-  </svg><div class="evt-keys"><span><i class="evt-key person"></i>In person</span><span><i class="evt-key mail"></i>All early ballots</span><span><i class="evt-key expected"></i>Expected ballots</span><span>In-person split shown where in-person and mail counts are both published. Click a date to move the slider.</span></div>`;
+  </svg><div class="evt-keys"><span><i class="evt-key person"></i>In person</span><span><i class="evt-key mail"></i>All early ballots</span></div>`;
 }
 
-// ---- Scatter charts ----
-const MAX_POINTS = 5000;
+// ---- Scatter charts: a binned density grid by default, or capped points ----
+const POINT_CAP = 1500, GRID = 40;
+const scatterMode = { pace:'binned', dshare:'binned' };
 let scatterHits = { pace:[], dshare:[] };
+// Forecast lean as a continuous colour: Paxton red through grey to Talarico blue, by win probability.
+const leanColor = scaleLinear().domain([0, .5, 1]).range(['#b2453c', '#9aa5a8', '#1d6483']).clamp(true);
 const pickFrom = (name, host, event) => {
   const hits = scatterHits[name], svg = document.querySelector(`${host} svg`);
   if (!svg || !hits.length) return null;
   const box = svg.getBoundingClientRect(), k = svg.viewBox.baseVal.width / box.width, mx = (event.clientX - box.left) * k, my = (event.clientY - box.top) * k;
+  if (hits[0].bin) { const cell = hits.find(c => mx >= c.x0 && mx < c.x1 && my >= c.y1 && my < c.y0); return cell ? { ...cell, scale:k } : null; }
   let best = null, bestD = 64;
   for (const p of hits) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bestD) { bestD = d; best = p; } }
   return best ? { ...best, scale:k } : null;
@@ -396,63 +410,68 @@ function mountSvg(host, svg) {
   const tip = host.querySelector('.chart-tooltip');
   host.innerHTML = svg; host.append(tip);
 }
-// Pace against the forecast: size is expected ballots, opacity is signal reliability, colour is forecast lean.
-function drawPaceScatter() {
-  const host = $('#evt-pace-scatter'), width = Math.max(280, host.clientWidth || 420), height = 270, m = { top:10, right:12, bottom:34, left:44 };
-  const rows = data.byDate.get(st.date) || new Map(), pts = [];
+// One drawing routine for both scatters. The x axis is the forecast Talarico share; c says what the y axis is.
+function drawScatterPanel(c) {
+  const host = $(c.host), width = Math.max(260, host.clientWidth || 360), height = 250, m = { top:6, right:6, bottom:30, left:40 }, pad = 8;
+  const rows = data.byDate.get(st.date) || new Map(), all = [];
   for (const [id, row] of rows) {
-    const pace = paceOf(row), f = data.forecast.get(id), x = f?.mean;
-    if (Number.isFinite(pace) && pace > 0 && Number.isFinite(x)) pts.push({ id, pace, x, e:num(row.expected_ballots), tier:tierOf(num(row.early_ballots)), lean:lean(f.p) });
+    const f = data.forecast.get(id), x = f?.mean, y = c.y(row);
+    if (Number.isFinite(x) && Number.isFinite(y)) all.push({ id, x, y, p:f.p, e:num(row.expected_ballots), n:num(row.early_ballots), row });
   }
-  pts.sort((a, b) => b.e - a.e);
-  const capped = pts.length > MAX_POINTS, use = pts.slice(0, MAX_POINTS);
-  const lo = Math.log(.4), hi = Math.log(2.5), sx = scaleLinear().domain([0, 1]).range([m.left, width - m.right]), sy = v => height - m.bottom - (Math.log(Math.max(.4, Math.min(2.5, v))) - lo) / (hi - lo) * (height - m.top - m.bottom);
-  const eMax = use.length ? use[Math.min(use.length - 1, Math.floor(use.length * .02))].e : 1, r = e => 1.6 + 5 * Math.sqrt(Math.min(1, e / eMax));
-  const opacity = { low:.18, medium:.45, high:.8 };
-  const ticks = [.5, .75, 1, 1.5, 2];
-  focusPos.pace = new Map(use.map(p => [p.id, { x:+sx(p.x).toFixed(1), y:+sy(p.pace).toFixed(1), r:r(p.e) }]));
-  mountSvg(host, `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Pace against forecast Talarico share">
-    ${[0, .25, .5, .75, 1].map(t => `<line class="evt-grid" x1="${sx(t)}" x2="${sx(t)}" y1="${m.top}" y2="${height - m.bottom}"/><text class="evt-axis" x="${sx(t)}" y="${height - m.bottom + 12}" text-anchor="middle">${t * 100}%</text>`).join('')}
-    ${ticks.map(t => `<line class="evt-grid" x1="${m.left}" x2="${width - m.right}" y1="${sy(t)}" y2="${sy(t)}"/><text class="evt-axis" x="${m.left - 5}" y="${sy(t) + 3}" text-anchor="end">${t}×</text>`).join('')}
-    <line class="evt-mid" x1="${m.left}" x2="${width - m.right}" y1="${sy(1)}" y2="${sy(1)}"/>
-    ${[...use].reverse().map(p => `<circle class="evt-dot ${p.lean}" style="opacity:${opacity[p.tier]}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.pace).toFixed(1)}" r="${r(p.e).toFixed(1)}"/>`).join('')}
-    <g class="evt-focus"></g>
-    <text class="evt-axis label" x="${(m.left + width - m.right) / 2}" y="${height - 4}" text-anchor="middle">Forecast Talarico two-party share</text>
-    <text class="evt-axis label" transform="translate(11 ${(m.top + height - m.bottom) / 2}) rotate(-90)" text-anchor="middle">Pace vs the state (log scale)</text></svg>`);
-  scatterHits.pace = use.map(p => ({ id:p.id, x:sx(p.x), y:sy(p.pace) }));
-  $('#evt-pace-note').textContent = `${pts.length.toLocaleString('en-US')} ${levelNames[st.level]} have a pace${capped ? `; for speed only the ${MAX_POINTS.toLocaleString('en-US')} with the most expected ballots are drawn` : ''}. Point size: expected ballots. Opacity: signal reliability (faint under 50 early ballots, strongest at 250 or more). Colour: forecast lean. Values outside 0.4× to 2.5× sit on the edge.`;
+  const X0 = m.left + pad, X1 = width - m.right - pad, Y0 = height - m.bottom - pad, Y1 = m.top + pad;
+  const sx = v => X0 + Math.max(0, Math.min(1, v)) * (X1 - X0), sy = v => Y0 - c.pos(v) * (Y0 - Y1);
+  focusPos[c.name] = new Map(all.map(p => [p.id, { x:+sx(p.x).toFixed(1), y:+sy(p.y).toFixed(1), r:3, ...(c.band ? c.band(p, sy) : {}) }]));
+  let marks = '';
+  if (scatterMode[c.name] === 'binned') {
+    const cells = new Map();
+    for (const p of all) {
+      const i = Math.min(GRID - 1, Math.floor(Math.max(0, Math.min(1, p.x)) * GRID)), j = Math.min(GRID - 1, Math.floor(c.pos(p.y) * GRID)), key = i * GRID + j;
+      const cell = cells.get(key) || { i, j, n:0, pSum:0, pN:0, ySum:0 };
+      cell.n++; cell.ySum += p.y; if (Number.isFinite(p.p)) { cell.pSum += p.p; cell.pN++; }
+      cells.set(key, cell);
+    }
+    const maxN = Math.max(1, ...[...cells.values()].map(cell => cell.n)), cw = (X1 - X0) / GRID, ch = (Y0 - Y1) / GRID;
+    scatterHits[c.name] = [...cells.values()].map(cell => ({ bin:true, x0:X0 + cell.i * cw, x1:X0 + (cell.i + 1) * cw, y0:Y0 - cell.j * ch, y1:Y0 - (cell.j + 1) * ch, n:cell.n, my:cell.ySum / cell.n, mp:cell.pN ? cell.pSum / cell.pN : NaN, x:X0 + (cell.i + .5) * cw, y:Y0 - (cell.j + .5) * ch }));
+    marks = scatterHits[c.name].map(b => `<rect x="${b.x0.toFixed(1)}" y="${b.y1.toFixed(1)}" width="${cw.toFixed(2)}" height="${ch.toFixed(2)}" fill="${Number.isFinite(b.mp) ? leanColor(b.mp) : '#9aa5a8'}" fill-opacity="${(.18 + .82 * Math.sqrt(b.n / maxN)).toFixed(2)}"/>`).join('');
+  } else {
+    const pts = all.filter(p => p.n >= 50).sort((a, b) => b.e - a.e).slice(0, POINT_CAP);
+    scatterHits[c.name] = pts.map(p => ({ id:p.id, x:sx(p.x), y:sy(p.y) }));
+    marks = pts.reverse().map(p => `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3" fill="${leanColor(p.p)}" fill-opacity=".5"/>`).join('');
+  }
+  mountSvg(host, `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHTML(c.aria)}">
+    <rect class="evt-plot" x="${m.left}" y="${m.top}" width="${width - m.left - m.right}" height="${height - m.top - m.bottom}"/>
+    ${[0, .5, 1].map(t => `<line class="evt-grid" x1="${sx(t)}" x2="${sx(t)}" y1="${m.top}" y2="${height - m.bottom}"/><text class="evt-axis" x="${sx(t)}" y="${height - m.bottom + 12}" text-anchor="middle">${t * 100}%</text>`).join('')}
+    ${c.ticks.map(t => `<line class="evt-grid" x1="${m.left}" x2="${width - m.right}" y1="${sy(t)}" y2="${sy(t)}"/><text class="evt-axis" x="${m.left - 5}" y="${sy(t) + 3}" text-anchor="end">${c.fmt(t)}</text>`).join('')}
+    <line class="evt-mid" x1="${m.left}" x2="${width - m.right}" y1="${sy(c.ref)}" y2="${sy(c.ref)}"/>
+    ${marks}<g class="evt-focus"></g>
+    <text class="evt-axis label" x="${(m.left + width - m.right) / 2}" y="${height - 4}" text-anchor="middle">Forecast Talarico share</text>
+    <text class="evt-axis label" transform="translate(11 ${(m.top + height - m.bottom) / 2}) rotate(-90)" text-anchor="middle">${escapeHTML(c.yLabel)}</text></svg>`);
+  const binned = scatterMode[c.name] === 'binned', shown = binned ? all.length : scatterHits[c.name].length;
+  $(c.caption).textContent = binned ? `${all.length.toLocaleString('en-US')} ${levelNames[st.level]}, binned` : `${shown.toLocaleString('en-US')} of ${all.length.toLocaleString('en-US')} ${levelNames[st.level]} drawn`;
+  $(c.pop).innerHTML = `<p>${escapeHTML(c.about)}</p><p><strong>Binned</strong> (default): the plot is split into a ${GRID} × ${GRID} grid. Each cell's colour is the mean forecast win probability of the ${levelNames[st.level]} in it, from Paxton red through grey to Talarico blue, and its opacity grows with how many there are.</p><p><strong>Points</strong>: at most ${POINT_CAP.toLocaleString('en-US')} ${levelNames[st.level]} with the most expected ballots, leaving out any with fewer than 50 early ballots, coloured the same way.</p><p>The line marks ${escapeHTML(c.refText)}.</p>`;
+  for (const b of document.querySelectorAll(`[data-scatter-mode="${c.name}"]`)) b.setAttribute('aria-pressed', String(b.dataset.mode === scatterMode[c.name]));
   drawFocus();
 }
+const paceRange = [Math.log(.4), Math.log(2.5)];
+function drawPaceScatter() {
+  drawScatterPanel({ name:'pace', host:'#evt-pace-scatter', caption:'#evt-pace-note', pop:'#evt-pop-pace', aria:'Pace against forecast Talarico share',
+    y:row => { const v = paceOf(row); return v > 0 ? v : NaN; },
+    pos:v => (Math.log(Math.max(.4, Math.min(2.5, v))) - paceRange[0]) / (paceRange[1] - paceRange[0]),
+    ticks:[.5, 1, 2], fmt:t => `${t}×`, ref:1, refText:'the state’s pace (1×)', yLabel:'Pace vs the state (log)',
+    about:'Each area’s pace (its share of expected ballots cast, relative to the state) against the model’s forecast Talarico share. Pace beyond 0.4× or 2.5× sits on the edge.' });
+}
 function drawScatter() {
-  const host = $('#evt-scatter'), width = Math.max(280, host.clientWidth || 420), height = 260, m = { top:10, right:12, bottom:34, left:44 };
-  const rows = data.byDate.get(st.date) || new Map(), pts = [];
-  for (const [id, row] of rows) {
-    const ds = num(row.d_share_primary_history), n = num(row.with_primary_history), f = data.forecast.get(id);
-    if (Number.isFinite(ds) && Number.isFinite(n) && f && Number.isFinite(f.mean)) pts.push({ id, ds, n, x:f.mean, lean:lean(f.p) });
-  }
-  pts.sort((a, b) => b.n - a.n);
-  const capped = pts.length > MAX_POINTS, use = pts.slice(0, MAX_POINTS);
-  const sx = scaleLinear().domain([0, 1]).range([m.left, width - m.right]), sy = scaleLinear().domain([0, 1]).range([height - m.bottom, m.top]);
-  const nMax = use.length ? use[Math.min(use.length - 1, Math.floor(use.length * .02))].n : 1;
-  const r = n => 1.6 + 5 * Math.sqrt(Math.min(1, n / nMax));
-  focusPos.dshare = new Map(use.map(p => { const [lo, hi] = shareInterval(p.ds, p.n); return [p.id, { x:+sx(p.x).toFixed(1), y:+sy(p.ds).toFixed(1), r:r(p.n), lo:+sy(lo).toFixed(1), hi:+sy(hi).toFixed(1) }]; }));
-  const ticks = [0, .25, .5, .75, 1];
-  mountSvg(host, `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="D share of early voters with a primary history against forecast Talarico share">
-    ${ticks.map(t => `<line class="evt-grid" x1="${sx(t)}" x2="${sx(t)}" y1="${m.top}" y2="${height - m.bottom}"/><line class="evt-grid" x1="${m.left}" x2="${width - m.right}" y1="${sy(t)}" y2="${sy(t)}"/><text class="evt-axis" x="${sx(t)}" y="${height - m.bottom + 12}" text-anchor="middle">${t * 100}%</text><text class="evt-axis" x="${m.left - 5}" y="${sy(t) + 3}" text-anchor="end">${t * 100}%</text>`).join('')}
-    <line class="evt-mid" x1="${sx(.5)}" x2="${sx(.5)}" y1="${m.top}" y2="${height - m.bottom}"/><line class="evt-mid" x1="${m.left}" x2="${width - m.right}" y1="${sy(.5)}" y2="${sy(.5)}"/>
-    ${[...use].reverse().map(p => `<circle class="evt-dot ${p.lean}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.ds).toFixed(1)}" r="${r(p.n).toFixed(1)}"/>`).join('')}
-    <g class="evt-focus"></g>
-    <text class="evt-axis label" x="${(m.left + width - m.right) / 2}" y="${height - 4}" text-anchor="middle">Forecast Talarico two-party share</text>
-    <text class="evt-axis label" transform="translate(11 ${(m.top + height - m.bottom) / 2}) rotate(-90)" text-anchor="middle">D share, primary history</text></svg>`);
-  scatterHits.dshare = use.map(p => ({ id:p.id, x:sx(p.x), y:sy(p.ds) }));
-  $('#evt-scatter-note').textContent = `${pts.length.toLocaleString('en-US')} ${levelNames[st.level]} have a published D share${capped ? `; for speed only the ${MAX_POINTS.toLocaleString('en-US')} with the most primary-history voters are drawn` : ''}. Point size: early voters with a primary history. Colour: forecast lean (Paxton favored below a 40% win chance, Talarico favored above 60%). The line on a highlighted point is its 90% interval.`;
-  drawFocus();
+  drawScatterPanel({ name:'dshare', host:'#evt-scatter', caption:'#evt-scatter-note', pop:'#evt-pop-dshare', aria:'D share of early voters with a primary history against forecast Talarico share',
+    y:row => num(row.d_share_primary_history), pos:v => Math.max(0, Math.min(1, v)),
+    ticks:[0, .5, 1], fmt:t => `${t * 100}%`, ref:.5, refText:'a 50% D share',
+    band:(p, sy) => { const n = num(p.row.with_primary_history); if (!Number.isFinite(n)) return {}; const [lo, hi] = shareInterval(p.y, n); return { lo:+sy(lo).toFixed(1), hi:+sy(hi).toFixed(1) }; },
+    yLabel:'D share, primary history',
+    about:'The Democratic share among early voters who cast a ballot in a 2020–2026 primary, against the model’s forecast Talarico share. A highlighted area shows its 90% interval.' });
 }
 
 // ---- Pace by forecast: is early turnout running ahead where Talarico or Paxton is favored? ----
 function drawBars() {
-  const host = $('#evt-bars'), width = Math.max(280, host.clientWidth || 420), rowH = 26, m = { top:8, right:58, bottom:20, left:cLeft() };
-  function cLeft() { return st.bars === 'lean' ? 100 : 62; }
+  const host = $('#evt-bars'), width = Math.max(260, host.clientWidth || 360), rowH = st.bars === 'lean' ? 34 : 19, m = { top:6, right:48, bottom:20, left:st.bars === 'lean' ? 100 : 58 };
   const rows = data.byDate.get(st.date) || new Map(), base = baselineFor(st.date);
   const groups = st.bars === 'lean'
     ? [['paxton', 'Paxton favored'], ['tossup', 'Toss-up'], ['talarico', 'Talarico favored']].map(([key, label]) => ({ key, label, early:0, expected:0, n:0 }))
@@ -467,42 +486,42 @@ function drawBars() {
   const height = m.top + m.bottom + use.length * rowH;
   const lo = Math.min(.6, ...use.map(g => g.pace)), hi = Math.max(1.4, ...use.map(g => g.pace)), x = v => m.left + (v - lo) / (hi - lo) * (width - m.left - m.right);
   host.innerHTML = use.length ? `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Expected-ballot-weighted pace by forecast">
-    ${use.map((g, i) => { const y = m.top + i * rowH, c = g.pace >= 1 ? 'ahead' : 'behind'; return `<text class="evt-axis" x="${m.left - 6}" y="${y + rowH / 2 + 3}" text-anchor="end">${escapeHTML(g.label)}</text>
-      <rect class="evt-bar ${c}" x="${Math.min(x(1), x(g.pace))}" y="${y + 4}" width="${Math.abs(x(g.pace) - x(1))}" height="${rowH - 8}"/>
+    ${use.map((g, i) => { const y = m.top + i * rowH; return `<text class="evt-axis" x="${m.left - 6}" y="${y + rowH / 2 + 3}" text-anchor="end">${escapeHTML(g.label)}</text>
+      <rect class="evt-bar ${g.pace >= 1 ? 'ahead' : 'behind'}" x="${Math.min(x(1), x(g.pace))}" y="${y + 3}" width="${Math.max(1, Math.abs(x(g.pace) - x(1)))}" height="${rowH - 6}"/>
       <text class="evt-axis" x="${width - m.right + 6}" y="${y + rowH / 2 + 3}">${times(g.pace)}</text>
       <title>${escapeHTML(`${g.label}: ${times(g.pace)} the state's pace across ${g.n.toLocaleString('en-US')} ${levelNames[st.level]}`)}</title>`; }).join('')}
     <line class="evt-now" x1="${x(1)}" x2="${x(1)}" y1="${m.top}" y2="${height - m.bottom}"/>
-    <text class="evt-axis" x="${x(1)}" y="${height - 6}" text-anchor="middle">State pace = 1.00×</text></svg>` : '<p class="note">No areas with published early ballots on this date.</p>';
-  $('#evt-bars-note').textContent = `Expected-ballot-weighted pace: early ballots over expected ballots across published ${levelNames[st.level]} in each group, relative to the state. ${st.bars === 'lean' ? 'Lean uses the model win probability: Paxton favored below 40%, toss-up 40 to 60%, Talarico favored above 60%.' : 'Bins are the forecast Talarico two-party share in 10-point steps.'}`;
+    <text class="evt-axis" x="${x(1)}" y="${height - 6}" text-anchor="middle">1.00×</text></svg>` : '<p class="note">No areas with published early ballots on this date.</p>';
+  $('#evt-pop-bars').innerHTML = `<p>Expected-ballot-weighted pace: early ballots over expected ballots across the published ${levelNames[st.level]} in each group, relative to the state. 1.00× is the state's pace.</p><p>${st.bars === 'lean' ? 'Lean uses the model win probability: Paxton favored below 40%, toss-up 40 to 60%, Talarico favored above 60%.' : 'Bins are the forecast Talarico two-party share in 10-point steps.'}</p>`;
   for (const b of document.querySelectorAll('[data-bars]')) b.setAttribute('aria-pressed', String(b.dataset.bars === st.bars));
 }
 
 // ---- Ranked list: furthest ahead and furthest behind among high-reliability areas ----
 // The favored candidate and their win probability, for example "Talarico 99%".
 const favored = f => !f || !Number.isFinite(f.p) ? 'n/a' : f.p === .5 ? 'even' : f.p > .5 ? `Talarico ${probPct(f.p)}` : `Paxton ${probPct(1 - f.p)}`;
+let rankAll = false;
+// "County name, VTD 0001" for precincts; other levels keep their published label.
+function placeLabel(level, id) {
+  const label = labelOf(level, id);
+  const m = /^County (\d{3}), VTD (\S+)/.exec(label);
+  return m ? `${(county.forecast.get(m[1])?.label || `County ${m[1]}`).replace(/ County$/, '')}, VTD ${m[2]}` : label;
+}
 function drawRank() {
-  const host = $('#evt-rank'), width = Math.max(300, host.clientWidth || 420), rowH = 17, m = { left:Math.round(width * .4), right:Math.round(width * .22), top:4 };
-  const rows = data.byDate.get(st.date) || new Map(), list = [];
+  const host = $('#evt-rank'), rows = data.byDate.get(st.date) || new Map(), list = [], take = rankAll ? 15 : 6;
   for (const [id, row] of rows) { const e = num(row.early_ballots), p = paceOf(row); if (tierOf(e) === 'high' && Number.isFinite(p) && p > 0) list.push({ id, p, e, ci:paceInterval(p, e) }); }
   list.sort((a, b) => b.p - a.p);
-  const ahead = list.filter(a => a.p >= 1).slice(0, 15), behind = list.filter(a => a.p < 1).slice(-15).reverse();
+  const ahead = list.filter(a => a.p >= 1).slice(0, take), behind = list.filter(a => a.p < 1).slice(-take).reverse();
   if (!list.length) { host.innerHTML = '<p class="note">No areas have 250 or more early ballots on this date.</p>'; return; }
-  const lo = Math.log(.25), hi = Math.log(4);
-  const x = v => m.left + (Math.log(Math.max(.25, Math.min(4, v))) - lo) / (hi - lo) * (width - m.left - m.right);
-  const block = (title, items, y0) => `<text class="evt-axis label" x="4" y="${y0 + 10}">${escapeHTML(title)}</text>` + items.map((a, i) => {
-    const y = y0 + 16 + i * rowH, f = data.forecast.get(a.id), name = labelOf(st.level, a.id), label = name.length > 30 ? `${name.slice(0, 29)}…` : name;
-    return `<g class="evt-rank-row" data-id="${escapeHTML(a.id)}"><rect class="evt-rank-bg" x="0" y="${y}" width="${width}" height="${rowH}"/>
-      <text class="evt-axis" x="4" y="${y + 12}">${escapeHTML(label)}</text>
-      <line class="evt-ci" x1="${x(a.ci[0])}" x2="${x(a.ci[1])}" y1="${y + rowH / 2}" y2="${y + rowH / 2}"/><circle class="evt-rank-dot ${a.p >= 1 ? 'ahead' : 'behind'}" cx="${x(a.p)}" cy="${y + rowH / 2}" r="3.6"/>
-      <text class="evt-axis" x="${width - m.right + 6}" y="${y + 12}">${times(a.p)} · ${favored(f)}</text>
-      <title>${escapeHTML(`${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast: ${favored(f)}`)}</title></g>`;
-  }).join('');
-  const h1 = ahead.length ? 16 + ahead.length * rowH : 0, h2 = behind.length ? 16 + behind.length * rowH : 0, height = m.top + h1 + h2 + 24;
-  host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Areas furthest ahead of and behind the state's pace">
-    <line class="evt-now" x1="${x(1)}" x2="${x(1)}" y1="${m.top}" y2="${height - 18}"/>
-    ${ahead.length ? block('Furthest ahead', ahead, m.top) : ''}${behind.length ? block('Furthest behind', behind, m.top + h1 + 4) : ''}
-    <text class="evt-axis" x="${x(1)}" y="${height - 5}" text-anchor="middle">1.00×</text></svg>`;
-  $('#evt-rank-note').textContent = `High-reliability ${levelNames[st.level]} only (250 or more early ballots). Dots are pace with a 90% interval from the number of early ballots, on a log axis from 0.25× to 4× (values beyond the edge sit on it); the right column is the model's favored candidate and win probability, not an early-vote result.`;
+  const row = a => {
+    const f = data.forecast.get(a.id), name = placeLabel(st.level, a.id);
+    const tip = `${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast ${favored(f)}`;
+    return `<li class="evt-rank-row" data-id="${escapeHTML(a.id)}" title="${escapeHTML(tip)}"><i class="evt-lean ${lean(f?.p) || 'none'}" aria-label="${escapeHTML(leanLabel[lean(f?.p)] || 'no forecast')}"></i><span class="evt-rank-name">${escapeHTML(name)}</span><span class="evt-rank-pace">${times(a.p)}</span></li>`;
+  };
+  host.innerHTML = `${ahead.length ? `<h4>Furthest ahead</h4><ol>${ahead.map(row).join('')}</ol>` : ''}${behind.length ? `<h4>Furthest behind</h4><ol>${behind.map(row).join('')}</ol>` : ''}`;
+  const more = $('#evt-rank-more');
+  more.hidden = list.filter(a => a.p >= 1).length <= 6 && list.filter(a => a.p < 1).length <= 6;
+  more.textContent = rankAll ? 'Show 6' : 'Show 15';
+  $('#evt-pop-rank').innerHTML = `<p>High-reliability ${levelNames[st.level]} only (250 or more early ballots), ranked by pace against the state. The dot is the model's forecast lean, not an early-vote result. Hover a row for its 90% pace interval and forecast.</p>`;
   drawFocus();
 }
 
@@ -585,12 +604,75 @@ function syncControls() {
   $('#evt-date-label').textContent = `Through ${dateText(st.date)}`;
 }
 function renderAll() {
-  syncControls(); syncDisplay(); drawSummary(); paintMap(); drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawTable(); drawCard(); writeURL();
+  syncControls(); syncDisplay(); drawSummary(); paintMap(); drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawTable(); drawCard(); drawDemog(); writeURL();
 }
 async function setLevel(level) {
-  st.level = level; st.hover = null;
+  st.level = level; st.hover = null; demog.brushed = [];
   data = await load(level);
+  demog.table = demog.catalog ? await levelTable(level).catch(() => null) : null;
+  demog.usableKey = null;
   renderAll();
+}
+
+// ---- Early vote vs demographics: any measure on x, an early-vote or forecast measure on y, any measure as colour ----
+const demog = { catalog:null, table:null, plot:null, pickers:null, mode:'binned', brushed:[], keys:{ x:'pct_65plus', y:'ev_pace', c:'p_talarico' } };
+// Early-vote values for the selected date, lined up with the level table's units.
+function evArray(key) {
+  const t = demog.table, rows = data.byDate.get(st.date) || new Map(), out = new Float64Array(t.n).fill(NaN);
+  for (let i = 0; i < t.n; i++) {
+    const row = rows.get(t.ids[i]);
+    if (!row) continue;
+    out[i] = key === 'ev_pace' ? paceOf(row) : key === 'ev_pct_registered' ? num(row.pct_registered) : key === 'ev_d_share' ? num(row.d_share_primary_history) : key === 'expected' ? num(row.expected_ballots) : NaN;
+  }
+  return out;
+}
+function demogValues(entry) {
+  if (!entry || !demog.table) return null;
+  return entry.source === 'ev' ? evArray(entry.key) : demog.table.column(entry.key, entry.source);
+}
+const demogMoe = entry => entry?.hasMoe && demog.table ? demog.table.column(`${entry.key}_moe`, 'details') : null;
+function drawDemog() {
+  const panel = $('#evt-demog');
+  if (!demog.catalog || !demog.table || panel.hidden) return;
+  // Only measures with at least 30 units holding a value at this level are offered.
+  const key = `${st.level}|${st.date}`;
+  if (demog.usableKey !== key) { demog.usable = demog.catalog.filter(e => { const v = demogValues(e); return v && finiteCount(v) >= MIN_UNITS; }); demog.usableKey = key; }
+  const usable = demog.usable;
+  const yGroups = new Set(['Early vote', 'Politics']);
+  demog.keys.x = demog.pickers.x.set(usable, demog.keys.x);
+  demog.keys.y = demog.pickers.y.set(usable.filter(e => yGroups.has(e.group)), demog.keys.y);
+  demog.keys.c = demog.pickers.c.set(usable, demog.keys.c);
+  const xm = demog.pickers.x.entry(), ym = demog.pickers.y.entry(), cm = demog.pickers.c.entry();
+  const t = demog.table, marked = [st.sel, st.hover].filter(x => x?.level === st.level).map(x => t.index.get(x.id)).filter(i => i != null);
+  demog.plot.draw({ n:t.n, labels:t.ids.map(id => placeLabel(st.level, id)), x:demogValues(xm), y:demogValues(ym), c:demogValues(cm), w:evArray('expected'),
+    xm, ym, cm, xMoe:demogMoe(xm), yMoe:demogMoe(ym), cMoe:demogMoe(cm), mode:demog.mode, sizeByWeight:$('#evd-size').checked, noun:levelNames[st.level],
+    yRef:ym?.unit === 'pace' ? 1 : null, height:320, marked, brushed:demog.brushed.map(id => t.index.get(id)).filter(i => i != null),
+    onStats:s => {
+      $('#evd-stats').textContent = `${s.n.toLocaleString('en-US')} ${levelNames[st.level]} with both values${s.slopeText ? ` · ${s.slopeText}, weighted by expected ballots` : s.n < 30 ? ' · too few for a fit' : ''}${demog.mode === 'points' && demog.plot.state?.shown < s.n ? ` · ${demog.plot.state.shown.toLocaleString('en-US')} drawn` : ''}`;
+      $('#evd-legend').innerHTML = colorLegend(cm, s.colorRange);
+    } });
+  for (const b of document.querySelectorAll('[data-evd-mode]')) b.setAttribute('aria-pressed', String(b.dataset.evdMode === demog.mode));
+  $('#evd-size').closest('label').hidden = demog.mode !== 'points';
+  $('#evd-clear').hidden = !demog.brushed.length;
+}
+async function initDemog() {
+  const acs = await loadDemographics();
+  if (!acs) return;
+  demog.catalog = [...acs.entries, ...(await modelEntries()), ...earlyVoteEntries];
+  demog.table = await levelTable(st.level).catch(() => null);
+  $('#evt-demog').hidden = false;
+  $('#evd-method').textContent = methodNote(acs);
+  const redraw = () => drawDemog();
+  demog.pickers = { x:createPicker($('#evd-x'), { label:'X', onChange:v => { demog.keys.x = v; redraw(); } }), y:createPicker($('#evd-y'), { label:'Y', onChange:v => { demog.keys.y = v; redraw(); } }), c:createPicker($('#evd-c'), { label:'Colour', onChange:v => { demog.keys.c = v; redraw(); } }) };
+  demog.plot = createXYPlot($('#evd-plot'), {
+    onPick:i => setSelection({ level:st.level, id:demog.table.ids[i] }),
+    onHover:i => setHover(i == null ? null : { level:st.level, id:demog.table.ids[i] }),
+    onBrush:idx => { demog.brushed = idx.map(i => demog.table.ids[i]); paintHighlight(); drawDemog(); },
+  });
+  for (const b of document.querySelectorAll('[data-evd-mode]')) b.addEventListener('click', () => { demog.mode = b.dataset.evdMode; redraw(); });
+  $('#evd-size').addEventListener('change', redraw);
+  $('#evd-clear').addEventListener('click', () => { demog.brushed = []; paintHighlight(); redraw(); });
+  redraw();
 }
 function setDate(index) {
   st.date = county.dates[Math.max(0, Math.min(county.dates.length - 1, index))];
@@ -602,13 +684,14 @@ function hookScatter(name, host) {
   el.addEventListener('pointermove', e => {
     const p = pickFrom(name, host, e), tip = el.querySelector('.chart-tooltip');
     if (!p) { tip.hidden = true; setHover(null); return; }
-    tip.innerHTML = tooltipHTML(st.level, p.id); tip.hidden = false;
+    tip.innerHTML = p.bin ? `<strong>${p.n.toLocaleString('en-US')} ${escapeHTML(p.n === 1 ? levelNames[st.level].replace(/s$/, '') : levelNames[st.level])}</strong>Mean ${name === 'pace' ? `pace ${times(p.my)}` : `D share ${pct(p.my)}`}<br>Mean Talarico win probability ${probPct(p.mp)}` : tooltipHTML(st.level, p.id);
+    tip.hidden = false;
     const x = p.x / p.scale, y = p.y / p.scale;
     tip.style.left = `${x + 12 + tip.offsetWidth > el.clientWidth ? Math.max(4, x - tip.offsetWidth - 12) : x + 12}px`; tip.style.top = `${Math.max(4, Math.min(el.clientHeight - tip.offsetHeight - 4, y - tip.offsetHeight / 2))}px`;
-    setHover({ level:st.level, id:p.id });
+    if (!p.bin) setHover({ level:st.level, id:p.id });
   });
   el.addEventListener('pointerleave', () => { el.querySelector('.chart-tooltip').hidden = true; setHover(null); });
-  el.addEventListener('click', e => { const p = pickFrom(name, host, e); if (p) setSelection({ level:st.level, id:p.id }); });
+  el.addEventListener('click', e => { const p = pickFrom(name, host, e); if (p && !p.bin) setSelection({ level:st.level, id:p.id }); });
 }
 
 async function start() {
@@ -626,6 +709,7 @@ async function start() {
   if (!st.date || !county.dates.includes(st.date)) st.date = county.dates.at(-1);
   initMap();
   map._evtStyle = mapBasics().style;
+  await initDemog().catch(error => console.warn('Demographics unavailable:', error));
   renderAll();
   for (const b of document.querySelectorAll('[data-evt-level]')) b.addEventListener('click', () => setLevel(b.dataset.evtLevel));
   $('#evt-measure').addEventListener('change', e => { st.measure = e.target.value; renderAll(); });
@@ -644,6 +728,8 @@ async function start() {
   $('#evt-trend').addEventListener('click', e => { const hit = e.target.closest('[data-date]'); if (hit) { stop(); setDate(county.dates.indexOf(hit.dataset.date)); } });
   hookScatter('pace', '#evt-pace-scatter'); hookScatter('dshare', '#evt-scatter');
   for (const b of document.querySelectorAll('[data-bars]')) b.addEventListener('click', () => { st.bars = b.dataset.bars; drawBars(); });
+  for (const b of document.querySelectorAll('[data-scatter-mode]')) b.addEventListener('click', () => { scatterMode[b.dataset.scatterMode] = b.dataset.mode; (b.dataset.scatterMode === 'pace' ? drawPaceScatter : drawScatter)(); });
+  $('#evt-rank-more').addEventListener('click', () => { rankAll = !rankAll; drawRank(); });
   const rank = $('#evt-rank');
   rank.addEventListener('pointerover', e => { const r = e.target.closest('[data-id]'); setHover(r ? { level:st.level, id:r.dataset.id } : null); });
   rank.addEventListener('pointerleave', () => setHover(null));
@@ -657,7 +743,7 @@ async function start() {
   tableHost.addEventListener('pointerover', e => { const tr = e.target.closest('tr[data-id]'); setHover(tr ? { level:'county', id:tr.dataset.id } : null); });
   tableHost.addEventListener('pointerleave', () => setHover(null));
   $('#evt-card').addEventListener('click', e => { if (e.target.closest('#evt-clear')) setSelection(null); });
-  new ResizeObserver(() => { if (!tab.hidden) { drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); map?.resize(); } }).observe(tab);
+  new ResizeObserver(() => { if (!tab.hidden) { drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawDemog(); map?.resize(); } }).observe(tab);
 }
 
 // ---- Tabs ----
