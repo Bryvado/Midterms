@@ -1,21 +1,19 @@
 import { scaleLinear } from 'd3-scale';
 import { csv, pct, count, signed, escapeHTML } from './data.js';
-import { state, setState, races, raceOf, metrics, profileNames, profileLabels, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, weightedDeciles, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
+import { state, setState, races, raceOf, metrics, profileNames, profileLabels, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
 import { contours } from './contours.js';
 import { selectPlace } from './details.js';
 import { countyNames, shortLabel } from './labels.js';
 import { viewBounds, shareColor, setBrush, setArea, startDraw, cancelDraw } from './map.js';
 import { boxesFor } from './list.js';
+import { acsGroups, loadDemographics, modelEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
+import { createXYPlot, colorLegend, weightedFit as xyFit } from './xyplot.js';
 
 const panel = document.querySelector('#fp-shifts');
 const $ = selector => panel.querySelector(selector);
 const dark = () => document.documentElement.dataset.layout === 'dark';
 const ink = () => dark() ? { text:'#e5edf2', muted:'#acbfcb', grid:'#364a5b', zero:'#8aa1b2', panel:'#1b2937', fit:'#f4d27a' } : { text:'#1b282d', muted:'#64767b', grid:'#e3e9e8', zero:'#8e9ea3', panel:'#ffffff', fit:'#8a5a00' };
 const profileColors = () => dark() ? ['#e0b155', '#5fcbb0', '#b998dc', '#ff9a63'] : ['#b8892f', '#2f9a80', '#7b55a6', '#d9662a'];
-const demogOptions = [
-  ['hisp_cvap_share', 'Hispanic share of citizen adults', 'share'], ['white_cvap_share', 'White share of citizen adults', 'share'], ['black_cvap_share', 'Black share of citizen adults', 'share'],
-  ['ba_plus_share', "Bachelor's degree or higher", 'share'], ['med_income', 'Median income (log scale)', 'log'], ['density', 'Population density (log scale)', 'log'], ['share_from', 'Democratic share in the From race', 'share'],
-];
 const points = v => `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts`;
 let store = null, counties = new Map(), loading = null, checked = null, boxes = null, indexOf = null;
 // Linked brushing with the map: a lasso selection, the place last clicked on the map, chart zoom, and spatial restrictions.
@@ -43,6 +41,8 @@ function restrictText() {
 function syncTools() {
   for (const button of panel.querySelectorAll('[data-sh-tool]')) button.setAttribute('aria-pressed', String(button.dataset.shTool === link.tool));
   $('#sh-tools').hidden = state.view === 'table';
+  // The scatter engine brushes by dragging and has no pan or zoom, so those tools apply only to the shift-vs-shift view.
+  for (const el of [panel.querySelector('#sh-tools .range-switch'), $('#sh-zoom-reset')]) el.style.display = state.view === 'demog' ? 'none' : '';
   $('#sh-zoom-reset').disabled = link.zoom?.key !== zoomKey();
   $('#sh-sel-clear').hidden = !link.sel;
   $('#sh-area-clear').hidden = !link.area;
@@ -76,10 +76,9 @@ function build() {
   $('#sh-level').replaceChildren(...Object.entries(levelInfo).map(([key, info]) => new Option(info.label, key, false, key === state.level)));
   $('#sh-min').replaceChildren(...minOptions.map(v => new Option(v.toLocaleString('en-US'), String(v), false, v === state.min)));
   $('#sh-profile').replaceChildren(new Option('All profiles', ''), ...profileNames.map(key => new Option(profileLabels[key], key, false, key === state.profile)));
-  $('#sh-demog').replaceChildren(...demogOptions.map(([key, label]) => new Option(label, key, false, key === state.demog)));
 }
 function syncControls() {
-  for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to'], ['#sh-level', 'level'], ['#sh-profile', 'profile'], ['#sh-demog', 'demog'], ['#sh-color', 'color']]) $(id).value = state[key];
+  for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to'], ['#sh-level', 'level'], ['#sh-profile', 'profile'], ['#sh-color', 'color']]) $(id).value = state[key];
   $('#sh-min').value = String(state.min);
   $('#sh-weight').value = state.weighted ? '1' : '0';
   $('#sh-xrel').checked = state.xrel; $('#sh-yrel').checked = state.yrel; $('#sh-contours').checked = state.contours;
@@ -360,56 +359,129 @@ function drawXY() {
 }
 
 // ---- View 2: shift vs demographics ----
-let demogHit = null;
-function drawDemog() {
-  const canvas = $('#sh-demog-canvas'), c = ink(), [key, label, kind] = demogOptions.find(option => option[0] === state.demog) || demogOptions[0];
-  const ev = evaluate(store, state.from, state.to), ys = metricArray(ev, state.xrel ? 'rshift' : 'shift');
-  const shareFrom = shareOf(store, state.from);
-  const raw = key === 'density' ? Float64Array.from({ length:store.n }, (_, i) => store.demog.area_sqmi[i] > 0 ? store.demog.population[i] / store.demog.area_sqmi[i] : NaN) : key === 'share_from' ? shareFrom : store.demog[key];
-  const log = kind === 'log';
-  const idx = [];
-  for (let i = 0; i < store.n; i++) if (Number.isFinite(ys[i]) && Number.isFinite(raw[i]) && (!log || raw[i] > 0)) idx.push(i);
-  idx.splice(0, idx.length, ...restrict(idx));
-  const { ctx, width, height } = setup(canvas);
-  if (idx.length < 3) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText('Too few places have this measure and a shift under the current filters.', width / 2, height / 2); demogHit = null; $('#sh-demog-stats').textContent = ''; return; }
-  const xs = log ? Float64Array.from(raw, v => v > 0 ? Math.log(v) : NaN) : raw;
-  const bounded = kind === 'share';
-  const xv = idx.map(i => bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i]);
-  const xd0 = bounded ? domainOf(xv, { lowQ:0, highQ:1 }) : domainOf(xv.slice(), { lowQ:.003, highQ:.997 });
-  if (bounded) { xd0[0] = Math.max(0, xd0[0]); xd0[1] = Math.min(1, xd0[1]); }
-  const [xd, yd] = domainFor(xd0, domainOf(idx.map(i => ys[i]), { zero:true }));
-  const plot = makePlot(width, height, xd, yd);
-  const xTicks = log ? logTicks(Math.exp(xd[0]), Math.exp(xd[1])).map(Math.log) : scaleLinear().domain(xd).ticks(width < 360 ? 4 : 6);
-  const fmtX = key === 'med_income' ? v => `$${Math.round(Math.exp(v) / 1000)}k` : key === 'density' ? v => { const d = Math.exp(v); return d >= 1000 ? `${Math.round(d / 1000)}k` : String(Math.round(d)); } : v => `${Math.round(100 * v)}%`;
-  drawFrame(ctx, plot, { xTicks, yTicks:scaleLinear().domain(yd).ticks(6), xFormat:fmtX, yFormat:v => Math.round(100 * v) === 0 ? '0' : `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(100 * v))}`, zeroY:0, xLabel:label, yLabel:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.from).short} to ${raceOf(state.to).short} (points)` });
-  const wA = tpOf(store, state.from), weights = state.weighted ? wA : null, colors = profileColors();
-  const sorted = idx.map(i => wA[i]).sort((a, b) => a - b), wmax = quantile(sorted, .98) || 1;
-  ctx.save(); ctx.beginPath(); ctx.rect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top); ctx.clip();
-  const sx = [], sy = [], order = byDrawOrder(idx, wA), shown = [];
-  for (const i of order) {
-    const xv2 = bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i];
-    const px = plot.px(xv2), py = plot.py(ys[i]), r = 1.3 + 3.6 * Math.sqrt(Math.min(1, wA[i] / wmax));
-    if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) continue;
-    sx.push(px); sy.push(py); shown.push(i);
-    const color = store.profile[i] === 255 ? c.muted : colors[store.profile[i]];
-    if (store.imputed[i]) { pointStyle(i, ctx, .8); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, py, r + .5, 0, 6.2832); ctx.stroke(); }
-    else { const on = pointStyle(i, ctx, .42); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.2832); ctx.fill(); if (on) { ctx.strokeStyle = c.text; ctx.lineWidth = .8; ctx.stroke(); } }
-  }
-  ctx.globalAlpha = 1;
-  const xt = new Float64Array(store.n); for (const i of idx) xt[i] = bounded ? Math.min(1, Math.max(0, raw[i])) : xs[i];
-  const deciles = weightedDeciles(xt, ys, weights, idx);
-  ctx.strokeStyle = c.text; ctx.lineWidth = 2.4; ctx.beginPath();
-  deciles.forEach((d, k) => { const px = plot.px(d.x), py = plot.py(d.y); if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
-  ctx.stroke();
-  for (const d of deciles) { ctx.fillStyle = c.panel; ctx.strokeStyle = c.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(plot.px(d.x), plot.py(d.y), 3.6, 0, 6.2832); ctx.fill(); ctx.stroke(); }
-  ctx.restore();
-  demogHit = { sx, sy, idx:shown, plot };
-  drawFocus(ctx, demogHit);
-  const imputed = idx.filter(i => store.imputed[i]).length;
-  const outside = idx.filter(i => xt[i] < xd[0] || xt[i] > xd[1] || ys[i] < yd[0] || ys[i] > yd[1]).length;
-  $('#sh-demog-stats').textContent = `Line: ${state.weighted ? 'vote-weighted' : 'unweighted'} mean shift within deciles of the x measure, each decile holding a tenth of the ${state.weighted ? 'two-party votes' : 'places'}. ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${imputed ? `; ${imputed.toLocaleString('en-US')} with estimated demographics ${imputed === 1 ? 'is' : 'are'} hollow` : ''}${outside ? `; ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}${selectionText(idx, xt, ys, weights)}.${restrictText()}`;
-  attachHover(canvas, () => demogHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, ev)}<br>${escapeHTML(label)}: ${key === 'med_income' ? `$${count(raw[i])}` : key === 'density' ? `${count(raw[i])} per sq mi` : pct(Math.min(1, Math.max(0, raw[i])))}${store.imputed[i] ? '<br>Demographics estimated from neighboring precincts.' : ''}`, i => openPlace(store.level, i));
+// Measures come from the shared catalog; two entries belong to this panel and follow its From and To races.
+const pairEntries = () => [
+  { key:'pair_shift', label:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.from).short} to ${raceOf(state.to).short}`, group:'Politics', type:'shift', unit:'points', source:'pair' },
+  { key:'share_from', label:`Democratic share, ${raceOf(state.from).short}`, group:'Politics', type:'share', unit:'share', source:'pair' },
+];
+const presets = { age:['pct_65plus', 'pair_shift'], rent:['median_gross_rent', 'pair_shift'], moved:['pct_moved_since_2010', 'pair_shift'], value:['median_home_value', 'mean'], educ:['pct_ba_plus', 'pair_shift'] };
+// Eleven group colours: the eight validated categorical slots, then three more. Each bar also names its group in text.
+const groupColors = () => dark()
+  ? ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#3fa63f', '#9085e9', '#e66767', '#b08d62', '#8fa9b8', '#3fb0c0']
+  : ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948', '#8c6d46', '#5f7a8a', '#0f7c8c'];
+const rankGroups = [...acsGroups, 'Race and ethnicity', 'Model inputs'];
+const sx = { catalog:null, acs:null, table:null, perm:null, pickers:null, plot:null, mode:'binned', y:'pair_shift', c:'p_talarico', target:'pres24', rankAll:false, rankCache:new Map(), usableKey:'' };
+// Row k of the level table for row i of the store; both come from the same details file but are matched by id to be safe.
+async function demogTable() {
+  const t = await levelTable(store.level).catch(() => null);
+  if (t && t !== sx.table) { sx.table = t; sx.perm = Int32Array.from(store.ids, id => t.index.get(String(id)) ?? -1); sx.usableKey = ''; }
+  return t;
 }
+function valuesOf(entry, s = store, ev = null, table = sx.table, perm = sx.perm) {
+  if (!entry) return null;
+  if (entry.source === 'pair') return entry.key === 'share_from' ? shareOf(s, state.from) : metricArray(ev || evaluate(s, state.from, state.to), state.xrel ? 'rshift' : 'shift');
+  if (!table) return null;
+  const col = table.column(entry.key, entry.source);
+  return Float64Array.from(perm, k => k < 0 ? NaN : col[k]);
+}
+const moeOf = entry => entry?.hasMoe && sx.table ? valuesOf({ key:`${entry.key}_moe`, source:'details' }) : null;
+function drawDemog() {
+  const t = sx.table, c = ink();
+  if (!sx.catalog || !t || t.level !== store.level) { $('#sh-demog-stats').textContent = 'Loading measures…'; return; }
+  const ev = evaluate(store, state.from, state.to);
+  const key = `${store.level}|${state.from}|${state.to}|${state.xrel}`;
+  if (sx.usableKey !== key) { sx.usable = [...sx.catalog, ...pairEntries()].filter(e => { const v = valuesOf(e, store, ev); return v && finiteCount(v) >= MIN_UNITS; }); sx.usableKey = key; }
+  const usable = sx.usable;
+  state.demog = sx.pickers.x.set(usable, usable.some(e => e.key === state.demog) ? state.demog : 'hisp_cvap_share');
+  sx.y = sx.pickers.y.set(usable, sx.y); sx.c = sx.pickers.c.set(usable, sx.c);
+  const xm = sx.pickers.x.entry(), ym = sx.pickers.y.entry(), cm = sx.pickers.c.entry();
+  // The panel's filters (minimum votes, county, profile) and spatial restrictions apply to every measure.
+  const keep = new Uint8Array(store.n);
+  const all = []; for (let i = 0; i < store.n; i++) if (ev.status[i] === STATUS.ok) all.push(i);
+  for (const i of restrict(all)) keep[i] = 1;
+  const xs = valuesOf(xm, store, ev).map((v, i) => keep[i] ? v : NaN), ys = valuesOf(ym, store, ev);
+  const w = state.weighted ? tpOf(store, state.from) : null, noun = levelInfo[store.level].noun;
+  const marked = link.focus >= 0 ? [link.focus] : [];
+  sx.plot.draw({ n:store.n, labels:Array.from({ length:store.n }, (_, i) => placeName(i)), x:xs, y:ys, c:valuesOf(cm, store, ev), w, xm, ym, cm, xMoe:moeOf(xm), yMoe:moeOf(ym), cMoe:moeOf(cm),
+    mode:sx.mode, sizeByWeight:true, noun, yRef:ym?.unit === 'points' ? 0 : null, height:Math.round(Math.min(Math.max(($('#sh-plot').clientWidth || 320) * .7, 260), 420)), marked, brushed:link.sel ? [...link.sel] : [],
+    onStats:st => {
+      const weight = state.weighted ? `weighted by two-party votes in ${raceOf(state.from).label}` : 'unweighted';
+      $('#sh-demog-stats').textContent = `${st.n.toLocaleString('en-US')} ${noun} with both values${st.slopeText ? ` · ${st.slopeText}, ${weight}` : st.n < 30 ? ' · too few for a fit' : ''}${sx.mode === 'points' && sx.plot.state?.shown < st.n ? ` · ${sx.plot.state.shown.toLocaleString('en-US')} drawn` : ''}.${restrictText()}`;
+      $('#sh-demog-legend').innerHTML = colorLegend(cm, st.colorRange);
+    } });
+  for (const b of panel.querySelectorAll('[data-sh-mode]')) b.setAttribute('aria-pressed', String(b.dataset.shMode === sx.mode));
+  for (const b of panel.querySelectorAll('[data-sh-preset]')) { const [px, py] = presets[b.dataset.shPreset]; b.disabled = !usable.some(e => e.key === px) || !usable.some(e => e.key === py); b.setAttribute('aria-pressed', String(state.demog === px && sx.y === py)); }
+  $('#sh-demog-clear').hidden = !link.sel;
+  drawRank();
+}
+// Weighted correlation of each non-count demographic measure with a target, across precincts, weighted by the expected 2026 electorate.
+let ranking = 0;
+async function drawRank() {
+  const box = $('#sh-rank');
+  if (!sx.acs) { box.hidden = true; return; }
+  box.hidden = false;
+  const ym = sx.pickers.y.entry(), byY = sx.target === 'y' && ym;
+  const target = byY ? ym : sx.catalog.find(e => e.key === 'base_pres24');
+  for (const b of panel.querySelectorAll('[data-sh-target]')) b.setAttribute('aria-pressed', String(b.dataset.shTarget === (byY ? 'y' : 'pres24')));
+  $('#sh-rank-title').textContent = byY ? `Which demographics track ${target.label.charAt(0).toLowerCase()}${target.label.slice(1)}` : 'Which demographics track the 2024 vote';
+  const key = `${target.key}|${target.source === 'pair' ? `${state.from}|${state.to}|${state.xrel}|${state.min}|${state.county}|${state.profile}` : ''}`;
+  const request = ++ranking;
+  if (!sx.rankCache.has(key)) {
+    const [ps, pt] = await Promise.all([ensureStore('precinct'), levelTable('precinct')]);
+    if (request !== ranking) return;
+    const perm = Int32Array.from(ps.ids, id => pt.index.get(String(id)) ?? -1);
+    const y = valuesOf(target, ps, target.source === 'pair' ? evaluate(ps, state.from, state.to) : null, pt, perm);
+    const ballots = valuesOf({ key:'ballots_mean', source:'details' }, ps, null, pt, perm);
+    const rows = [];
+    for (const e of sx.catalog) {
+      if (e.type === 'count' || e.key === target.key || !rankGroups.includes(e.group)) continue;
+      const x = valuesOf(e, ps, null, pt, perm), idx = [];
+      for (let i = 0; i < ps.n; i++) if (Number.isFinite(x[i]) && Number.isFinite(y[i]) && ballots[i] > 0) idx.push(i);
+      if (idx.length < MIN_UNITS) continue;
+      const fit = xyFit(x, y, ballots, idx);
+      if (fit) rows.push({ e, r:fit.r, n:idx.length });
+    }
+    rows.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+    sx.rankCache.set(key, rows);
+  }
+  const rows = sx.rankCache.get(key), colors = groupColors(), shown = sx.rankAll ? rows : rows.slice(0, 15);
+  const usable = new Set(sx.usable.map(e => e.key));
+  $('#sh-rank-note').textContent = `Weighted correlation across precincts between each measure and ${target.label.charAt(0).toLowerCase()}${target.label.slice(1)}, weighted by the expected 2026 electorate. These are associations across precincts. Measures with fewer than ${MIN_UNITS} precincts holding both values are left out. Click a bar to put that measure on the X axis.`;
+  $('#sh-rank-list').innerHTML = shown.map(({ e, r, n }) => {
+    const color = colors[rankGroups.indexOf(e.group)], wpct = Math.abs(r) * 50;
+    return `<li><button type="button" class="sh-rank-row${e.key === state.demog ? ' current' : ''}" data-key="${escapeHTML(e.key)}" ${usable.has(e.key) ? '' : 'disabled title="Not available at this level"'} aria-label="${escapeHTML(`${e.label} (${e.group}): r = ${r.toFixed(2)}, ${n.toLocaleString('en-US')} precincts`)}">
+      <span class="sh-rank-label">${escapeHTML(e.label)}<em>${escapeHTML(e.group)}</em></span>
+      <span class="sh-rank-bar"><i style="background:${color};${r >= 0 ? `left:50%` : `right:50%`};width:${wpct}%"></i></span>
+      <span class="sh-rank-r">${r >= 0 ? '+' : '−'}${Math.abs(r).toFixed(2)}</span></button></li>`;
+  }).join('') || '<li class="note">No measure has enough precincts with values.</li>';
+  $('#sh-rank-more').hidden = rows.length <= 15;
+  $('#sh-rank-more').textContent = sx.rankAll ? 'Show top 15' : `Show all ${rows.length}`;
+  const groups = rankGroups.filter(g => rows.some(x => x.e.group === g));
+  $('#sh-rank-legend').innerHTML = groups.map(g => `<span><i style="background:${colors[rankGroups.indexOf(g)]}"></i>${escapeHTML(g)}</span>`).join('');
+}
+async function initDemog() {
+  sx.acs = await loadDemographics();
+  sx.catalog = [...(sx.acs?.entries || []), ...(await modelEntries())];
+  $('#sh-presets').hidden = !sx.acs;
+  $('#sh-method').hidden = !sx.acs;
+  if (sx.acs) $('#sh-method').textContent = methodNote(sx.acs);
+  sx.pickers = {
+    x:createPicker($('#sh-px'), { label:'X', onChange:v => set({ demog:v }) }),
+    y:createPicker($('#sh-py'), { label:'Y', onChange:v => { sx.y = v; redraw(); } }),
+    c:createPicker($('#sh-pc'), { label:'Colour', onChange:v => { sx.c = v; redraw(); } }),
+  };
+  sx.plot = createXYPlot($('#sh-plot'), {
+    onPick:i => openPlace(store.level, i),
+    onBrush:idx => setSelection(new Set(idx)),
+  });
+  for (const b of panel.querySelectorAll('[data-sh-mode]')) b.addEventListener('click', () => { sx.mode = b.dataset.shMode; redraw(); });
+  for (const b of panel.querySelectorAll('[data-sh-preset]')) b.addEventListener('click', () => { const [px, py] = presets[b.dataset.shPreset]; sx.y = py; set({ demog:px }); });
+  for (const b of panel.querySelectorAll('[data-sh-target]')) b.addEventListener('click', () => { sx.target = b.dataset.shTarget; drawRank(); });
+  $('#sh-demog-clear').addEventListener('click', () => setSelection(null));
+  $('#sh-rank-more').addEventListener('click', () => { sx.rankAll = !sx.rankAll; drawRank(); });
+  $('#sh-rank-list').addEventListener('click', e => { const b = e.target.closest('[data-key]'); if (b && !b.disabled) set({ demog:b.dataset.key }); });
+}
+const set = (patch, what = 'view') => setState(patch, what);
 
 // ---- View 3: movers table ----
 const tableState = { sort:'shift', dir:-1, page:0, view:false };
@@ -476,7 +548,7 @@ async function redraw() {
   const ev = evaluate(store, state.from, state.to);
   renderHeader(ev, levelInfo[store.level].noun);
   renderSummary(ev);
-  if (state.view === 'xy') drawXY(); else if (state.view === 'demog') drawDemog(); else { await drawTable(); if (request !== drawing) return; }
+  if (state.view === 'xy') drawXY(); else if (state.view === 'demog') { await demogTable(); if (request !== drawing) return; drawDemog(); } else { await drawTable(); if (request !== drawing) return; }
 }
 async function load() {
   if (loading) return loading;
@@ -502,6 +574,7 @@ async function changeLevel() {
 }
 function init() {
   build(); syncControls();
+  initDemog().then(() => redraw()).catch(error => console.error('Demographic measures could not be loaded', error));
   const set = (patch, what = 'pair') => setState(patch, what);
   $('#sh-from').addEventListener('change', e => set({ from:e.target.value }));
   $('#sh-to').addEventListener('change', e => set({ to:e.target.value }));
@@ -522,7 +595,6 @@ function init() {
   $('#sh-yrel').addEventListener('change', e => set({ yrel:e.target.checked }, 'view'));
   $('#sh-color').addEventListener('change', e => set({ color:e.target.value }, 'view'));
   $('#sh-contours').addEventListener('change', e => set({ contours:e.target.checked }, 'view'));
-  $('#sh-demog').addEventListener('change', e => set({ demog:e.target.value }, 'view'));
   for (const button of panel.querySelectorAll('[data-sh-view]')) button.addEventListener('click', () => set({ view:button.dataset.shView }, 'view'));
   $('#sh-view-table').addEventListener('click', event => {
     const sort = event.target.closest('[data-sh-sort]'), page = event.target.closest('[data-sh-page]'), row = event.target.closest('tr[data-i]');
@@ -548,12 +620,11 @@ function init() {
     const i = indexOf.get(detail.id);
     if (i === undefined) return;
     link.focus = i;
-    let hit = state.view === 'xy' ? xyHit : demogHit;
-    if (link.zoom && hit && !hit.idx.includes(i)) link.zoom = null;
+    if (state.view === 'demog') { redraw(); return; }
+    if (link.zoom && xyHit && !xyHit.idx.includes(i)) link.zoom = null;
     redraw();
-    hit = state.view === 'xy' ? xyHit : demogHit;
-    const canvas = $(state.view === 'xy' ? '#sh-xy-canvas' : '#sh-demog-canvas'), k = hit ? hit.idx.indexOf(i) : -1;
-    if (k >= 0) canvas._tip(k, hit);
+    const canvas = $('#sh-xy-canvas'), k = xyHit ? xyHit.idx.indexOf(i) : -1;
+    if (k >= 0) canvas._tip(k, xyHit);
     else { const tip = canvas.parentElement.querySelector('.chart-tooltip'); placeTip(canvas, tip, 60, 30, `<strong>${escapeHTML(placeName(i))}</strong>Not on this chart: it is missing a race or excluded by the filters.`); }
   });
   window.addEventListener('compare-change', () => { tableState.page = 0; if (!panel.hidden) { load(); redraw(); } });

@@ -2,6 +2,8 @@ import maplibregl from 'maplibre-gl';
 import { scaleLinear } from 'd3-scale';
 import { base, csv, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
+import { loadDemographics, modelEntries, earlyVoteEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
+import { createXYPlot, colorLegend } from './xyplot.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
 // statewide totals and the daily chart come from the official early_vote_daily file. Blank cells are suppressed
@@ -163,6 +165,7 @@ function addLayers() {
     map.addLayer({ id:`evt-hi-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.6 } }, before);
   }
   // The county table can highlight a county at any geography.
+  for (const level of Object.keys(files)) map.addLayer({ id:`evt-brush-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:level === st.level ? 'visible' : 'none' }, filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':1.8 } }, before);
   map.addLayer({ id:'evt-hi-countytable', type:'line', source:'county', 'source-layer':'regions', filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':2.4, 'line-dasharray':[2, 1] } }, before);
   b.labels(map);
   mapReady = true;
@@ -196,6 +199,7 @@ function paintMap() {
 }
 function paintHighlight() {
   if (!mapReady) return;
+  for (const level of Object.keys(files)) { map.setLayoutProperty(`evt-brush-${level}`, 'visibility', level === st.level ? 'visible' : 'none'); map.setFilter(`evt-brush-${level}`, idFilter(level === st.level ? demog.brushed : [])); }
   const ids = [st.hover, st.sel].filter(x => x && x.level === st.level).map(x => x.id);
   map.setFilter(`evt-hi-${st.level}`, idFilter(ids));
   const counties = [st.hover, st.sel].filter(x => x && x.level === 'county' && st.level !== 'county').map(x => x.id);
@@ -316,11 +320,11 @@ function drawFocus() {
 function setHover(next) {
   if (st.hover?.id === next?.id && st.hover?.level === next?.level) return;
   st.hover = next;
-  paintHighlight(); drawFocus(); markTable();
+  paintHighlight(); drawFocus(); markTable(); drawDemog();
 }
 function setSelection(next) {
   st.sel = next;
-  paintHighlight(); drawFocus(); markTable(); drawCard(); drawTrend();
+  paintHighlight(); drawFocus(); markTable(); drawCard(); drawTrend(); drawDemog();
 }
 
 // ---- Summary: the official state count for the selected date ----
@@ -600,12 +604,75 @@ function syncControls() {
   $('#evt-date-label').textContent = `Through ${dateText(st.date)}`;
 }
 function renderAll() {
-  syncControls(); syncDisplay(); drawSummary(); paintMap(); drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawTable(); drawCard(); writeURL();
+  syncControls(); syncDisplay(); drawSummary(); paintMap(); drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawTable(); drawCard(); drawDemog(); writeURL();
 }
 async function setLevel(level) {
-  st.level = level; st.hover = null;
+  st.level = level; st.hover = null; demog.brushed = [];
   data = await load(level);
+  demog.table = demog.catalog ? await levelTable(level).catch(() => null) : null;
+  demog.usableKey = null;
   renderAll();
+}
+
+// ---- Early vote vs demographics: any measure on x, an early-vote or forecast measure on y, any measure as colour ----
+const demog = { catalog:null, table:null, plot:null, pickers:null, mode:'binned', brushed:[], keys:{ x:'pct_65plus', y:'ev_pace', c:'p_talarico' } };
+// Early-vote values for the selected date, lined up with the level table's units.
+function evArray(key) {
+  const t = demog.table, rows = data.byDate.get(st.date) || new Map(), out = new Float64Array(t.n).fill(NaN);
+  for (let i = 0; i < t.n; i++) {
+    const row = rows.get(t.ids[i]);
+    if (!row) continue;
+    out[i] = key === 'ev_pace' ? paceOf(row) : key === 'ev_pct_registered' ? num(row.pct_registered) : key === 'ev_d_share' ? num(row.d_share_primary_history) : key === 'expected' ? num(row.expected_ballots) : NaN;
+  }
+  return out;
+}
+function demogValues(entry) {
+  if (!entry || !demog.table) return null;
+  return entry.source === 'ev' ? evArray(entry.key) : demog.table.column(entry.key, entry.source);
+}
+const demogMoe = entry => entry?.hasMoe && demog.table ? demog.table.column(`${entry.key}_moe`, 'details') : null;
+function drawDemog() {
+  const panel = $('#evt-demog');
+  if (!demog.catalog || !demog.table || panel.hidden) return;
+  // Only measures with at least 30 units holding a value at this level are offered.
+  const key = `${st.level}|${st.date}`;
+  if (demog.usableKey !== key) { demog.usable = demog.catalog.filter(e => { const v = demogValues(e); return v && finiteCount(v) >= MIN_UNITS; }); demog.usableKey = key; }
+  const usable = demog.usable;
+  const yGroups = new Set(['Early vote', 'Politics']);
+  demog.keys.x = demog.pickers.x.set(usable, demog.keys.x);
+  demog.keys.y = demog.pickers.y.set(usable.filter(e => yGroups.has(e.group)), demog.keys.y);
+  demog.keys.c = demog.pickers.c.set(usable, demog.keys.c);
+  const xm = demog.pickers.x.entry(), ym = demog.pickers.y.entry(), cm = demog.pickers.c.entry();
+  const t = demog.table, marked = [st.sel, st.hover].filter(x => x?.level === st.level).map(x => t.index.get(x.id)).filter(i => i != null);
+  demog.plot.draw({ n:t.n, labels:t.ids.map(id => placeLabel(st.level, id)), x:demogValues(xm), y:demogValues(ym), c:demogValues(cm), w:evArray('expected'),
+    xm, ym, cm, xMoe:demogMoe(xm), yMoe:demogMoe(ym), cMoe:demogMoe(cm), mode:demog.mode, sizeByWeight:$('#evd-size').checked, noun:levelNames[st.level],
+    yRef:ym?.unit === 'pace' ? 1 : null, height:320, marked, brushed:demog.brushed.map(id => t.index.get(id)).filter(i => i != null),
+    onStats:s => {
+      $('#evd-stats').textContent = `${s.n.toLocaleString('en-US')} ${levelNames[st.level]} with both values${s.slopeText ? ` · ${s.slopeText}, weighted by expected ballots` : s.n < 30 ? ' · too few for a fit' : ''}${demog.mode === 'points' && demog.plot.state?.shown < s.n ? ` · ${demog.plot.state.shown.toLocaleString('en-US')} drawn` : ''}`;
+      $('#evd-legend').innerHTML = colorLegend(cm, s.colorRange);
+    } });
+  for (const b of document.querySelectorAll('[data-evd-mode]')) b.setAttribute('aria-pressed', String(b.dataset.evdMode === demog.mode));
+  $('#evd-size').closest('label').hidden = demog.mode !== 'points';
+  $('#evd-clear').hidden = !demog.brushed.length;
+}
+async function initDemog() {
+  const acs = await loadDemographics();
+  if (!acs) return;
+  demog.catalog = [...acs.entries, ...(await modelEntries()), ...earlyVoteEntries];
+  demog.table = await levelTable(st.level).catch(() => null);
+  $('#evt-demog').hidden = false;
+  $('#evd-method').textContent = methodNote(acs);
+  const redraw = () => drawDemog();
+  demog.pickers = { x:createPicker($('#evd-x'), { label:'X', onChange:v => { demog.keys.x = v; redraw(); } }), y:createPicker($('#evd-y'), { label:'Y', onChange:v => { demog.keys.y = v; redraw(); } }), c:createPicker($('#evd-c'), { label:'Colour', onChange:v => { demog.keys.c = v; redraw(); } }) };
+  demog.plot = createXYPlot($('#evd-plot'), {
+    onPick:i => setSelection({ level:st.level, id:demog.table.ids[i] }),
+    onHover:i => setHover(i == null ? null : { level:st.level, id:demog.table.ids[i] }),
+    onBrush:idx => { demog.brushed = idx.map(i => demog.table.ids[i]); paintHighlight(); drawDemog(); },
+  });
+  for (const b of document.querySelectorAll('[data-evd-mode]')) b.addEventListener('click', () => { demog.mode = b.dataset.evdMode; redraw(); });
+  $('#evd-size').addEventListener('change', redraw);
+  $('#evd-clear').addEventListener('click', () => { demog.brushed = []; paintHighlight(); redraw(); });
+  redraw();
 }
 function setDate(index) {
   st.date = county.dates[Math.max(0, Math.min(county.dates.length - 1, index))];
@@ -642,6 +709,7 @@ async function start() {
   if (!st.date || !county.dates.includes(st.date)) st.date = county.dates.at(-1);
   initMap();
   map._evtStyle = mapBasics().style;
+  await initDemog().catch(error => console.warn('Demographics unavailable:', error));
   renderAll();
   for (const b of document.querySelectorAll('[data-evt-level]')) b.addEventListener('click', () => setLevel(b.dataset.evtLevel));
   $('#evt-measure').addEventListener('change', e => { st.measure = e.target.value; renderAll(); });
@@ -675,7 +743,7 @@ async function start() {
   tableHost.addEventListener('pointerover', e => { const tr = e.target.closest('tr[data-id]'); setHover(tr ? { level:'county', id:tr.dataset.id } : null); });
   tableHost.addEventListener('pointerleave', () => setHover(null));
   $('#evt-card').addEventListener('click', e => { if (e.target.closest('#evt-clear')) setSelection(null); });
-  new ResizeObserver(() => { if (!tab.hidden) { drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); map?.resize(); } }).observe(tab);
+  new ResizeObserver(() => { if (!tab.hidden) { drawTrend(); drawPaceScatter(); drawBars(); drawRank(); drawScatter(); drawDemog(); map?.resize(); } }).observe(tab);
 }
 
 // ---- Tabs ----
