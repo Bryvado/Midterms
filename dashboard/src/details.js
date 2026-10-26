@@ -1,5 +1,5 @@
 import { placeMeasures, measureLabel } from './metrics.js';
-import { csv, pct, count, escapeHTML } from './data.js';
+import { csv, pct, probPct, count, escapeHTML } from './data.js';
 import { openPanel } from './layout.js';
 import { renderList, listFiltersByView, cancelList } from './list.js';
 import { countyNames, shortLabel } from './labels.js';
@@ -95,7 +95,7 @@ function renderPlace(unit, props, data, counties, drivers) {
     <div class="place-lede"><div class="place-stat"><span>Talarico two-party share</span><strong>${shade('mean','Projected Talarico two-party share','share',props.mean)}</strong></div><div class="place-stat"><span>90% interval</span><strong>${shade('q05','Projected share: 5th percentile','share',props.q05)}–${shade('q95','Projected share: 95th percentile','share',props.q95)}</strong></div></div>
     ${drivers}
     <p class="actual-result"><strong>2024 Harris:</strong> ${shade('dem_pres24','2024 Harris votes','count',value('dem_pres24'))} actual votes · ${harris + trump > 0 ? shade('base_pres24','2024 Harris two-party share','share',harris/(harris+trump)) : 'n/a'} two-party share</p>
-    <p class="note">Chance Talarico leads here: ${shade('p_talarico','Chance Talarico leads','share',props.p_talarico)}.${String(data.demographics_imputed).toUpperCase() === 'TRUE' ? ' Demographics estimated from neighboring precincts.' : ''}</p>
+    <p class="note">Chance Talarico leads here: ${shade('p_talarico','Chance Talarico leads','share',props.p_talarico,probPct(props.p_talarico))}.${String(data.demographics_imputed).toUpperCase() === 'TRUE' ? ' Demographics estimated from neighboring precincts.' : ''}</p>
     ${section('Projected 2026 votes',['','Mean','90% range'],voteRows)}
     <p class="note">Vote counts come from a separate simulation and may imply a two-party share differing from the map by up to about half a point.</p>
     <div id="place-results"></div>

@@ -1,6 +1,6 @@
 import { scaleLinear, scaleTime } from 'd3-scale';
 import { line, area, curveMonotoneX } from 'd3-shape';
-import { pct, signed, escapeHTML } from './data.js';
+import { pct, probPct, signed, escapeHTML } from './data.js';
 import { marginColor, partyColor } from './map.js';
 
 let track = [], polls = [], combined = null, baselines = new Map(), current = 'mean';
@@ -110,8 +110,9 @@ export function initChart(trackRows, pollRows, headline, shifts) {
   const weights = track.filter(row => finite(row.fund_weight));
   if (weights.length) {
     const first = +weights[0].fund_weight, last = +weights.at(-1).fund_weight;
-    const trend = last > first ? 'rising to' : last < first ? 'falling to' : 'holding at';
-    captionText = `The forecast leans on polls; fundamentals carry ${pct(first, 0)} of the weight today, ${trend} ${pct(last, 0)} by Election Day.`;
+    // One decimal; when the rounded weights match the sentence drops the direction word.
+    const a = pct(first, 1), b = pct(last, 1);
+    captionText = a === b ? `The forecast leans on polls; fundamentals carry ${a} of the weight, today and on Election Day.` : `The forecast leans on polls; fundamentals carry ${a} of the weight today, ${last > first ? 'rising to' : 'falling to'} ${b} by Election Day.`;
   }
   baselines = new Map(shifts.filter(row => row.component === 'combined').map(row => [row.baseline,row.label]));
   document.querySelector('#poll-summary').textContent = `Poll ledger (${polls.length} polls)`;
@@ -258,7 +259,7 @@ function draw(root) {
   if (show.fc && forecast.length) {
     const last = forecast.at(-1);
     const ex = x(last.time), ey = combined ? y(+combined.mean) : y(+last[fm]);
-    const text = combined ? `Forecast ${pct(combined.mean)}, ${pct(combined.p_talarico_win, 0)} chance of winning` : '';
+    const text = combined ? `Forecast ${pct(combined.mean)}, ${probPct(combined.p_talarico_win)} chance of winning` : '';
     const obstacles = [...baseObstacles, { x:ex, y:ey, r:6 }];
     const top = y(Math.max(...forecast.map(row => +row[fhi]))), bot = y(Math.min(...forecast.map(row => +row[flo])));
     const candidates = [
@@ -277,15 +278,15 @@ function draw(root) {
   if (show.fsens && scenario && sens.length) {
     // The scenario's own endpoint is labelled directly; the label sits at the right edge, above or below the line.
     const last = sens.at(-1), ex = x(last.time), ey = y(+last.fund_appr_mean);
-    const full = `If fundamentals used Texas Trump approval: Talarico ${pct(scenario.p_talarico_win, 0)}`;
-    const lines = (right - margin.left) * .95 > full.length * 5.7 + 6 ? [full] : ['If fundamentals used Texas Trump approval:', `Talarico ${pct(scenario.p_talarico_win, 0)}`];
+    const full = `If fundamentals used Texas Trump approval: Talarico ${probPct(scenario.p_talarico_win)}`;
+    const lines = (right - margin.left) * .95 > full.length * 5.7 + 6 ? [full] : ['If fundamentals used Texas Trump approval:', `Talarico ${probPct(scenario.p_talarico_win)}`];
     const rows = lines.length;
     const candidates = [{ x:right - 4, y:ey - 6 - 13 * (rows - 1), anchor:'end' }, { x:right - 4, y:ey + 14 + 13 * (rows - 1), anchor:'end' }, { x:margin.left + 4, y:ey - 6 - 13 * (rows - 1), anchor:'start' }, { x:margin.left + 4, y:ey + 14 + 13 * (rows - 1), anchor:'start' }];
     const at = placeLabel(lines, candidates, baseObstacles, { left:margin.left, right, top:margin.top, bottom });
     scenarioLabel = `<text class="chart-sens-label" x="${at.x}" y="${at.y - 13 * (rows - 1)}" text-anchor="${at.anchor}">${lines.map((line, i) => `<tspan x="${at.x}" dy="${i ? 13 : 0}">${escapeHTML(line)}</tspan>`).join('')}</text>`;
   }
   if (evPos) {
-    const text = `With early vote: Talarico ${pct(ev.win, 0)}`;
+    const text = `With early vote: Talarico ${probPct(ev.win)}`;
     // Kept beside the marker: above the interval, then level with the point, then below; overlap is preferred to a label far from its marker.
     const candidates = [{ x:evPos.x - 8, y:evPos.hi - 4, anchor:'end' }, { x:evPos.x - 8, y:evPos.y - 8, anchor:'end' }, { x:evPos.x - 8, y:evPos.y + 14, anchor:'end' }, { x:evPos.x - 8, y:evPos.lo + 12, anchor:'end' }];
     const at = placeLabel(text, candidates, baseObstacles, { left:margin.left, right, top:margin.top, bottom });

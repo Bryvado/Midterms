@@ -19,7 +19,7 @@
           <span class="ts-sep ts-sep-range">·</span>
           <span class="ts-item" id="range-card"><span id="range-label">range</span> <strong id="range-value">—</strong><span id="range-sub" class="visually-hidden"></span></span>
         </div>
-        <div class="panel-toggles" role="group" aria-label="Panels">
+        <div class="panel-toggles" id="panel-toggles" role="group" aria-label="Panels">
           <button type="button" data-open-panel="display" aria-pressed="false">Display</button>
           <button type="button" data-open-panel="controls" aria-pressed="true">Map controls</button>
           <button type="button" data-open-panel="legend" aria-pressed="true">Legend</button>
@@ -30,6 +30,7 @@
           <button type="button" data-open-panel="place" aria-pressed="true">Selected place</button>
           <button type="button" id="reset-layout" class="reset-layout">Reset layout</button>
         </div>
+        <button type="button" id="panels-menu" class="panels-menu" aria-haspopup="true" aria-expanded="false" aria-controls="panel-toggles">Panels ▾</button>
         <div class="header-actions">
           <span id="run-date" class="run-date">Loading model…</span>
           <a id="methodology-link" class="text-button" href="methodology.html">Methodology</a>

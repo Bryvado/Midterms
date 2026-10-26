@@ -1,5 +1,5 @@
 import { scaleLinear } from 'd3-scale';
-import { csv, pct, count, escapeHTML } from './data.js';
+import { csv, pct, probPct, count, escapeHTML } from './data.js';
 import { partyColor } from './map.js';
 import { contours } from './contours.js';
 
@@ -148,7 +148,7 @@ function refresh() {
   note.hidden = view !== 'turnout_share';
   const stated = published.get(scenario);
   // The line keeps its height when empty so the plot does not move between scenarios.
-  chance.textContent = stated == null ? '' : `Published chance Talarico wins: ${pct(stated, 0)}.`;
+  chance.textContent = stated == null ? '' : `Published chance Talarico wins: ${probPct(stated)}.`;
   draw();
 }
 

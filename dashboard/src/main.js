@@ -4,7 +4,7 @@ import './layout.js';
 import { initAppearance } from './appearance.js';
 import './evtab.js';
 import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
-import { csv, pct, signed, escapeHTML, table } from './data.js';
+import { csv, pct, probPct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
@@ -116,7 +116,7 @@ function renderSummary(headline, scenarios) {
   if (!combined) throw new Error('Combined headline estimate is missing.');
   $('#share-value').textContent = pct(combined.mean);
   $('#share-sub').textContent = `±${(100 * combined.sd).toFixed(1)}`;
-  $('#win-value').textContent = pct(combined.p_talarico_win,0);
+  $('#win-value').textContent = probPct(combined.p_talarico_win);
   scenarioRows = scenarios;
   showScenario(measure.value);
   $('#run-date').textContent = `Model run ${combined.run_date}`;

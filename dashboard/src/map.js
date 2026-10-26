@@ -9,7 +9,7 @@ import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { scaleLinear } from 'd3-scale';
 import { interpolateLab } from 'd3-interpolate';
-import { base, csv, pct, count, signed, escapeHTML } from './data.js';
+import { base, csv, pct, probPct, count, signed, escapeHTML } from './data.js';
 
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
 const neutral = { light:'#f2efe8', dark:'#464b54' };
@@ -672,13 +672,13 @@ function valueText(props) {
   const v = props[sourceKey(measure)];
   const kind = metricKinds.get(measure);
   if (v === '' || v == null) return 'no data';
-  if (measure === 'result_confidence') return +props.p_talarico === .5 ? `${pct(v)} · even` : `${pct(v)} · ${+props.p_talarico > .5 ? 'Talarico' : 'Paxton'} favored`;
+  if (measure === 'result_confidence') return +props.p_talarico === .5 ? `${probPct(v)} · even` : `${probPct(v)} · ${+props.p_talarico > .5 ? 'Talarico' : 'Paxton'} favored`;
   if (measure === 'margin') return `${signed(v)} (${+v >= 0 ? 'Talarico' : 'Paxton'} ahead)`;
   if (measure === 'brown_share') return pct(v);
   if (measure === 'vote_density') return `${+v >= 0 ? '+' : '−'}${compact(Math.abs(+v))} votes / sq mi (${+v >= 0 ? 'Talarico' : 'Paxton'} net)`;
   if (kind === 'bounded') return +v > 1 ? '100% (capped)' : pct(boundedValue(v));
   if (kind === 'money') return `$${count(v)}`;
-  return kind === 'count' || isCount(measure) ? count(v) : isShift(measure) ? signed(v) : pct(v);
+  return kind === 'count' || isCount(measure) ? count(v) : isShift(measure) ? signed(v) : measure === 'p_talarico' ? probPct(v) : pct(v);
 }
 
 function showTooltip(event, props) {

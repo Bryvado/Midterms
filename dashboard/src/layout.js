@@ -22,19 +22,20 @@ function defaults() {
   const pollW = Math.min(480, Math.max(sideW, Math.round(W * .34)));
   // Leave room for readable place rows and comparison controls.
   const placeW = Math.max(260, Math.round(W * .25));
-  const placeH = Math.max(MIN.h, Math.round(H / 3));
+  // Tall enough for the controls, five list rows and the pager; a shorter panel scrolls instead.
+  const placeH = Math.min(Math.max(MIN.h, Math.round(H / 3), 560), H - GAP * 2);
   const pollH = Math.round(Math.min(H * .52, 560));
   return {
     controls:{ x:GAP, y:GAP, w:Math.min(500, Math.max(380, W - pollW - GAP * 3)), h:null, open:true },
     // Lifted clear of the map's attribution line, which must stay visible.
     legend:{ x:52, y:null, w:250, h:null, open:true, lift:22 },
     display:{ x:Math.max(GAP, W - pollW - 270 - GAP * 2), y:GAP, w:270, h:Math.min(600, H - GAP * 2), open:false },
-    polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:true },
+    polling:{ x:W - pollW - GAP, y:GAP, w:pollW, h:pollH, open:false },
     shifts:{ x:Math.max(GAP, W - 580 - GAP), y:GAP, w:580, h:Math.min(880, H - GAP * 2), open:false },
     scatter:{ x:Math.max(GAP, W - pollW - 460 - GAP * 2), y:GAP, w:460, h:Math.min(560, H - GAP * 2), open:false },
-    place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:true },
-    // Bottom center, between the legend and the selected-place panel; closed by default where that gap is too narrow.
-    about:{ x:52 + 250 + GAP * 2, y:null, w:Math.max(300, Math.min(440, W - placeW - 302 - GAP * 4)), h:null, open:W - placeW - 302 - GAP * 4 >= 300, lift:22 },
+    place:{ x:W - placeW - GAP, y:H - placeH - GAP, w:placeW, h:placeH, open:false },
+    // Closed by default; opening it places it by the same least-overlap rule as every other panel.
+    about:{ x:52 + 250 + GAP * 2, y:null, w:Math.max(300, Math.min(440, W - placeW - 302 - GAP * 4)), h:null, open:false, lift:22 },
   };
 }
 
@@ -80,9 +81,28 @@ function update(id, patch) {
   window.dispatchEvent(new CustomEvent('panel-layout', { detail:{ id } }));
 }
 
+// A panel that is opened comes to the front and goes where it covers the least of the other open panels.
+function leastOverlap(id) {
+  const el = panels.get(id), area = workspace.getBoundingClientRect(), W = area.width, H = area.height;
+  const w = Math.min(el.offsetWidth, W), h = Math.min(el.offsetHeight, H);
+  const others = [...panels].filter(([other, node]) => other !== id && !node.hidden).map(([, node]) => { const r = node.getBoundingClientRect(); return { x:r.left - area.left, y:r.top - area.top, w:r.width, h:r.height }; });
+  const home = defaults()[id], step = 16;
+  let best = null;
+  for (let y = 0; y <= H - h; y += step) for (let x = 0; x <= W - w; x += step) {
+    let covered = 0;
+    for (const o of others) covered += Math.max(0, Math.min(x + w, o.x + o.w) - Math.max(x, o.x)) * Math.max(0, Math.min(y + h, o.y + o.h) - Math.max(y, o.y));
+    const away = home ? Math.hypot(x - home.x, y - (home.y ?? H - h)) : 0;
+    if (!best || covered < best.covered || (covered === best.covered && away < best.away)) best = { x, y, covered, away };
+  }
+  return best;
+}
 export function openPanel(id) {
-  if (panels.get(id)?.hidden) update(id, { open:true });
-  raise(panels.get(id));
+  const el = panels.get(id);
+  if (el?.hidden) {
+    update(id, { open:true });
+    if (!phone.matches) { const spot = leastOverlap(id); if (spot) update(id, { x:spot.x, y:spot.y }); }
+  }
+  raise(el);
 }
 
 function raise(el) { if (el) el.style.zIndex = String(++top); }
@@ -181,7 +201,26 @@ document.querySelector('#reset-layout')?.addEventListener('click', () => {
   window.dispatchEvent(new CustomEvent('panel-layout', { detail:{ id:null } }));
 });
 
+// Header: collapse the panel chips into a menu when they would crowd the headline summary.
+const header = document.querySelector('.site-header'), toggles = document.querySelector('#panel-toggles'), menuButton = document.querySelector('#panels-menu');
+function fitHeader() {
+  if (!header) return;
+  header.classList.remove('compact');
+  const stats = header.querySelector('.topstats');
+  if (phone.matches || header.scrollWidth > header.clientWidth + 1 || (stats && stats.scrollWidth > stats.clientWidth + 1)) header.classList.add('compact');
+  if (!header.classList.contains('compact')) { toggles.classList.remove('open'); menuButton.setAttribute('aria-expanded', 'false'); }
+}
+menuButton?.addEventListener('click', event => {
+  event.stopPropagation();
+  const open = toggles.classList.toggle('open');
+  menuButton.setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', event => { if (toggles.classList.contains('open') && !toggles.contains(event.target)) { toggles.classList.remove('open'); menuButton.setAttribute('aria-expanded', 'false'); } });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && toggles.classList.contains('open')) { toggles.classList.remove('open'); menuButton.setAttribute('aria-expanded', 'false'); menuButton.focus(); } });
+if (header) { const watch = new ResizeObserver(fitHeader); watch.observe(header); watch.observe(header.querySelector('.topstats')); window.addEventListener('panel-layout', fitHeader); }
+
 let pending = 0;
-window.addEventListener('resize', () => { cancelAnimationFrame(pending); pending = requestAnimationFrame(apply); });
-phone.addEventListener('change', apply);
+window.addEventListener('resize', () => { cancelAnimationFrame(pending); pending = requestAnimationFrame(() => { apply(); fitHeader(); }); });
+phone.addEventListener('change', () => { apply(); fitHeader(); });
 apply();
+fitHeader();
