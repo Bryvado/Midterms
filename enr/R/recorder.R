@@ -18,6 +18,7 @@ cfg <- list(
   deploy_min  = as.numeric(arg("deploy-min", "60")),         # at most one deploy trigger per this many seconds
   handoff_at  = as.numeric(arg("handoff-at", "20700")),      # start the successor run after this many seconds (5h45m)
   stop_at     = as.numeric(arg("stop-at", "21000")),         # stop polling after this many seconds
+  end_utc     = arg("end-utc", ""),                          # no successor is started after this time
   tail_wait   = as.numeric(arg("tail-wait", "300")),         # replay: seconds to keep watching the site after the last snapshot
   site        = arg("site", ""),                             # live.json URL on the published site, for latency
   push        = arg("push", "true") == "true",
@@ -116,6 +117,8 @@ results_from_replay <- function(path) {
 }
 results_key <- function(df) paste(df$county_num, df$office_id, df$office_name, df$cand_id, df$cand_party, sep = "|")
 results_hash <- function(df) digest(df[, setdiff(result_cols, "snapshot_utc")], "xxhash64")
+# The estimator reads only the Senate rows, so it reruns only when they move.
+senate_hash <- function(df) { k <- df$office_type == "FD" & gsub("\\s+", " ", trimws(df$office_name)) == "U. S. SENATOR"; results_hash(df[k, , drop = FALSE]) }
 
 # One row per county x office x candidate whose count moved since the last snapshot. Election Day plus late = votes - early.
 batches <- function(old, new) {
@@ -173,7 +176,7 @@ last_deploy <- -Inf; deploy_pending <- FALSE
 trigger_deploy <- function() {
   if (!cfg$deploy) return(FALSE)
   if (elapsed() - last_deploy < cfg$deploy_min) { deploy_pending <<- TRUE; return(FALSE) }
-  out <- suppressWarnings(system2("gh", c("workflow", "run", "enr-deploy.yml", "--ref", "main", "-f", paste0("branch=", cfg$branch)), stdout = TRUE, stderr = TRUE))
+  out <- suppressWarnings(system2("gh", c("workflow", "run", "enr-deploy.yml", "--ref", "main"), stdout = TRUE, stderr = TRUE))
   ok <- is.null(attr(out, "status"))
   if (ok) { last_deploy <<- elapsed(); deploy_pending <<- FALSE }
   append_csv(data.frame(utc = now_utc(), run_id = cfg$run_id, ok = ok, msg = paste(out, collapse = " ")), sp("log", "deploys.csv"))
@@ -198,6 +201,7 @@ wait_until <- function(t) repeat {
 # Restore what the branch already holds, so a successor run continues the same series.
 prev <- if (file.exists(sp("state", "results.csv"))) normalize(read.csv(sp("state", "results.csv"), colClasses = "character")) else NULL
 prev_hash <- if (is.null(prev)) "" else results_hash(prev)
+senate_prev <- if (is.null(prev) || !file.exists(sp("live", "live.json"))) "" else senate_hash(prev)
 hdr_hash <- ""; ci_hash <- ""; version <- ""; version_at_ci <- ""; last_ci <- -Inf; last_commit <- elapsed()
 timeline <- list(); n_changes <- 0L; n_ci_without_version <- 0L; n_negative <- 0L; handed_off <- FALSE
 old_hb <- tryCatch(fromJSON(sp("heartbeat")), error = function(e) NULL)
@@ -207,9 +211,6 @@ if (!is.null(old_hb) && !identical(as.character(old_hb$run_id), cfg$run_id) &&
     abs(as.numeric(difftime(Sys.time(), as.POSIXct(old_hb$last_utc, "UTC", format = "%Y-%m-%dT%H:%M:%OS"), units = "secs"))) < 600) Sys.sleep(2 * cfg$step)
 
 snaps <- if (cfg$source == "replay") sort(list.files(cfg$replay_dir, pattern = "^snap_.*\\.csv$", full.names = TRUE)) else character()
-if (cfg$source == "replay") writeLines(toJSON(list(source = "replay", folder = basename(cfg$replay_dir), run_id = cfg$run_id,
-  started_utc = format(t0, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")), auto_unbox = TRUE, pretty = TRUE), sp("live", "source.json")) else
-  writeLines(toJSON(list(source = "live", election = cfg$election, run_id = cfg$run_id), auto_unbox = TRUE, pretty = TRUE), sp("live", "source.json"))
 i <- 0L
 repeat {
   i <- i + 1L
@@ -246,14 +247,15 @@ repeat {
       }
     }
   }
-  results_changed <- FALSE
+  results_changed <- FALSE; senate_changed <- FALSE
   if (!is.null(new) && results_hash(new) != prev_hash) {
     b <- batches(prev, new)
     if (nrow(b)) { append_csv(b, sp("log", "batches.csv")); n_negative <- n_negative + sum(b$negative) }
     write.csv(new, sp("state", "results.csv"), row.names = FALSE, na = "")
     prev <- new; prev_hash <- results_hash(new); results_changed <- TRUE; n_changes <- n_changes + 1L
+    sh <- senate_hash(new); senate_changed <- sh != senate_prev; senate_prev <- sh
   }
-  est <- if (results_changed) run_estimator() else NULL
+  est <- if (senate_changed) run_estimator() else NULL
   if (!is.null(est)) append_csv(data.frame(utc = now_utc(), snapshot_utc = prev$snapshot_utc[1], ok = est$ok, seconds = round(est$seconds, 2),
                                            msg = if (est$ok) "" else est$msg), sp("log", "estimator.csv"))
   committed <- NA
@@ -263,13 +265,14 @@ repeat {
     last_commit <- elapsed()
   }
   deployed <- FALSE
-  if ((results_changed && isTRUE(est$ok)) || (deploy_pending && elapsed() - last_deploy >= cfg$deploy_min)) deployed <- trigger_deploy()
-  if (results_changed) timeline[[prev$snapshot_utc[1]]] <- list(snapshot_utc = prev$snapshot_utc[1], served_utc = served,
+  if ((senate_changed && isTRUE(est$ok)) || (deploy_pending && elapsed() - last_deploy >= cfg$deploy_min)) deployed <- trigger_deploy()
+  if (senate_changed) timeline[[prev$snapshot_utc[1]]] <- list(snapshot_utc = prev$snapshot_utc[1], served_utc = served,
     estimator_s = if (is.null(est)) NA else round(est$seconds, 2), committed_utc = if (is.character(committed)) committed else NA,
     deploy_triggered_utc = if (deployed) now_utc() else NA)
-  if (cfg$source == "live" && !handed_off && elapsed() >= cfg$handoff_at && cfg$push) {
+  if (cfg$source == "live" && !handed_off && elapsed() >= cfg$handoff_at && cfg$push &&
+      (!nzchar(cfg$end_utc) || Sys.time() < as.POSIXct(cfg$end_utc, "UTC", format = "%Y-%m-%dT%H:%M:%S"))) {
     out <- suppressWarnings(system2("gh", c("workflow", "run", cfg$workflow, "--ref", "main", "-f", "source=live", "-f", paste0("election=", cfg$election),
-                                            "-f", paste0("branch=", cfg$branch)), stdout = TRUE, stderr = TRUE))
+                                            "-f", paste0("branch=", cfg$branch), "-f", paste0("end_utc=", cfg$end_utc), "-f", "reset_trajectory=false"), stdout = TRUE, stderr = TRUE))
     handed_off <- TRUE
     report <- c(report, sprintf("Successor requested at %.0f s: %s", elapsed(), paste(out, collapse = " ")))
   }

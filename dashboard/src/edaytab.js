@@ -5,18 +5,20 @@ import { mapBasics } from './map.js';
 import { showView } from './evtab.js';
 
 // Election night tab. Everything shown comes from data/live: live.json (the estimator's current statewide and county
-// output), trajectory.json (one statewide row per snapshot) and source.json (live feed or rehearsal). Nothing is estimated here.
+// output) and trajectory.json (one statewide row per snapshot). ?src=rehearsal reads the rehearsal copy under data/rehearsal
+// instead and labels it as simulated. Nothing is estimated here.
 const tab = document.querySelector('#eday-tab');
 const $ = selector => tab.querySelector(selector);
 const tabButton = document.querySelector('[data-view="eday"]');
 const params = new URLSearchParams(location.search);
 const POLL_MS = 20000;
 const SHIFT_MAX = .06;
-const st = { live:null, traj:[], source:null, loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null };
+const rehearsal = params.get('src') === 'rehearsal';
+const st = { live:null, traj:[], loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null };
 let map = null, mapReady = false, timer = null, started = false;
 
 const dark = () => document.documentElement.dataset.layout === 'dark';
-const fetchJSON = name => fetch(`${base}data/live/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
+const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
 const central = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }); };
 const centralFull = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : `${d.toLocaleString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })} Central`; };
 const pts = v => Number.isFinite(v) ? `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts` : 'n/a';
@@ -30,8 +32,8 @@ const byId = () => new Map(counties().map(c => [c.fips3, c]));
 // ---- Loading ----
 async function refresh() {
   try {
-    const [live, traj, source] = await Promise.all([fetchJSON('live.json'), fetchJSON('trajectory.json').catch(() => []), fetchJSON('source.json').catch(() => null)]);
-    st.live = live; st.traj = Array.isArray(traj) ? traj : []; st.source = source; st.loadedAt = new Date(); st.error = null;
+    const [live, traj] = await Promise.all([fetchJSON('live.json'), fetchJSON('trajectory.json').catch(() => [])]);
+    st.live = live; st.traj = Array.isArray(traj) ? traj : []; st.loadedAt = new Date(); st.error = null;
   } catch (error) { st.error = error; }
   render();
 }
@@ -42,29 +44,28 @@ function render() {
 }
 function renderStatus() {
   const banner = $('#eday-banner');
-  const replay = st.source?.source === 'replay';
-  banner.hidden = !replay;
-  if (replay) banner.textContent = `Rehearsal: these are simulated returns (${st.source.folder || 'replay'}), not real results.`;
+  banner.hidden = !rehearsal;
+  if (rehearsal) banner.textContent = 'Rehearsal: these are simulated returns, not real results.';
   const s = st.live?.statewide;
   $('#eday-status').textContent = st.error && !st.live ? `Election-night results are not available: ${st.error.message}`
-    : s ? `Returns as of ${centralFull(s.snapshot_utc)}. ${count(s.counties_reporting)} of ${count(counties().length)} counties reporting, ${count(s.counties_complete)} complete. Checked ${st.loadedAt.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}; this page checks again every ${POLL_MS / 1000} seconds.`
+    : s ? `Returns as of ${centralFull(s.snapshot_utc)}. ${count(s.counties_reporting)} of ${count(counties().length)} counties reporting, ${count(s.counties_complete)} complete. Checked ${st.loadedAt.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}; this page checks again every ${POLL_MS / 1000} seconds. The estimate uses ${count(s.update_rows)} county updates${s.robust_sd > 0 ? ` and allows ±${(100 * s.robust_sd).toFixed(1)} pts of extra statewide shift` : ''}.`
     : 'Loading election-night results…';
 }
 function renderSummary() {
   const s = st.live.statewide;
   const stat = (label, value, note) => `<div class="evt-stat"><span>${escapeHTML(label)}</span><strong>${value}</strong><em>${escapeHTML(note)}</em></div>`;
   $('#eday-summary').innerHTML = [
-    stat('Chance Talarico wins', probPct(s.p_talarico), `Pre-election simulations (07): ${probPct(s.p_talarico_prior)}`),
+    stat('Chance Talarico wins', probPct(s.p_talarico), `Pre-results forecast: ${probPct(s.p_talarico_prior)}`),
     stat('Talarico two-party share', share(s.tal_2p_mean), `80% range ${share(s.tal_2p_q10)} to ${share(s.tal_2p_q90)}`),
     stat('Margin', escapeHTML(marginText(s.margin_mean)), `80% range ${marginText(s.margin_q10)} to ${marginText(s.margin_q90)}`),
     stat('Votes counted', count(s.votes_counted), `of about ${count(s.votes_expected)} expected (${pct(s.pct_counted, 0)})`),
     stat('Counties', `${count(s.counties_reporting)} reporting`, `${count(s.counties_complete)} of ${count(counties().length)} complete`),
-    stat('Election Day turnout factor', Number.isFinite(s.eday_turnout_factor) ? `${s.eday_turnout_factor.toFixed(2)}×` : 'n/a', 'Election Day votes against the model, from complete counties'),
+    stat('Election Day turnout vs. expected', Number.isFinite(s.eday_turnout_factor) ? `${s.eday_turnout_factor.toFixed(2)}×` : 'n/a', 'From fully reported counties'),
     stat('Early minus Election Day', pts(s.early_gap_mean), `Talarico share gap, ± ${Number.isFinite(s.early_gap_sd) ? (100 * s.early_gap_sd).toFixed(1) : 'n/a'} pts`),
   ].join('');
 }
 
-// ---- Map: shift from the pre-election model, faded by how much of the county's expected vote is counted ----
+// ---- Map: shift from the pre-results forecast, faded by how much of the county's expected vote is counted ----
 function addLayers() {
   const b = mapBasics();
   map.addSource('eday-county', { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
@@ -89,7 +90,7 @@ function paintMap() {
   map.setFilter('eday-hi', ['in', key, ['literal', ids]]);
 }
 function renderLegend() {
-  $('#eday-legend').innerHTML = `<div class="eday-legend-title">Shift from the pre-election model</div><div class="eday-ramp"></div>
+  $('#eday-legend').innerHTML = `<div class="eday-legend-title">Shift from the pre-results forecast</div><div class="eday-ramp"></div>
     <div class="eday-legend-scale"><span>Paxton +${100 * SHIFT_MAX}</span><span>0</span><span>Talarico +${100 * SHIFT_MAX}</span></div>
     <div class="eday-legend-note">Points of Talarico two-party share. Fainter counties have less of their expected vote counted.</div>`;
 }
@@ -99,7 +100,7 @@ function tooltipHTML(c) {
   return `<strong>${escapeHTML(titleCase(c.county))}</strong>${[
     line('Counted', `${count(c.counted_early)} early, ${count(c.counted_eday)} Election Day (${pct(c.pct_counted, 0)} of expected)${c.complete ? ', complete' : ''}`),
     line('Talarico share, early', share(c.obs_2p_early)), line('Talarico share, Election Day', share(c.obs_2p_eday)),
-    line('Pre-election model', share(c.prior_2p)), line('Estimate', `${share(c.post_2p)} ± ${Number.isFinite(c.post_2p_sd) ? (100 * c.post_2p_sd).toFixed(1) : 'n/a'} pts`),
+    line('Pre-results forecast', share(c.prior_2p)), line('Estimate', `${share(c.post_2p)} ± ${Number.isFinite(c.post_2p_sd) ? (100 * c.post_2p_sd).toFixed(1) : 'n/a'} pts`),
     line('Shift', pts(c.shift)), line('Chance Talarico carries the county', probPct(c.p_talarico)),
   ].join('<br>')}`;
 }
@@ -156,7 +157,7 @@ function drawTrajectory() {
   const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Chance Talarico wins and his two-party share through the night">
     <text class="evt-axis label" x="${m.l}" y="${m.t - 5}">Chance Talarico wins</text>
     ${grid(y1, [0, .25, .5, .75, 1], v => `${Math.round(100 * v)}%`)}
-    ${Number.isFinite(prior) ? `<line class="eday-prior" x1="${m.l}" x2="${W - m.r}" y1="${y1(prior)}" y2="${y1(prior)}"/><text class="evt-axis" x="${W - m.r}" y="${y1(prior) - 4}" text-anchor="end">Pre-election simulations ${probPct(prior)}</text>` : ''}
+    ${Number.isFinite(prior) ? `<line class="eday-prior" x1="${m.l}" x2="${W - m.r}" y1="${y1(prior)}" y2="${y1(prior)}"/><text class="evt-axis" x="${W - m.r}" y="${y1(prior) - 4}" text-anchor="end">Pre-results forecast ${probPct(prior)}</text>` : ''}
     <path class="eday-line p" d="${path(r => r.p_talarico, y1)}"/>
     ${xAxis(y1.range()[0])}
     <text class="evt-axis label" x="${m.l}" y="${top2 - 5}">Talarico two-party share, with 80% range</text>
@@ -190,7 +191,7 @@ const columns = [
   { key:'complete', label:'Complete', show:c => c.complete ? '<span class="eday-yes">Yes</span>' : '' },
   { key:'obs_2p_early', label:'Early share', show:c => share(c.obs_2p_early) },
   { key:'obs_2p_eday', label:'Election Day share', show:c => share(c.obs_2p_eday) },
-  { key:'prior_2p', label:'Pre-election model', show:c => share(c.prior_2p) },
+  { key:'prior_2p', label:'Pre-results forecast', show:c => share(c.prior_2p) },
   { key:'post_2p', label:'Estimate', show:c => share(c.post_2p) },
   { key:'shift', label:'Shift', show:c => pts(c.shift) },
   { key:'expected_total', label:'Expected votes', show:c => count(c.expected_total) },
@@ -239,9 +240,9 @@ window.addEventListener('view-tab', ({ detail }) => {
   else { clearInterval(timer); timer = null; if (url.searchParams.get('tab') === 'eday') url.searchParams.delete('tab'); }
   history.replaceState(null, '', url);
 });
-// The tab button appears once the live feed is published. A rehearsal stays reachable only through ?tab=eday.
-fetchJSON('source.json').then(source => {
+// The tab button appears once the real estimate is published. A rehearsal is reachable only through ?tab=eday&src=rehearsal.
+fetch(`${base}data/live/live.json?t=${Date.now()}`, { method:'HEAD', cache:'no-store' }).then(r => r.ok).catch(() => false).then(published => {
   const asked = params.get('tab') === 'eday';
-  tabButton.hidden = !(source?.source === 'live' || asked);
+  tabButton.hidden = !(published || asked);
   if (asked) showView('eday');
-}).catch(() => { if (params.get('tab') === 'eday') { tabButton.hidden = false; showView('eday'); } });
+});

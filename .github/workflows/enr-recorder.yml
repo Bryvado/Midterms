@@ -20,6 +20,14 @@ on:
       step:
         description: Seconds between header polls or replay snapshots
         default: "15"
+      reset_trajectory:
+        description: "Live only: auto clears live/ when it holds no counted votes; true always clears it; false keeps it"
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
+      end_utc:
+        description: "Live only: no successor run is started after this UTC time"
+        default: "2026-11-05T06:00:00"
 
 permissions:
   contents: write
@@ -51,10 +59,23 @@ jobs:
             git -C store rm -rq --cached . && git -C store clean -fdxq
           fi
           # A rehearsal starts from an empty series; history keeps the earlier ones.
-          if [ "${{ inputs.source }}" = replay ]; then rm -rf store/state store/live store/log store/raw; fi
+          if [ "${{ inputs.source }}" = replay ]; then
+            [ "$BRANCH" = enr-2026 ] && { echo "A replay may not write to enr-2026." >&2; exit 1; }
+            rm -rf store/state store/live store/log store/raw
+          fi
+          # A live start clears an estimate that holds no counted votes, so the night's trajectory starts empty. A successor keeps it.
+          if [ "${{ inputs.source }}" = live ] && [ -f store/live/trajectory.json ]; then
+            counted=$(jq '[.[].votes_counted] | max // 0' store/live/trajectory.json)
+            if [ "${{ inputs.reset_trajectory }}" = true ] || { [ "${{ inputs.reset_trajectory }}" = auto ] && [ "$counted" = 0 ]; }; then
+              rm -f store/live/live.json store/live/trajectory.json
+              echo "Cleared live/ (votes counted so far: $counted)."
+            else
+              echo "Kept live/ (votes counted so far: $counted)."
+            fi
+          fi
       - name: Record
         run: |
           Rscript enr/R/recorder.R --source=${{ inputs.source }} --replay-dir=${{ inputs.replay_dir }} --election=${{ inputs.election }} \
-            --branch="$BRANCH" --step=${{ inputs.step }} --store=store \
-            --site=https://bryvado.github.io/Midterms/data/live/live.json | tee report.txt
+            --branch="$BRANCH" --step=${{ inputs.step }} --store=store --end-utc=${{ inputs.end_utc }} \
+            --site=https://bryvado.github.io/Midterms/data/$([ "${{ inputs.source }}" = replay ] && echo rehearsal || echo live)/live.json | tee report.txt
           { echo '## ENR recorder'; echo; sed 's/^/- /' report.txt; } >> "$GITHUB_STEP_SUMMARY"
