@@ -1,13 +1,10 @@
 name: ENR deploy
 
-# Republishes the last built site with the current live/ files from a results branch. Started by the recorder,
-# at most once a minute; a newer request waits for the running deploy instead of cancelling it.
+# Republishes the last built site with the current estimate files: enr-2026's live/ at data/live and the
+# rehearsal branch's live/ at data/rehearsal. Started by the recorder, at most once a minute; a newer request
+# waits for the running deploy instead of cancelling it.
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: Results branch whose live/ folder is published
-        default: enr-2026
 
 permissions:
   contents: read
@@ -36,19 +33,25 @@ jobs:
         run: |
           echo "No built site in the cache. Run the Build and deploy dashboard workflow once on main." >&2
           exit 1
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
-          path: results
-          sparse-checkout: live
-          fetch-depth: 1
-      - name: Add live files
+      - name: Add estimate files
+        env:
+          GH_REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
         run: |
-          rm -rf dashboard/dist/data/live
-          mkdir -p dashboard/dist/data/live
-          cp results/live/*.json dashboard/dist/data/live/
-          printf '{"deployed_utc":"%s","run_id":"%s","branch":"%s","site_key":"%s"}\n' "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" "${{ inputs.branch }}" "${{ steps.site.outputs.cache-matched-key }}" > dashboard/dist/data/live/deployed.json
-          jq -c '.statewide | {snapshot_utc, pct_counted, p_talarico}' dashboard/dist/data/live/live.json
+          git init -q results
+          git -C results remote add origin "https://x-access-token:${TOKEN}@github.com/${GH_REPO}.git"
+          add() {
+            local branch="$1" dir="dashboard/dist/data/$2"
+            rm -rf "$dir"
+            if git -C results fetch -q --depth 1 origin "$branch" 2>/dev/null && git -C results cat-file -e FETCH_HEAD:live/live.json 2>/dev/null; then
+              mkdir -p "$dir"
+              git -C results archive FETCH_HEAD live | tar -x -C "$dir" --strip-components 1
+              printf '{"deployed_utc":"%s","run_id":"%s","branch":"%s"}\n' "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" "$branch" > "$dir/deployed.json"
+              echo "$branch -> data/$2: $(jq -c '.statewide | {snapshot_utc, pct_counted, p_talarico}' "$dir/live.json")"
+            fi
+          }
+          add enr-2026 live
+          add enr-replay rehearsal
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dashboard/dist
