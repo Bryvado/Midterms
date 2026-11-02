@@ -1,0 +1,56 @@
+name: ENR deploy
+
+# Republishes the last built site with the current live/ files from a results branch. Started by the recorder,
+# at most once a minute; a newer request waits for the running deploy instead of cancelling it.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Results branch whose live/ folder is published
+        default: enr-2026
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: site
+        uses: actions/cache/restore@v4
+        with:
+          path: dashboard/dist
+          key: site-none
+          restore-keys: site-
+      - name: Require a built site
+        if: steps.site.outputs.cache-matched-key == ''
+        run: |
+          echo "No built site in the cache. Run the Build and deploy dashboard workflow once on main." >&2
+          exit 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          path: results
+          sparse-checkout: live
+          fetch-depth: 1
+      - name: Add live files
+        run: |
+          rm -rf dashboard/dist/data/live
+          mkdir -p dashboard/dist/data/live
+          cp results/live/*.json dashboard/dist/data/live/
+          printf '{"deployed_utc":"%s","run_id":"%s","branch":"%s","site_key":"%s"}\n' "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" "${{ inputs.branch }}" "${{ steps.site.outputs.cache-matched-key }}" > dashboard/dist/data/live/deployed.json
+          jq -c '.statewide | {snapshot_utc, pct_counted, p_talarico}' dashboard/dist/data/live/live.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

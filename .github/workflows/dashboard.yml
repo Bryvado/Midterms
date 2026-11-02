@@ -96,6 +96,18 @@ jobs:
       - name: Copy map tiles into site
         run: |
           cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
+      - name: Add election-night live files
+        run: |
+          if git fetch -q --depth 1 origin enr-2026 2>/dev/null && git cat-file -e FETCH_HEAD:live/live.json 2>/dev/null; then
+            mkdir -p dashboard/dist/data/live
+            git archive FETCH_HEAD live | tar -x -C dashboard/dist/data
+            echo "Added live files from enr-2026."
+          fi
+      # The ENR deploy workflow republishes this build with fresh live files, without rebuilding.
+      - uses: actions/cache/save@v4
+        with:
+          path: dashboard/dist
+          key: site-${{ github.sha }}-${{ github.run_id }}
       - name: Report largest tile per zoom
         if: hashFiles('data/published/regions.geojson') != ''
         run: |

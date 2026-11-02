@@ -846,3 +846,30 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] .sh-rank-row:hover:not(:disabled),:root[data-layout=dark] .sh-rank-row:focus-visible{background:#2a3d4d}
 :root[data-layout=dark] :is(.sh-rank-label em,.sh-presets-label,.sh-rank-foot .xy-legend){color:var(--muted)}
 :root[data-layout=dark] .sh-rank-bar{background:linear-gradient(90deg,transparent calc(50% - .5px),#8aa1b2 calc(50% - .5px),#8aa1b2 calc(50% + .5px),transparent calc(50% + .5px))}
+/* Election night */
+.eday-banner{margin:0;padding:8px 12px;border-radius:7px;background:#fff3cf;border:1px solid #e7cf86;color:#5c4300;font-size:12.5px;font-weight:700}
+.eday-banner[hidden]{display:none}
+.eday-status{margin:0;font-size:12px;color:#556a71}
+.eday-main{grid-template-columns:minmax(0,1fr) minmax(300px,420px)}
+#eday-map{position:absolute;inset:0}
+#eday-tooltip{max-width:300px}
+.eday-traj{min-height:0}
+.eday-traj .evt-chart-body{position:relative}
+.eday-traj svg{display:block;width:100%;height:auto}
+.eday-line{fill:none;stroke-width:2}.eday-line.p{stroke:#1d6483}.eday-line.s{stroke:#1d6483}
+.eday-band{fill:#1d6483;opacity:.16}
+.eday-prior{stroke:#8a5a00;stroke-width:1.5;stroke-dasharray:4 3}
+.eday-cross{stroke:#64767b;stroke-width:1}
+.eday-ramp{height:10px;border-radius:2px;background:linear-gradient(90deg,#b2453c,#d9a19b,#e9ecec,#93b4c4,#1d6483)}
+.eday-legend-scale{display:flex;justify-content:space-between;font-size:10px;color:#556a71;margin-top:2px}
+.eday-legend-title{font-size:11px;font-weight:700;margin-bottom:4px}
+.eday-legend-note{font-size:10.5px;color:#556a71;margin-top:6px}
+.eday-yes{color:#2b6b3f;font-weight:700}
+@media(max-width:850px){.eday-main{grid-template-columns:1fr}}
+:root[data-layout=dark] .eday-banner{background:#4a4232;border-color:#7a6a3f;color:#f4d27a}
+:root[data-layout=dark] :is(.eday-status,.eday-legend-scale,.eday-legend-note){color:var(--muted)}
+:root[data-layout=dark] .eday-line.p,:root[data-layout=dark] .eday-line.s{stroke:#5fcaf2}
+:root[data-layout=dark] .eday-band{fill:#5fcaf2;opacity:.2}
+:root[data-layout=dark] .eday-prior{stroke:#f4d27a}
+:root[data-layout=dark] .eday-ramp{background:linear-gradient(90deg,#ef8a7f,#a86b66,#3a4650,#4f8aa8,#5fcaf2)}
+:root[data-layout=dark] .eday-yes{color:#7fd39a}

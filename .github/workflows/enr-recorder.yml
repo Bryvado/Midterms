@@ -1,0 +1,60 @@
+name: ENR recorder
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: live polls the SOS feed; replay serves a folder of snapshots
+        type: choice
+        options: [live, replay]
+        default: live
+      replay_dir:
+        description: Replay folder (replay only)
+        default: enr/replay/sim_night_01
+      election:
+        description: SOS election ID (live only)
+        default: "53815"
+      branch:
+        description: Branch that stores the results (enr-2026 for the real night, enr-replay for rehearsals)
+        default: enr-2026
+      step:
+        description: Seconds between header polls or replay snapshots
+        default: "15"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      BRANCH: ${{ inputs.branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install R packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends r-base-core r-cran-dplyr r-cran-stringr r-cran-jsonlite r-cran-mass r-cran-digest jq
+          Rscript -e 'for (p in c("dplyr", "stringr", "jsonlite", "MASS", "digest")) stopifnot(requireNamespace(p, quietly = TRUE))'
+      - name: Check out the results branch
+        run: |
+          git config --global user.name "enr-recorder"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"; then
+            git worktree add -q -B "$BRANCH" store "origin/$BRANCH"
+          else
+            git worktree add -q --detach store
+            git -C store checkout -q --orphan "$BRANCH"
+            git -C store rm -rq --cached . && git -C store clean -fdxq
+          fi
+          # A rehearsal starts from an empty series; history keeps the earlier ones.
+          if [ "${{ inputs.source }}" = replay ]; then rm -rf store/state store/live store/log store/raw; fi
+      - name: Record
+        run: |
+          Rscript enr/R/recorder.R --source=${{ inputs.source }} --replay-dir=${{ inputs.replay_dir }} --election=${{ inputs.election }} \
+            --branch="$BRANCH" --step=${{ inputs.step }} --store=store \
+            --site=https://bryvado.github.io/Midterms/data/live/live.json | tee report.txt
+          { echo '## ENR recorder'; echo; sed 's/^/- /' report.txt; } >> "$GITHUB_STEP_SUMMARY"

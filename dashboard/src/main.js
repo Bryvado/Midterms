@@ -3,6 +3,7 @@ import './style.css';
 import './layout.js';
 import { initAppearance } from './appearance.js';
 import './evtab.js';
+import './edaytab.js';
 import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
 import { csv, pct, probPct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
