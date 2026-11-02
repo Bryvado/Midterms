@@ -164,6 +164,7 @@ function drawTrajectory() {
     ${grid(y2, y2.ticks(4), v => `${(100 * v).toFixed(0)}%`)}
     ${.5 >= y2.domain()[0] && .5 <= y2.domain()[1] ? `<line class="evt-mid" x1="${m.l}" x2="${W - m.r}" y1="${y2(.5)}" y2="${y2(.5)}"/>` : ''}
     <path class="eday-band" d="${band}"/><path class="eday-line s" d="${path(r => r.tal_2p_mean, y2)}"/>
+    <circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y1(rows.at(-1).p_talarico)}" r="3.5"/><circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y2(rows.at(-1).tal_2p_mean)}" r="3.5"/>
     ${xAxis(y2.range()[0])}
     <line class="eday-cross" x1="0" x2="0" y1="${m.t}" y2="${y2.range()[0]}" visibility="hidden"/>
     <rect class="evt-hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${y2.range()[0] - m.t}"/></svg>`;

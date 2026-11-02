@@ -878,3 +878,5 @@ a.text-button{text-decoration:none}
 .chart-line.secondary{stroke-width:1.6;opacity:.55}
 .chart-fc-line.projected{stroke-dasharray:5 4}
 .chart-fc-band.projected{opacity:.1}
+.eday-dot{fill:#1d6483;stroke:#fff;stroke-width:1.5}
+:root[data-layout=dark] .eday-dot{fill:#5fcaf2;stroke:var(--panel)}
