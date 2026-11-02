@@ -1,0 +1,43 @@
+name: ENR reach test
+
+on:
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: Polling rounds
+        default: "20"
+      gap:
+        description: Seconds between rounds
+        default: "15"
+  push:
+    branches: [claude/enr-reach-test]
+    paths:
+      - "enr/reach_test.sh"
+      - ".github/workflows/enr-reach-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Poll ENR endpoints
+        env:
+          ROUNDS: ${{ inputs.rounds || '20' }}
+          GAP: ${{ inputs.gap || '15' }}
+          OUT: reach
+        run: |
+          bash enr/reach_test.sh
+          cat reach/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: enr-reach-${{ github.run_id }}
+          path: |
+            reach/calls.csv
+            reach/summary.md
+            reach/first/*.hdr
+          retention-days: 30
