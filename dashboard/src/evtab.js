@@ -747,13 +747,14 @@ async function start() {
 }
 
 // ---- Tabs ----
-function showView(view) {
+export function showView(view) {
   const early = view === 'early';
   tab.hidden = !early;
-  document.querySelector('#app').classList.toggle('ev-view', early);
+  document.querySelector('#app').classList.toggle('ev-view', view !== 'forecast');
   for (const b of document.querySelectorAll('[data-view]')) b.setAttribute('aria-selected', String(b.dataset.view === view));
   if (early) { start().then(() => { map?.resize(); }); } else stop();
   writeURL();
+  window.dispatchEvent(new CustomEvent('view-tab', { detail:{ view } }));
   window.dispatchEvent(new Event('panel-layout'));
 }
 for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => showView(b.dataset.view));

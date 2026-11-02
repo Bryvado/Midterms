@@ -11,7 +11,7 @@
     <div id="app">
       <header class="site-header">
         <div class="identity"><h1>TX Senate 2026 · Forecast explorer</h1></div>
-        <div class="view-tabs" role="tablist" aria-label="Views"><button type="button" role="tab" data-view="forecast" aria-selected="true">Forecast</button><button type="button" role="tab" data-view="early" aria-selected="false">Early vote</button></div>
+        <div class="view-tabs" role="tablist" aria-label="Views"><button type="button" role="tab" data-view="forecast" aria-selected="true">Forecast</button><button type="button" role="tab" data-view="early" aria-selected="false">Early vote</button><button type="button" role="tab" data-view="eday" aria-selected="false" hidden>Election night</button></div>
         <div class="topstats" aria-label="Statewide forecast" aria-live="polite">
           <span class="ts-item" title="Talarico two-party share, Election Day estimate, ± model SD">Talarico <strong id="share-value">—</strong> <span id="share-sub"></span></span>
           <span class="ts-sep">·</span>
@@ -279,6 +279,23 @@
         </section>
         <section class="evt-table-wrap"><h3>Counties</h3><div id="evt-table"></div></section>
         <p class="note evt-foot" id="evt-method"><strong>Method.</strong> Primary history covers the 2020, 2022, 2024 and 2026 primaries. For 2020–2024 it counts early votes only (the state's early-vote rosters), so some voters with Election Day primary votes in those years show fewer primaries than they cast. 2026 includes early voting and Election Day. Figures are suppressed for fewer than 5 voters. The pace baseline is the model's expected ballots for the region, not past turnout. Statewide totals at the top and the first chart are the state's official daily count, which uses a different day boundary from the area files, so the two can differ slightly on the same date.</p>
+      </main>
+      <main id="eday-tab" class="ev-tab eday-tab" aria-label="Election night" hidden>
+        <p id="eday-banner" class="eday-banner" hidden></p>
+        <p id="eday-status" class="eday-status" aria-live="polite">Loading election-night results…</p>
+        <div id="eday-summary" class="evt-summary" aria-live="polite"></div>
+        <div class="evt-main eday-main">
+          <section class="evt-map-wrap" aria-label="County map of the shift from the pre-election model">
+            <div id="eday-map" role="application" aria-label="Interactive county map"></div>
+            <div id="eday-tooltip" class="map-tooltip" hidden></div>
+            <div id="eday-legend" class="evt-legend"></div>
+          </section>
+          <section class="evt-chart eday-traj"><header class="evt-chart-head"><h3>Through the night</h3></header>
+            <div id="eday-traj" class="evt-chart-body"><div class="chart-tooltip" hidden></div></div>
+          </section>
+        </div>
+        <section class="evt-table-wrap"><h3>Counties</h3><div id="eday-table"></div></section>
+        <p class="note evt-foot"><strong>Method.</strong> Counts are the Secretary of State's unofficial county returns for the U.S. Senate race. The estimate starts from the pre-election model's simulated county results and updates each county's Talarico two-party share as early and Election Day votes are counted, with a statewide gap between early and Election Day voters and a statewide Election Day turnout factor learned from fully reported counties. Ranges are the 10th to 90th percentiles of the updated simulations. Shift is the updated county share minus the pre-election model's share; on the map, counties are fainter the less of their expected vote has been counted.</p>
       </main>
       <div id="appearance-menu" class="appearance-menu" popover="auto" aria-label="Appearance settings">
         <h2>Appearance</h2>
