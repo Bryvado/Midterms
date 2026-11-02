@@ -873,3 +873,8 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] .eday-prior{stroke:#f4d27a}
 :root[data-layout=dark] .eday-ramp{background:linear-gradient(90deg,#ef8a7f,#a86b66,#3a4650,#4f8aa8,#5fcaf2)}
 :root[data-layout=dark] .eday-yes{color:#7fd39a}
+
+/* Poll average as a secondary line under the blended forecast; the projection continues the forecast dashed. */
+.chart-line.secondary{stroke-width:1.6;opacity:.55}
+.chart-fc-line.projected{stroke-dasharray:5 4}
+.chart-fc-band.projected{opacity:.1}

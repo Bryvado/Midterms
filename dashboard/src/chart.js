@@ -104,7 +104,7 @@ export function initChart(trackRows, pollRows, headline, shifts) {
   maxInfluence = Math.max(...polls.map(row => +row.influence).filter(Number.isFinite), 0);
   combined = headline.find(row => row.component === 'combined');
   const cols = trackRows.columns || Object.keys(trackRows[0] || {});
-  has = { traj:cols.includes('trajectory_mean'), sens:['fund_appr_mean','fund_appr_lo95','fund_appr_hi95'].every(c => cols.includes(c)), approval:cols.includes('tx_net_approval'), weight:cols.includes('fund_weight'), fund:cols.includes('fund_mean') };
+  has = { traj:cols.includes('trajectory_mean'), blend:['blend_mean','blend_lo95','blend_hi95'].every(c => cols.includes(c)), sens:['fund_appr_mean','fund_appr_lo95','fund_appr_hi95'].every(c => cols.includes(c)), approval:cols.includes('tx_net_approval'), weight:cols.includes('fund_weight'), fund:cols.includes('fund_mean') };
   for (const chip of document.querySelectorAll('[data-chart-layer="fsens"]')) chip.hidden = !has.sens;
   for (const chip of document.querySelectorAll('[data-chart-layer="fund"]')) chip.hidden = !has.fund;
   const weights = track.filter(row => finite(row.fund_weight));
@@ -188,6 +188,8 @@ function draw(root) {
   // The projected path: the published trajectory if present, otherwise the older forecast columns.
   const [fm, flo, fhi] = has.traj ? ['trajectory_mean','trajectory_lo95','trajectory_hi95'] : ['forecast_mean','forecast_lo95','forecast_hi95'];
   const forecast = shift ? [] : track.filter(row => finite(row[fm]));
+  // The forecast line through observed dates: 05's blend of the poll average with fundamentals, ending where the projection begins.
+  const blendRows = shift || !has.blend ? [] : observed.filter(row => finite(row.blend_mean));
   const sens = show.fsens ? track.filter(row => finite(row.fund_appr_mean)) : [];
   const fundMean = track.find(row => finite(row.fund_mean))?.fund_mean;
   const visiblePolls = show.dots ? polls.filter(row => row.finish >= start) : [];
@@ -195,10 +197,10 @@ function draw(root) {
   // Fit the y range to what is drawn in the visible window, plus a small margin.
   const edges = [];
   const shown = valid.filter(inView);
-  if (show.avg) edges.push(...shown.flatMap(row => [+row[current] - 1.96 * +row.se, +row[current] + 1.96 * +row.se]));
-  else edges.push(...shown.map(row => +row[current]));
+  if (show.avg && !blendRows.length) edges.push(...shown.flatMap(row => [+row[current] - 1.96 * +row.se, +row[current] + 1.96 * +row.se]));
+  else edges.push(...(blendRows.length ? shown.filter(row => row.projected !== 'TRUE') : shown).map(row => +row[current]));
   edges.push(...visiblePolls.map(row => +row.talarico_2p));
-  if (show.fc) edges.push(...forecast.flatMap(row => [+row[flo], +row[fhi]]));
+  if (show.fc) edges.push(...forecast.flatMap(row => [+row[flo], +row[fhi]]), ...blendRows.filter(inView).flatMap(row => [+row.blend_lo95, +row.blend_hi95]));
   if (show.fsens) edges.push(...sens.filter(inView).flatMap(row => [+row.fund_appr_lo95, +row.fund_appr_hi95]));
   if (show.fund && finite(fundMean)) edges.push(+fundMean);
   // The early-vote scenario: its Election Day endpoint with a 95% interval from combined_sd.
@@ -213,6 +215,8 @@ function draw(root) {
   const band = area().x(row => x(row.time)).y0(row => y(+row[current] - 1.96 * +row.se)).y1(row => y(+row[current] + 1.96 * +row.se)).curve(curveMonotoneX);
   const fcLine = line().x(row => x(row.time)).y(row => y(+row[fm])).curve(curveMonotoneX);
   const fcBand = area().x(row => x(row.time)).y0(row => y(+row[flo])).y1(row => y(+row[fhi])).curve(curveMonotoneX);
+  const blendLine = line().x(row => x(row.time)).y(row => y(+row.blend_mean)).curve(curveMonotoneX);
+  const blendBand = area().x(row => x(row.time)).y0(row => y(+row.blend_lo95)).y1(row => y(+row.blend_hi95)).curve(curveMonotoneX);
   const sensLine = line().x(row => x(row.time)).y(row => y(+row.fund_appr_mean));
   const sensBand = area().x(row => x(row.time)).y0(row => y(+row.fund_appr_lo95)).y1(row => y(+row.fund_appr_hi95));
   const reference = shift ? 0 : .5;
@@ -222,8 +226,10 @@ function draw(root) {
   const timeTicks = x.ticks(width < 360 ? 3 : width < 560 ? 5 : 7).map(v => `<text class="chart-axis" x="${x(v)}" y="${height - 6}" text-anchor="middle">${axisDate(v, range !== 'all')}</text>`).join('');
   const windowStart = forecast.length ? x(forecast[0].time) : null;
   const shade = show.fc && windowStart != null ? `<rect class="chart-window" x="${windowStart}" y="${margin.top}" width="${right - windowStart}" height="${bottom - margin.top}"/>` : '';
-  const avg = show.avg ? `<path class="chart-band" d="${band(observed) || ''}"/><path class="chart-band projected" d="${band(projected) || ''}"/>
-    <path class="chart-line" d="${avgLine(observed) || ''}"/><path class="chart-line projected" d="${avgLine(projected) || ''}"/>` : '';
+  // With the blend published, the poll average is a lighter secondary line that stops at the last observed date.
+  const avg = !show.avg ? '' : blendRows.length ? `<path class="chart-line secondary" d="${avgLine(observed) || ''}"/>`
+    : `<path class="chart-band" d="${band(observed) || ''}"/><path class="chart-band projected" d="${band(projected) || ''}"/>
+    <path class="chart-line" d="${avgLine(observed) || ''}"/><path class="chart-line projected" d="${avgLine(projected) || ''}"/>`;
   let fund = show.fund && finite(fundMean) ? `<line class="chart-fund" x1="${margin.left}" x2="${right}" y1="${y(+fundMean)}" y2="${y(+fundMean)}"/>` : '';
   if (sens.length) {
     // Dotted where approval_held is true: the last Civiqs reading carried forward.
@@ -249,6 +255,7 @@ function draw(root) {
     ...visiblePolls.map(row => ({ x:x(row.time), y:y(+row.talarico_2p), r:dotR(row) + 1 })),
     ...(show.avg ? shown : []).map(row => ({ x:x(row.time), y:y(+row[current]), r:2 })),
     ...forecast.map(row => ({ x:x(row.time), y:y(+row[fm]), r:2 })),
+    ...(show.fc ? blendRows.filter(inView) : []).map(row => ({ x:x(row.time), y:y(+row.blend_mean), r:2 })),
     ...(show.fund && finite(fundMean) ? x.ticks(40).map(t => ({ x:x(t), y:y(+fundMean), r:2 })) : []),
     ...sens.filter(inView).map(row => ({ x:x(row.time), y:y(+row.fund_appr_mean), r:2 })),
   ];
@@ -271,7 +278,8 @@ function draw(root) {
     const at = placeLabel(text, candidates, obstacles, { left:margin.left, right, top:margin.top, bottom });
     const textWidth = text.length * 5.7 + 6;
     for (let px = at.anchor === 'end' ? at.x - textWidth : at.x; px <= (at.anchor === 'end' ? at.x : at.x + textWidth); px += 8) baseObstacles.push({ x:px, y:at.y - 4, r:7 });
-    fc = `<path class="chart-fc-band" d="${fcBand(forecast) || ''}"/><path class="chart-fc-line" d="${fcLine(forecast) || ''}"/>
+    const blend = blendRows.length ? `<path class="chart-fc-band" d="${blendBand(blendRows) || ''}"/><path class="chart-fc-line" d="${blendLine(blendRows) || ''}"/>` : '';
+    fc = `${blend}<path class="chart-fc-band${blend ? ' projected' : ''}" d="${fcBand(forecast) || ''}"/><path class="chart-fc-line${blend ? ' projected' : ''}" d="${fcLine(forecast) || ''}"/>
       <circle class="chart-fc-marker" cx="${ex}" cy="${ey}" r="4.5"/>
       <text class="chart-fc-label" x="${at.x}" y="${at.y}" text-anchor="${at.anchor}">${escapeHTML(text)}</text>`;
   }
@@ -328,14 +336,15 @@ function draw(root) {
     marksGroup?.classList.toggle('dimmed', pollIndex >= 0);
     const anchor = poll || closest;
     const inWindow = !shift && finite(closest[fm]);
+    const inBlend = !shift && has.blend && !inWindow && finite(closest.blend_mean);
     const cx = x(anchor.time);
-    const cy = poll ? y(+poll.talarico_2p) : inWindow && show.fc ? y(+closest[fm]) : y(+closest[current]);
+    const cy = poll ? y(+poll.talarico_2p) : inWindow && show.fc ? y(+closest[fm]) : inBlend && show.fc ? y(+closest.blend_mean) : y(+closest[current]);
     cursor.setAttribute('x1', cx); cursor.setAttribute('x2', cx); cursor.setAttribute('visibility','visible');
     focus.setAttribute('cx', cx); focus.setAttribute('cy', cy); focus.setAttribute('visibility','visible');
     const avgText = `${shift ? 'Shift' : 'Poll average'}: ${format(+closest[current], shift)} <span class="muted">(95%: ${format(+closest[current] - 1.96 * +closest.se, shift)}–${format(+closest[current] + 1.96 * +closest.se, shift)})</span>`;
     tooltip.innerHTML = poll
       ? pollTooltip(poll)
-      : `<strong>${dateLabel(closest.time)}</strong><br>${avgText}${inWindow ? `<br>${has.traj ? `Forecast path: ${pct(closest[fm])} <span class="muted">— an assumed glide from the current poll average to the Election Day forecast; only the endpoint is modeled.</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight, 0)} / fundamentals ${pct(closest.fund_weight, 0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${show.fund && finite(fundMean) ? `<br>Fundamentals (adopted): ${pct(fundMean)}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>If fundamentals used Texas Trump approval: Talarico ${pct(closest.fund_appr_mean)} <span class="muted">(not the forecast)</span>` : ''}`;
+      : `<strong>${dateLabel(closest.time)}</strong>${inBlend ? `<br>Forecast: ${pct(closest.blend_mean)} <span class="muted">(95%: ${pct(closest.blend_lo95)}–${pct(closest.blend_hi95)})</span>` : ''}<br>${avgText}${inWindow ? `<br>${has.traj ? `Forecast path: ${pct(closest[fm])} <span class="muted">(an assumed path from today's forecast to the Election Day forecast; only the endpoint is modeled)</span>` : `Forecast: ${pct(closest[fm])}`} <span class="muted">(95%: ${pct(closest[flo])}–${pct(closest[fhi])})</span>${finite(closest.fund_weight) ? `<br>Weight: polls ${pct(1 - +closest.fund_weight, 0)} / fundamentals ${pct(closest.fund_weight, 0)}` : ''}${finite(closest.fade_shift_2p) ? `<br>Brown fade shift: ${signed(closest.fade_shift_2p)}` : ''}` : ''}${show.fund && finite(fundMean) ? `<br>Fundamentals (adopted): ${pct(fundMean)}` : ''}${!shift && has.approval && finite(closest.tx_net_approval) ? `<br>Texas net approval: ${+closest.tx_net_approval > 0 ? '+' : +closest.tx_net_approval < 0 ? '−' : ''}${Math.abs(+closest.tx_net_approval).toFixed(1)}${closest.approval_held === 'TRUE' ? ' <span class="muted">(last Civiqs reading held)</span>' : ''}` : ''}${show.fsens && finite(closest.fund_appr_mean) ? `<br>If fundamentals used Texas Trump approval: Talarico ${pct(closest.fund_appr_mean)} <span class="muted">(not the forecast)</span>` : ''}`;
     tooltip.hidden = false;
     const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
     tooltip.style.left = `${cx + 10 + tw > width ? Math.max(4, cx - tw - 10) : cx + 10}px`;
