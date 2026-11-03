@@ -1,40 +1,38 @@
 import { runMapUpdate } from './map-loading.js';
 import { setTheme } from './map.js';
 
-// Map and data surfaces deliberately have independent preferences and palettes.
+// Basemap (light, dark or roads only) and the data-panel theme, set from the Basemap section of Map controls.
+// Roads only uses the plain background that matches the panel theme.
 export function initAppearance() {
-  const key = 'tx-appearance-v1', preferences = { map:'light', layout:'light' };
+  const key = 'tx-appearance-v1', preferences = { basemap:'light', layout:'light' };
   try {
     const saved = JSON.parse(localStorage.getItem(key));
-    for (const surface of Object.keys(preferences)) if ((surface === 'map' ? ['light','dark','plain-light','plain-dark','roads-light','roads-dark'] : ['light','dark']).includes(saved?.[surface])) preferences[surface] = saved[surface];
+    // Older saves kept a style name in `map`; plain and highways-only backgrounds become roads only.
+    const map = saved?.basemap ?? saved?.map;
+    if (['light', 'dark'].includes(map)) preferences.basemap = map;
+    else if (/^(plain|roads)/.test(map || '')) preferences.basemap = 'roads';
+    if (['light', 'dark'].includes(saved?.layout)) preferences.layout = saved.layout;
   } catch { /* Storage can be unavailable; controls still work for this session. */ }
-  const button = document.querySelector('#appearance-toggle');
-  const menu = document.querySelector('#appearance-menu');
-  const mapSelect = document.querySelector('#basemap-theme');
-  const layoutSelect = document.querySelector('#layout-theme');
+  const style = () => preferences.basemap === 'roads' ? `roads-${preferences.layout}` : preferences.basemap;
+  const sync = () => {
+    for (const b of document.querySelectorAll('[data-basemap]')) b.setAttribute('aria-pressed', String(b.dataset.basemap === preferences.basemap));
+    for (const b of document.querySelectorAll('[data-layout-theme]')) b.setAttribute('aria-pressed', String(b.dataset.layoutTheme === preferences.layout));
+  };
   const applyLayout = () => {
     document.documentElement.dataset.layout = preferences.layout;
     document.querySelector('meta[name=theme-color]').content = preferences.layout === 'dark' ? '#1b2937' : '#f5f6f5';
     window.dispatchEvent(new Event('display-change'));
   };
-  mapSelect.value = preferences.map;
-  layoutSelect.value = preferences.layout;
-  applyLayout();
-  setTheme(preferences.map);
   const save = () => { try { localStorage.setItem(key, JSON.stringify(preferences)); } catch { /* Session-only preference. */ } };
-  mapSelect.addEventListener('change', () => runMapUpdate('Changing map background…', () => { preferences.map = mapSelect.value; setTheme(preferences.map); save(); }));
-  layoutSelect.addEventListener('change', () => { preferences.layout = layoutSelect.value; applyLayout(); save(); });
-  const position = () => {
-    const rect = button.getBoundingClientRect();
-    const gap = 6, margin = 8, width = menu.offsetWidth, height = menu.offsetHeight;
-    menu.style.left = `${Math.max(margin, Math.min(rect.right - width, innerWidth - width - margin))}px`;
-    menu.style.top = `${Math.max(margin, Math.min(rect.bottom + gap, innerHeight - height - margin))}px`;
-  };
-  menu.addEventListener('toggle', () => {
-    const open = menu.matches(':popover-open');
-    button.setAttribute('aria-expanded', String(open));
-    if (open) position();
+  applyLayout(); sync();
+  setTheme(style());
+  for (const b of document.querySelectorAll('[data-basemap]')) b.addEventListener('click', () => {
+    if (preferences.basemap === b.dataset.basemap) return;
+    runMapUpdate('Changing basemap…', () => { preferences.basemap = b.dataset.basemap; sync(); setTheme(style()); save(); });
   });
-  window.addEventListener('resize', () => { if (menu.matches(':popover-open')) position(); });
-  window.addEventListener('scroll', () => { if (menu.matches(':popover-open')) position(); }, true);
+  for (const b of document.querySelectorAll('[data-layout-theme]')) b.addEventListener('click', () => {
+    if (preferences.layout === b.dataset.layoutTheme) return;
+    preferences.layout = b.dataset.layoutTheme; sync(); applyLayout(); save();
+    if (preferences.basemap === 'roads') runMapUpdate('Changing basemap…', () => setTheme(style()));
+  });
 }

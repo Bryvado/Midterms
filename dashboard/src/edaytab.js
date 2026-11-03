@@ -68,9 +68,10 @@ function renderSummary() {
 // ---- Map: shift from the pre-results forecast, faded by how much of the county's expected vote is counted ----
 function addLayers() {
   const b = mapBasics();
-  map.addSource('eday-county', { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
+  if (!map.getSource('eday-county')) map.addSource('eday-county', { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
   map.addLayer({ id:'eday-fill', type:'fill', source:'eday-county', 'source-layer':'regions', paint:{ 'fill-color':'#cfd5d5', 'fill-opacity':.15 } });
   map.addLayer({ id:'eday-line', type:'line', source:'eday-county', 'source-layer':'regions', paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':.5 } });
+  b.highways(undefined, map);
   map.addLayer({ id:'eday-hi', type:'line', source:'eday-county', 'source-layer':'regions', filter:['in', ['to-string', ['get', 'region_id']], ['literal', []]], paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.4 } });
   b.labels(map);
   mapReady = true;
@@ -111,6 +112,8 @@ function initMap() {
   map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
   map.on('style.load', addLayers);
+  // The tab's map follows the basemap chosen in Map controls.
+  window.addEventListener('basemap-change', () => { if (!map) return; mapReady = false; map.setStyle(mapBasics().style); });
   const wrap = tab.querySelector('.evt-map-wrap');
   let fitted = false;
   new ResizeObserver(() => { if (!wrap.clientWidth || !wrap.clientHeight) return; map.resize(); if (!fitted) { fitted = true; map.fitBounds(b.bounds, { padding:24, duration:0 }); } }).observe(wrap);

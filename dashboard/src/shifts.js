@@ -296,7 +296,10 @@ function drawXY() {
   for (let i = 0; i < store.n; i++) if (Number.isFinite(xs[i]) && Number.isFinite(ys[i])) idx.push(i);
   idx.splice(0, idx.length, ...restrict(idx));
   const { ctx, width, height } = setup(canvas);
-  if (idx.length < 3) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText('Too few places have both shifts under the current filters.', width / 2, height / 2); xyHit = null; $('#sh-xy-stats').textContent = ''; return; }
+  // The same pair on both axes is only the diagonal, so say so instead of drawing it.
+  const message = state.from === state.y2from && state.to === state.y2to && state.xrel === state.yrel ? 'X and Y are the same pair'
+    : idx.length < 3 ? 'Too few places have both shifts under the current filters.' : '';
+  if (message) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText(message, width / 2, height / 2); xyHit = null; $('#sh-xy-stats').textContent = ''; return; }
   const [xd, yd] = domainFor(domainOf(idx.map(i => xs[i]), { zero:true }), domainOf(idx.map(i => ys[i]), { zero:true }));
   const plot = makePlot(width, height, xd, yd);
   const pts = v => Math.round(100 * v) === 0 ? '0' : `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(100 * v))}`;

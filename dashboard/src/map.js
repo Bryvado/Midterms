@@ -790,6 +790,7 @@ export function setTheme(next) {
   drawLegend();
   announce();
   if (map) map.setStyle(styles[basemap]);
+  window.dispatchEvent(new CustomEvent('basemap-change', { detail:{ basemap } }));
 }
 
 // Count actual tile requests in this transaction; metadata stages have no denominator.
@@ -938,11 +939,11 @@ const areaData = () => {
 };
 // Interstates a little heavier than US highways, both a low-contrast neutral over the plain background; above the fills, below selections.
 const highwayInk = { light:{ interstate:'#a3aaa8', us:'#bfc5c3' }, dark:{ interstate:'#4d5356', us:'#3b4043' } };
-function addHighways(before) {
-  if (!basemap.startsWith('roads') || map.getLayer('highways')) return;
-  if (!map.getSource('highways')) map.addSource('highways', { type:'geojson', data:`${base}data/highways_tx.geojson` });
+function addHighways(before, target = map) {
+  if (!basemap.startsWith('roads') || target.getLayer('highways')) return;
+  if (!target.getSource('highways')) target.addSource('highways', { type:'geojson', data:`${base}data/highways_tx.geojson` });
   const ink = highwayInk[theme], interstate = ['==', ['get', 'class'], 'interstate'];
-  map.addLayer({ id:'highways', type:'line', source:'highways', layout:{ 'line-join':'round', 'line-cap':'round' },
+  target.addLayer({ id:'highways', type:'line', source:'highways', layout:{ 'line-join':'round', 'line-cap':'round' },
     paint:{ 'line-color':['case', interstate, ink.interstate, ink.us], 'line-width':['interpolate', ['linear'], ['zoom'], 5, ['case', interstate, 1.2, .7], 10, ['case', interstate, 2.6, 1.5]] } }, before);
 }
 function addLinkLayers(before) {
@@ -1009,4 +1010,4 @@ function finishDraw() {
 }
 
 // The Early vote tab runs its own map; it shares the basemap, tiles, palettes and theme with this one.
-export const mapBasics = () => ({ style:styles[basemap], theme, bounds, tileURL, tiles:Object.fromEntries(levelKeys.map(level => [level, levels[level].tiles])), sequentialPalettes, divergingPalettes, colorAt:mapColorAt, labels:target => applyMapLabels(target, theme) });
+export const mapBasics = () => ({ basemap, highways:addHighways, style:styles[basemap], theme, bounds, tileURL, tiles:Object.fromEntries(levelKeys.map(level => [level, levels[level].tiles])), sequentialPalettes, divergingPalettes, colorAt:mapColorAt, labels:target => applyMapLabels(target, theme) });
