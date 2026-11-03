@@ -78,14 +78,7 @@
         <section class="float-panel fp-display" id="fp-display" data-panel="display" aria-label="Display">
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Display</h2><button type="button" class="fp-close" aria-label="Close display panel">×</button></header>
           <div class="fp-body" id="display-panel">
-            <fieldset class="display-group"><legend>Color</legend>
-              <label>Palette <select id="color-palette"></select></label>
-              <p id="color-palette-note" class="display-note"></p>
-              <div id="color-custom" class="color-custom" hidden>
-                <label><span id="color-lo-label">Low</span><input id="color-lo" type="color"></label>
-                <label><span id="color-hi-label">High</span><input id="color-hi" type="color"></label>
-              </div>
-            </fieldset>
+            <p class="display-note">Palette and custom colors are set under Colors in the Legend panel.</p>
             <fieldset class="display-group"><legend>Scale <span class="display-scope">for this metric</span></legend>
               <label id="scale-center-row">Center <select id="scale-center"></select></label>
               <label>Range <select id="scale-range"></select></label>
@@ -117,6 +110,7 @@
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Legend</h2><button type="button" class="fp-close" aria-label="Close legend panel">×</button></header>
           <div class="fp-body">
             <div class="map-legend" id="legend" aria-label="Map legend"></div>
+            <div id="colors-section"></div>
           </div>
           <span class="fp-resize" aria-hidden="true"></span>
         </section>
@@ -167,20 +161,30 @@
           <header class="fp-head"><span class="fp-grip" aria-hidden="true"></span><h2 class="fp-title">Precinct shifts</h2><button type="button" class="fp-close" aria-label="Close precinct shifts panel">×</button></header>
           <div class="fp-body">
             <div class="sh-controls">
-              <label>Level <select id="sh-level"></select></label>
-              <label>From <select id="sh-from"></select></label>
-              <label>To <select id="sh-to"></select></label>
-              <label>Minimum two-party votes <select id="sh-min"></select></label>
-              <label>Summaries <select id="sh-weight"><option value="1">Vote-weighted</option><option value="0">Unweighted</option></select></label>
-              <label>County <input id="sh-county" list="sh-county-list" type="search" placeholder="All counties" autocomplete="off"><datalist id="sh-county-list"></datalist></label>
-              <label>Profile <select id="sh-profile"></select></label>
+              <fieldset class="sh-block">
+                <legend>Shift (map and X axis)</legend>
+                <div class="sh-pair"><label>From <select id="sh-from"></select></label><span class="sh-arrow" aria-hidden="true">→</span><label>To <select id="sh-to"></select></label></div>
+                <label class="check"><input id="sh-xrel" type="checkbox"> Relative to statewide shift</label>
+                <p class="note sh-help">Subtracts the statewide shift from every place, on both axes.</p>
+              </fieldset>
+              <div class="sh-place-filters">
+                <label>Level <select id="sh-level"></select></label>
+                <label>County <input id="sh-county" list="sh-county-list" type="search" placeholder="All counties" autocomplete="off"><datalist id="sh-county-list"></datalist></label>
+                <label>Profile <select id="sh-profile"></select></label>
+              </div>
             </div>
             <p id="sh-status" class="note">Open to load the precinct data.</p>
             <p id="sh-counts" class="note sh-counts"></p>
             <p id="sh-caveats" class="note sh-caveats"></p>
             <div id="sh-summary" class="sh-summary"></div>
             <div class="range-switch sh-tabs" role="group" aria-label="Precinct shifts view"><button type="button" data-sh-view="xy" aria-pressed="true">Shift vs shift</button><button type="button" data-sh-view="demog" aria-pressed="false">Shift vs demographics</button><button type="button" data-sh-view="table" aria-pressed="false">Movers table</button></div>
-            <div id="sh-tools" class="sh-row sh-tools">
+            <details class="sh-more" id="sh-more"><summary>More options</summary>
+              <div class="sh-more-grid">
+                <label>Minimum two-party votes <select id="sh-min"></select></label>
+                <label>Summaries <select id="sh-weight"><option value="1">Vote-weighted</option><option value="0">Unweighted</option></select></label>
+              </div>
+              <div class="sh-more-grid" id="sh-xy-options"><label>Color <span class="sh-inline"><select id="sh-color"><option value="profile">Profile</option><option value="share">Democratic share, From race</option></select></span></label><label class="check"><input id="sh-contours" type="checkbox"> 50 / 80 / 95% contours</label></div>
+              <div id="sh-tools" class="sh-row sh-tools">
               <div class="range-switch" role="group" aria-label="Chart tool"><button type="button" data-sh-tool="pick" aria-pressed="true" title="Click a point to open the place. Drag to pan, scroll to zoom.">Pan</button><button type="button" data-sh-tool="lasso" aria-pressed="false" title="Drag around points to select them and highlight them on the map. Hold Shift to add to the selection.">Lasso select</button><button type="button" data-sh-tool="zoom" aria-pressed="false" title="Drag a box to zoom into it.">Zoom box</button></div>
               <button type="button" id="sh-zoom-reset" class="text-button">Reset zoom</button>
               <button type="button" id="sh-sel-clear" class="text-button" hidden>Clear selection</button>
@@ -189,18 +193,21 @@
               <button type="button" id="sh-area-clear" class="text-button" hidden>Clear area</button>
               <span id="sh-sel-status" class="sh-sel-status"></span>
             </div>
+            </details>
             <div id="sh-views" class="sh-views">
               <section id="sh-view-xy">
-                <div class="sh-row"><span class="sh-axis">X axis: the pair above</span><label class="check"><input id="sh-xrel" type="checkbox"> Relative</label><span class="sh-axis">Y axis</span><label>From <select id="sh-y2from"></select></label><label>To <select id="sh-y2to"></select></label><label class="check"><input id="sh-yrel" type="checkbox"> Relative</label></div>
-                <div class="sh-row"><label>Color <select id="sh-color"><option value="profile">Profile</option><option value="share">Democratic share, From race</option></select></label><label class="check"><input id="sh-contours" type="checkbox"> 50 / 80 / 95% contours</label></div>
+                <div class="sh-row sh-y"><span class="sh-axis">Y axis: compare with</span><label>From <select id="sh-y2from"></select></label><span class="sh-arrow" aria-hidden="true">→</span><label>To <select id="sh-y2to"></select></label><button type="button" class="text-button sh-swap" id="sh-swap" title="Swap the X and Y comparisons">Swap X and Y</button></div>
+                <p id="sh-caption" class="note sh-caption"></p>
                 <div class="sh-canvas"><canvas id="sh-xy-canvas" role="img" aria-label="Scatter of precinct shifts"></canvas><div class="chart-tooltip" hidden></div></div>
                 <div id="sh-xy-legend" class="sh-legend"></div>
                 <p id="sh-xy-stats" class="note"></p>
               </section>
               <section id="sh-view-demog" hidden>
                 <div class="sh-row sh-presets" id="sh-presets" hidden><span class="sh-presets-label">Presets</span><button type="button" class="text-button" data-sh-preset="age">Age vs shift</button><button type="button" class="text-button" data-sh-preset="rent">Rent vs shift</button><button type="button" class="text-button" data-sh-preset="moved">Newcomers vs shift</button><button type="button" class="text-button" data-sh-preset="value">Home value vs forecast</button><button type="button" class="text-button" data-sh-preset="educ">Education vs shift</button></div>
-                <div class="xy-pickers"><div id="sh-px"></div><div id="sh-py"></div><div id="sh-pc"></div></div>
-                <div class="sh-row"><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-sh-mode="binned" aria-pressed="true">Binned</button><button type="button" data-sh-mode="points" aria-pressed="false">Points</button></div><label class="check"><input id="sh-demog-rel" type="checkbox"> Shift relative to statewide</label><button type="button" class="text-button" id="sh-demog-clear" hidden>Clear selection box</button></div>
+                <div class="xy-pickers"><div id="sh-px"></div></div>
+                <details class="sh-more sh-more-inline"><summary>Change the Y axis or color</summary><div class="xy-pickers"><div id="sh-py"></div><div id="sh-pc"></div></div></details>
+                <div class="sh-row"><div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view"><button type="button" data-sh-mode="binned" aria-pressed="true">Binned</button><button type="button" data-sh-mode="points" aria-pressed="false">Points</button></div><button type="button" class="text-button" id="sh-demog-clear" hidden>Clear selection box</button></div>
+                <p id="sh-demog-caption" class="note sh-caption"></p>
                 <p class="note xy-method" id="sh-method" hidden></p>
                 <div id="sh-plot"></div>
                 <div class="xy-foot"><span id="sh-demog-stats"></span><span id="sh-demog-legend" class="xy-legend"></span></div>

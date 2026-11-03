@@ -1,13 +1,12 @@
 import { scaleLinear } from 'd3-scale';
 import { escapeHTML } from './data.js';
 import { fmt, fmtTick, fmtDelta, slopeUnit, withMargin } from './measures.js';
+import { ramp as palRamp, partisanT, partisanClamp, isPartisan, gradient } from './palette.js';
 
 // Canvas scatter shared by the Early vote and Precinct shifts panels. Binned means by default (20 equal-count x bins, each a
 // weighted mean of y with a 90% band) over a faint density of every unit; a points view draws up to 3,000 units. A weighted
 // linear fit and its r are shown when at least 30 units have x, y and a weight. Units with no value are left out everywhere.
 const POINT_CAP = 3000, BINS = 20, MIN_FIT = 30;
-const leanRamp = scaleLinear().domain([0, .5, 1]).range(['#b2453c', '#9aa5a8', '#1d6483']).clamp(true);
-const seqRamp = scaleLinear().domain([0, .25, .5, .75, 1]).range(['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725']).clamp(true);
 const dark = () => document.documentElement.dataset.layout === 'dark';
 const ink = () => dark() ? { text:'#e5edf2', muted:'#acbfcb', grid:'#364a5b', fit:'#f4d27a', panel:'#1b2937', none:'#5b6670', dot:'rgba(200,215,225,.10)' } : { text:'#1b282d', muted:'#64767b', grid:'#e3e9e8', fit:'#8a5a00', panel:'#ffffff', none:'#b6bfc1', dot:'rgba(40,60,65,.08)' };
 const quantile = (sorted, q) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))))] : NaN;
@@ -62,10 +61,12 @@ export function createXYPlot(host, { onPick, onBrush, onHover }) {
     ctx.fillStyle = c.muted; ctx.font = "600 10px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center';
     ctx.fillText(clip(ctx, d.xm.label, width - 20), (m.left + width - m.right) / 2, height - 4);
     ctx.save(); ctx.translate(11, (m.top + height - m.bottom) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(clip(ctx, d.ym.label, height - m.top - m.bottom), 0, 0); ctx.restore();
-    // Colour: forecast lean on its own red-grey-blue scale; any other measure on a sequential scale over its 2nd-98th percentile.
+    // Colour: a partisan measure on the diverging scale centered on a zero margin or 50%; any other on the sequential scale over its 2nd-98th percentile.
     const cv = d.c, cIdx = cv ? idx.filter(i => Number.isFinite(cv[i])) : [];
     const cs = cIdx.map(i => cv[i]).sort((a, b) => a - b), clo = quantile(cs, .02), chi = quantile(cs, .98);
-    const colorOf = v => !Number.isFinite(v) ? c.none : d.cm?.unit === 'prob' ? leanRamp(v) : seqRamp(chi > clo ? (v - clo) / (chi - clo) : .5);
+    const partisan = isPartisan(d.cm), theme = dark() ? 'dark' : 'light', divRamp = palRamp('partisan', theme), seqRamp = palRamp('sequential', theme);
+    const center = d.cm?.unit === 'points' ? 0 : .5, half = d.cm?.unit === 'prob' ? .5 : (Math.max(Math.abs(clo - center), Math.abs(chi - center)) || .05);
+    const colorOf = v => !Number.isFinite(v) ? c.none : partisan ? divRamp(partisanT(v, center, half)) : seqRamp(chi > clo ? (v - clo) / (chi - clo) : .5);
     const wv = i => Number.isFinite(w?.[i]) && w[i] > 0 ? w[i] : 0;
     const ws = idx.map(wv).filter(v => v > 0).sort((a, b) => a - b), wMax = quantile(ws, .98) || 1;
     ctx.save(); ctx.beginPath(); ctx.rect(m.left, m.top, width - m.left - m.right, height - m.top - m.bottom); ctx.clip();
@@ -110,7 +111,7 @@ export function createXYPlot(host, { onPick, onBrush, onHover }) {
     for (const i of d.brushed || []) { if (!Number.isFinite(x[i]) || !Number.isFinite(y[i])) continue; ctx.globalAlpha = .9; ctx.strokeStyle = '#c98a00'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(sx(x[i]), sy(y[i]), 3.5, 0, 6.2832); ctx.stroke(); }
     ctx.restore(); ctx.globalAlpha = 1;
     const su = slopeUnit(d.xm);
-    d.onStats?.({ n:pts.length, fit, slopeText:fit ? `r = ${fit.r.toFixed(2)} · ${fmtDelta(d.ym, fit.slope * su.step)} ${su.text}` : null, colorRange:cIdx.length ? [clo, chi] : null });
+    d.onStats?.({ n:pts.length, fit, slopeText:fit ? `r = ${fit.r.toFixed(2)} · ${fmtDelta(d.ym, fit.slope * su.step)} ${su.text}` : null, colorRange:cIdx.length ? (partisan ? [center - partisanClamp(half), center + partisanClamp(half)] : [clo, chi]) : null });
   }
   function clip(ctx, text, max) { if (ctx.measureText(text).width <= max) return text; let t = text; while (t.length > 4 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1); return `${t}…`; }
   const local = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -153,9 +154,11 @@ export function createXYPlot(host, { onPick, onBrush, onHover }) {
   return { draw, redraw:() => state && draw(state), get state() { return state; } };
 }
 
-// Colour legend for the panel: the lean scale or the sequential one with its range.
+// Colour legend for the panel: the ramp in use and the range it spans; a partisan measure is centered on a zero margin or 50%.
 export function colorLegend(cm, range) {
-  if (!cm) return '';
-  if (cm.unit === 'prob') return `<span class="xy-ramp lean"></span><span>${escapeHTML(cm.label)}: Paxton favored to Talarico favored</span>`;
-  return range ? `<span class="xy-ramp seq"></span><span>${escapeHTML(cm.label)}: ${escapeHTML(fmt(cm, range[0]))} to ${escapeHTML(fmt(cm, range[1]))}</span>` : '';
+  if (!cm || !range) return '';
+  const partisan = isPartisan(cm), ramp = `<i class="xy-ramp" style="background:${gradient(partisan ? 'partisan' : 'sequential')}"></i>`;
+  if (cm.unit === 'prob') return `${ramp}<span>${escapeHTML(cm.label)}: Paxton favored to Talarico favored</span>`;
+  const mid = cm.unit === 'points' ? 0 : .5;
+  return `${ramp}<span>${escapeHTML(cm.label)}: ${escapeHTML(fmt(cm, range[0]))} to ${escapeHTML(fmt(cm, range[1]))}${partisan ? `, centered on ${escapeHTML(fmt(cm, mid))}` : ''}</span>`;
 }

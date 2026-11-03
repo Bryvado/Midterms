@@ -2,6 +2,7 @@ import { runMapUpdate } from './map-loading.js';
 import './style.css';
 import './layout.js';
 import { initAppearance } from './appearance.js';
+import { mountColorsSection } from './palette.js';
 import './evtab.js';
 import './edaytab.js';
 import { demographicMeasures, electorateMeasures, placeMeasures, measureLabel } from './metrics.js';
@@ -96,6 +97,7 @@ window.addEventListener('unit-change', ({ detail:unit }) => {
   }
 });
 initAppearance();
+mountColorsSection(document.querySelector('#colors-section'));
 try {
   initMap(selectPlace);
 } catch (error) {

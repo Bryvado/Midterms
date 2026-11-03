@@ -4,6 +4,7 @@ import { base, csv, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
 import { loadDemographics, modelEntries, earlyVoteEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
 import { createXYPlot, colorLegend } from './xyplot.js';
+import { stops as palStops, ramp as palRamp, swatchButton, refresh as refreshSwatch, isPartisan } from './palette.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
 // statewide totals and the daily chart come from the official early_vote_daily file. Blank cells are suppressed
@@ -29,7 +30,7 @@ const st = {
   level:files[params.get('evl')] ? params.get('evl') : 'county',
   measure:measures.some(m => m.key === params.get('evm')) ? params.get('evm') : 'pace',
   date:params.get('evd') || null,
-  spal:params.get('evs') || 'teal', dpal:params.get('evdp') || 'redblue', ppal:pacePalettes[params.get('evpp')] ? params.get('evpp') : 'prgn',
+  ppal:pacePalettes[params.get('evpp')] ? params.get('evpp') : 'prgn',
   bars:'lean', sel:null, hover:null,
 };
 const num = v => v === '' || v == null || v === 'NA' ? NaN : +v;
@@ -111,16 +112,14 @@ const paceOf = row => num(row?.pct_of_expected) / baselineFor(st.date);
 function writeURL() {
   const url = new URL(location.href);
   if (tab.hidden) for (const key of ['tab', 'evl', 'evm', 'evd', 'evs', 'evdp', 'evpp']) url.searchParams.delete(key);
-  else Object.entries({ tab:'early', evl:st.level, evm:st.measure, evd:st.date, evs:st.spal, evdp:st.dpal, evpp:st.ppal }).forEach(([k, v]) => v && url.searchParams.set(k, v));
+  else Object.entries({ tab:'early', evl:st.level, evm:st.measure, evd:st.date, evpp:st.ppal }).forEach(([k, v]) => v && url.searchParams.set(k, v));
   history.replaceState(null, '', url);
 }
 
 // ---- Map ----
 const SUPPRESSED = () => mapBasics().theme === 'dark' ? '#5b6670' : '#cfd5d5';
-function ramp(diverging) {
-  const b = mapBasics(), palettes = diverging ? b.divergingPalettes : b.sequentialPalettes, key = diverging ? st.dpal : st.spal;
-  return (palettes[key] || palettes[diverging ? 'redblue' : 'teal'])[b.theme];
-}
+// Colors come from the shared palette: the primary-history mix is partisan, so it is diverging; counts and turnout are sequential.
+function ramp(diverging) { return palStops(diverging ? 'partisan' : 'sequential', mapBasics().theme); }
 // Colours are assigned per region in the browser from published values; the tiles carry no early-vote columns.
 function colorData() {
   const m = measureOf(st.measure), rows = data.byDate.get(st.date) || new Map(), colors = {}, low = [];
@@ -396,7 +395,7 @@ const POINT_CAP = 1500, GRID = 40;
 const scatterMode = { pace:'binned', dshare:'binned' };
 let scatterHits = { pace:[], dshare:[] };
 // Forecast lean as a continuous colour: Paxton red through grey to Talarico blue, by win probability.
-const leanColor = scaleLinear().domain([0, .5, 1]).range(['#b2453c', '#9aa5a8', '#1d6483']).clamp(true);
+const leanColor = p => palRamp('partisan', document.documentElement.dataset.layout === 'dark' ? 'dark' : 'light')(p);
 const pickFrom = (name, host, event) => {
   const hits = scatterHits[name], svg = document.querySelector(`${host} svg`);
   if (!svg || !hits.length) return null;
@@ -596,8 +595,11 @@ function syncControls() {
   for (const b of document.querySelectorAll('[data-evt-level]')) { const on = b.dataset.evtLevel === st.level; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); }
   $('#evt-measure').value = st.measure;
   const b = mapBasics(), kind = measureOf(st.measure).kind;
-  const options = kind === 'pace' ? Object.entries(pacePalettes).map(([k, p]) => [k, p.label, k === st.ppal]) : Object.entries(kind === 'dshare' ? b.divergingPalettes : b.sequentialPalettes).filter(([k]) => k !== 'custom').map(([k, p]) => [k, p.label, k === (kind === 'dshare' ? st.dpal : st.spal)]);
-  $('#evt-palette').replaceChildren(...options.map(([k, label, on]) => new Option(label, k, false, on)));
+  // Pace has its own neutral purple-green classes; every other measure uses the shared palette, set from the swatch button.
+  $('#evt-palette').replaceChildren(...Object.entries(pacePalettes).map(([k, p]) => new Option(p.label, k, false, k === st.ppal)));
+  $('#evt-palette').closest('label').hidden = kind !== 'pace';
+  const swatch = $('#evt-swatch');
+  swatch.hidden = kind === 'pace'; swatch.dataset.palKind = kind === 'dshare' ? 'partisan' : 'sequential'; refreshSwatch(swatch);
   const slider = $('#evt-date');
   slider.max = String(county.dates.length - 1);
   slider.value = String(Math.max(0, county.dates.indexOf(st.date)));
@@ -643,6 +645,7 @@ function drawDemog() {
   demog.keys.y = demog.pickers.y.set(usable.filter(e => yGroups.has(e.group)), demog.keys.y);
   demog.keys.c = demog.pickers.c.set(usable, demog.keys.c);
   const xm = demog.pickers.x.entry(), ym = demog.pickers.y.entry(), cm = demog.pickers.c.entry();
+  if (demog.swatch) { demog.swatch.dataset.palKind = isPartisan(cm) ? 'partisan' : 'sequential'; refreshSwatch(demog.swatch); }
   const t = demog.table, marked = [st.sel, st.hover].filter(x => x?.level === st.level).map(x => t.index.get(x.id)).filter(i => i != null);
   demog.plot.draw({ n:t.n, labels:t.ids.map(id => placeLabel(st.level, id)), x:demogValues(xm), y:demogValues(ym), c:demogValues(cm), w:evArray('expected'),
     xm, ym, cm, xMoe:demogMoe(xm), yMoe:demogMoe(ym), cMoe:demogMoe(cm), mode:demog.mode, sizeByWeight:$('#evd-size').checked, noun:levelNames[st.level],
@@ -664,6 +667,7 @@ async function initDemog() {
   $('#evd-method').textContent = methodNote(acs);
   const redraw = () => drawDemog();
   demog.pickers = { x:createPicker($('#evd-x'), { label:'X', onChange:v => { demog.keys.x = v; redraw(); } }), y:createPicker($('#evd-y'), { label:'Y', onChange:v => { demog.keys.y = v; redraw(); } }), c:createPicker($('#evd-c'), { label:'Colour', onChange:v => { demog.keys.c = v; redraw(); } }) };
+  demog.swatch = swatchButton('partisan'); $('#evd-c').append(demog.swatch);
   demog.plot = createXYPlot($('#evd-plot'), {
     onPick:i => setSelection({ level:st.level, id:demog.table.ids[i] }),
     onHover:i => setHover(i == null ? null : { level:st.level, id:demog.table.ids[i] }),
@@ -709,11 +713,13 @@ async function start() {
   if (!st.date || !county.dates.includes(st.date)) st.date = county.dates.at(-1);
   initMap();
   map._evtStyle = mapBasics().style;
+  const swatch = swatchButton('sequential', 'Colors'); swatch.id = 'evt-swatch'; $('#evt-palette').closest('label').after(swatch);
   await initDemog().catch(error => console.warn('Demographics unavailable:', error));
   renderAll();
   for (const b of document.querySelectorAll('[data-evt-level]')) b.addEventListener('click', () => setLevel(b.dataset.evtLevel));
   $('#evt-measure').addEventListener('change', e => { st.measure = e.target.value; renderAll(); });
-  $('#evt-palette').addEventListener('change', e => { const kind = measureOf(st.measure).kind; if (kind === 'pace') st.ppal = e.target.value; else if (kind === 'dshare') st.dpal = e.target.value; else st.spal = e.target.value; paintMap(); writeURL(); });
+  $('#evt-palette').addEventListener('change', e => { st.ppal = e.target.value; paintMap(); writeURL(); });
+  window.addEventListener('palette-change', () => { if (tab.hidden) return; paintMap(); drawPaceScatter(); drawScatter(); drawDemog(); });
   $('#evt-date').addEventListener('input', e => { stop(); setDate(+e.target.value); });
   $('#evt-play').addEventListener('click', () => {
     if (timer) return stop();
