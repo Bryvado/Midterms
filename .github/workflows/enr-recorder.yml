@@ -1,4 +1,5 @@
 name: ENR recorder
+run-name: ENR recorder (${{ inputs.source }} on ${{ inputs.branch }})
 
 on:
   workflow_dispatch:

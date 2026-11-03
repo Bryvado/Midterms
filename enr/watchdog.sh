@@ -20,8 +20,8 @@ else
   fi
 fi
 
-# Recorder runs that are queued or in progress, newest first, and the age of the newest one.
-runs=$( { gh run list -R "$REPO" -w "$WORKFLOW" -s in_progress -L 20 --json databaseId,createdAt,url; gh run list -R "$REPO" -w "$WORKFLOW" -s queued -L 20 --json databaseId,createdAt,url; } | jq -s 'add | sort_by(.createdAt) | reverse')
+# Recorder runs for this branch (the run name ends "on <branch>)") that are queued or in progress, newest first, and the age of the newest one.
+runs=$( { gh run list -R "$REPO" -w "$WORKFLOW" -s in_progress -L 20 --json databaseId,createdAt,url,displayTitle; gh run list -R "$REPO" -w "$WORKFLOW" -s queued -L 20 --json databaseId,createdAt,url,displayTitle; } | jq -s --arg b "on $BRANCH)" 'add | map(select(.displayTitle | endswith($b))) | sort_by(.createdAt) | reverse')
 n_runs=$(jq length <<<"$runs")
 run_age_min=$(jq -r --argjson now "$now" 'if length then (($now - (.[0].createdAt | fromdateiso8601)) / 60 | floor) else 99999 end' <<<"$runs")
 # The newest commit on the results branch; a missing branch is "no commit yet".
