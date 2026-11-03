@@ -9,41 +9,13 @@ import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { scaleLinear } from 'd3-scale';
 import { interpolateLab } from 'd3-interpolate';
+import { stops as paletteStops, chosen as paletteChosen } from './palette.js';
 import { base, csv, pct, probPct, count, signed, escapeHTML } from './data.js';
 
 const bounds = [[-106.65, 25.84], [-93.51, 36.5]];
-const neutral = { light:'#f2efe8', dark:'#464b54' };
-const electionColors = {
-  light:['#9f352f','#c86656','#e4ab9c','#f2efe8','#b2d5dc','#609fb5','#1d6483'],
-  // Lift the dark neutral midpoint so close races stay visible against the black basemap.
-  dark:['#ff7a6e','#d65a50','#7a3a36',neutral.dark,'#2c5868','#3a9cc0','#5fcaf2'],
-};
-const volumeColors = {
-  light:['#edf4f2','#c6e4df','#90c9c3','#55a9ac','#2c7b8e','#184c6a'],
-  dark:['#415467','#527187','#568fa6','#4aa8be','#37c2d0','#a5e4e3'],
-};
-const confidenceColors = {
-  light:['#f0f0f2','#dcdce9','#bcbad8','#9897c2','#7072a7','#494d88'],
-  dark:['#48505f','#616a80','#7f86a7','#a3a7cf','#c5c5e7','#e4e1fa'],
-};
 const goldColors = {
   light:['#fbf6e4','#f1dfa0','#dcbb52','#b98d1c','#7f5d0a'],
   dark:['#4a4232','#76642f','#a8882c','#d8b23a','#f7dc7a'],
-};
-const divergingPalettes = {
-  redblue:{ label:'Red / blue', ...electionColors },
-  orpu:{ label:'Orange / purple (colorblind-safe)',
-    light:['#b35806','#e08214','#fdb863','#f2efe8','#b2abd2','#8073ac','#542788'],
-    dark:['#ffad4a','#d9822a','#7a4f25',neutral.dark,'#4b4280','#8e7ad8','#c6b6ff'] },
-  custom:{ label:'Custom colors' },
-};
-const sequentialPalettes = {
-  teal:{ label:'Teal', ...volumeColors },
-  purple:{ label:'Purple', ...confidenceColors },
-  gold:{ label:'Gold', ...goldColors },
-  viridis:{ label:'Viridis (colorblind-safe)', light:['#fde725','#5ec962','#21918c','#3b528b','#440154'], dark:['#440154','#3b528b','#21918c','#5ec962','#fde725'] },
-  magma:{ label:'Magma', light:['#fcfdbf','#fe9f6d','#de4968','#8c2981','#3b0f70'], dark:['#3b0f70','#8c2981','#de4968','#fe9f6d','#fcfdbf'] },
-  custom:{ label:'Custom colors' },
 };
 // Basemap background colours; the map pane uses the same colour so unpainted canvas pixels never show as a block.
 const basemapBackground = { light:'rgb(242,243,240)', dark:'rgb(12,12,12)' };
@@ -53,15 +25,12 @@ const ratings = {
 };
 
 // Global display settings: palette, custom colours, opacity and boundary lines.
-const defaults = { bw:'0.7', op:'87', ol:'30', ln:'1', oc:'0', od:'0', dpal:'redblue', spal:'teal', dlo:'#b2182b', dhi:'#2166ac', slo:'#f4f1e8', shi:'#1b3b6f' };
+const defaults = { bw:'0.7', op:'87', ol:'30', ln:'1', oc:'0', od:'0' };
 const settings = { ...defaults };
-const hex = /^#[0-9a-f]{6}$/i;
 const valid = {
   bw:v => Number.isFinite(+v) && +v >= 0 && +v <= 5,
-  dpal:v => v in divergingPalettes, spal:v => v in sequentialPalettes,
   op:v => /^\d{1,3}$/.test(v) && +v <= 100, ol:v => /^\d{1,3}$/.test(v) && +v <= 100,
   ln:v => v === '0' || v === '1', oc:v => v === '0' || v === '1', od:v => v === '0' || v === '1',
-  dlo:v => hex.test(v), dhi:v => hex.test(v), slo:v => hex.test(v), shi:v => hex.test(v),
 };
 const params = new URLSearchParams(location.search);
 for (const key of Object.keys(defaults)) if (params.has(key) && valid[key](params.get(key))) settings[key] = params.get(key);
@@ -260,11 +229,11 @@ function centerText(key, c) {
   return options(key).centers.find(([v]) => v === c)?.[1] || '';
 }
 
+// Colors come from the shared palette: diverging for partisan types, sequential for the rest. Brown share keeps gold unless a sequential palette was chosen.
 function ramp(type, surfaceTheme = theme) {
-  if (isDiverging(type)) return settings.dpal === 'custom' ? [settings.dlo, neutral[surfaceTheme], settings.dhi] : divergingPalettes[settings.dpal][surfaceTheme];
-  if (settings.spal === 'custom') return surfaceTheme === 'dark' ? [settings.shi, settings.slo] : [settings.slo, settings.shi];
-  if (type === 'brown' && settings.spal === defaults.spal) return goldColors[surfaceTheme];
-  return sequentialPalettes[settings.spal][surfaceTheme];
+  if (isDiverging(type)) return paletteStops('partisan', surfaceTheme);
+  if (type === 'brown' && !paletteChosen('sequential')) return goldColors[surfaceTheme];
+  return paletteStops('sequential', surfaceTheme);
 }
 // Interpolate in CIELAB so the ramp passes through a clean light midpoint instead of a muddy RGB mix.
 const colorAt = (colors, t) => scaleLinear().domain(colors.map((_, i) => i / (colors.length - 1))).range(colors).interpolate(interpolateLab).clamp(true)(t);
@@ -283,6 +252,8 @@ export const partyColor = (side, surfaceTheme = theme) => colorAt(ramp('margin',
 // A two-party share on the diverging palette, 20% to 80% across the ramp like the map.
 export const shareColor = (share, surfaceTheme = theme) => colorAt(ramp('share', surfaceTheme), Math.max(0, Math.min(1, .5 + (share - .5) / .6)));
 const announce = () => window.dispatchEvent(new Event('display-change'));
+// A palette change repaints every level and the legend.
+window.addEventListener('palette-change', () => { if (map) paint(); });
 
 function format(key, v) {
   const type = metricType(key), kind = metricKinds.get(key);
@@ -525,15 +496,6 @@ function syncControls() {
   if (!panel) return;
   const { opt, s } = current();
   const diverging = isDiverging(opt.type);
-  const palettes = diverging ? divergingPalettes : sequentialPalettes;
-  const palKey = diverging ? 'dpal' : 'spal';
-  setOptions(panel.querySelector('#color-palette'), Object.entries(palettes).map(([k, v]) => [k, v.label]), settings[palKey]);
-  panel.querySelector('#color-palette-note').textContent = opt.type === 'brown' && settings.spal === defaults.spal ? 'Brown share uses gold unless another palette is chosen.' : '';
-  panel.querySelector('#color-custom').hidden = settings[palKey] !== 'custom';
-  panel.querySelector('#color-lo-label').textContent = diverging ? 'Paxton side' : 'Low';
-  panel.querySelector('#color-hi-label').textContent = diverging ? 'Talarico side' : 'High';
-  panel.querySelector('#color-lo').value = settings[diverging ? 'dlo' : 'slo'];
-  panel.querySelector('#color-hi').value = settings[diverging ? 'dhi' : 'shi'];
   panel.querySelector('#scale-center-row').hidden = opt.centers.length < 2;
   setOptions(panel.querySelector('#scale-center'), opt.centers, s.c);
   setOptions(panel.querySelector('#scale-range'), opt.ranges, s.r);
@@ -633,9 +595,6 @@ function initDisplayControls() {
   if (!panel) return;
   const diverging = () => isDiverging(metricType(measure));
   const on = (sel, ev, fn) => panel.querySelector(sel).addEventListener(ev, e => runMapUpdate('Updating map display…', signal => fn(e, signal)));
-  on('#color-palette', 'change', e => { settings[diverging() ? 'dpal' : 'spal'] = e.target.value; paint(); });
-  on('#color-lo', 'change', e => { settings[diverging() ? 'dlo' : 'slo'] = e.target.value; paint(); });
-  on('#color-hi', 'change', e => { settings[diverging() ? 'dhi' : 'shi'] = e.target.value; paint(); });
   on('#scale-center', 'change', (e, signal) => updateScale({ c:e.target.value }, signal));
   on('#scale-range', 'change', (e, signal) => {
     const patch = { r:e.target.value };
@@ -1010,4 +969,4 @@ function finishDraw() {
 }
 
 // The Early vote tab runs its own map; it shares the basemap, tiles, palettes and theme with this one.
-export const mapBasics = () => ({ basemap, highways:addHighways, style:styles[basemap], theme, bounds, tileURL, tiles:Object.fromEntries(levelKeys.map(level => [level, levels[level].tiles])), sequentialPalettes, divergingPalettes, colorAt:mapColorAt, labels:target => applyMapLabels(target, theme) });
+export const mapBasics = () => ({ basemap, highways:addHighways, style:styles[basemap], theme, bounds, tileURL, tiles:Object.fromEntries(levelKeys.map(level => [level, levels[level].tiles])), colorAt:mapColorAt, labels:target => applyMapLabels(target, theme) });

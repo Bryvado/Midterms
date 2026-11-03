@@ -3,6 +3,7 @@ import { scaleLinear } from 'd3-scale';
 import { base, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
 import { showView } from './evtab.js';
+import { ramp as palRamp, partisanT, partisanClamp, partisanCenter, gradient, swatchButton } from './palette.js';
 
 // Election night tab. Everything shown comes from data/live: live.json (the estimator's current statewide and county
 // output) and trajectory.json (one statewide row per snapshot). ?src=rehearsal reads the rehearsal copy under data/rehearsal
@@ -17,15 +18,15 @@ const rehearsal = params.get('src') === 'rehearsal';
 const st = { live:null, traj:[], loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null };
 let map = null, mapReady = false, timer = null, started = false;
 
-const dark = () => document.documentElement.dataset.layout === 'dark';
 const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
 const central = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }); };
 const centralFull = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : `${d.toLocaleString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })} Central`; };
 const pts = v => Number.isFinite(v) ? `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts` : 'n/a';
 const share = v => Number.isFinite(v) ? pct(v, 1) : '–';
 const marginText = v => !Number.isFinite(v) ? 'n/a' : `${v >= 0 ? 'Talarico' : 'Paxton'} +${count(Math.abs(v))}`;
-const shiftColor = scaleLinear().domain([-SHIFT_MAX, -SHIFT_MAX / 2, 0, SHIFT_MAX / 2, SHIFT_MAX]).range(['#b2453c', '#d9a19b', '#e9ecec', '#93b4c4', '#1d6483']).clamp(true);
-const shiftColorDark = scaleLinear().domain([-SHIFT_MAX, -SHIFT_MAX / 2, 0, SHIFT_MAX / 2, SHIFT_MAX]).range(['#ef8a7f', '#a86b66', '#3a4650', '#4f8aa8', '#5fcaf2']).clamp(true);
+// The county shift is partisan, so it uses the diverging palette chosen in Colors, centered on no shift.
+const mapTheme = () => mapBasics().theme;
+const shiftColor = v => palRamp('partisan', mapTheme())(partisanT(v, 0, SHIFT_MAX));
 const counties = () => st.live?.counties || [];
 const byId = () => new Map(counties().map(c => [c.fips3, c]));
 
@@ -79,9 +80,9 @@ function addLayers() {
 }
 function paintMap() {
   if (!map || !mapReady || !map.getLayer('eday-fill')) return;
-  const ramp = dark() ? shiftColorDark : shiftColor, colors = {}, opacity = {};
+  const colors = {}, opacity = {};
   for (const c of counties()) {
-    colors[c.fips3] = Number.isFinite(c.shift) ? ramp(c.shift) : '#cfd5d5';
+    colors[c.fips3] = Number.isFinite(c.shift) ? shiftColor(c.shift) : '#cfd5d5';
     opacity[c.fips3] = .12 + .83 * Math.max(0, Math.min(1, Number.isFinite(c.pct_counted) ? c.pct_counted : 0));
   }
   const key = ['to-string', ['get', 'region_id']];
@@ -91,9 +92,11 @@ function paintMap() {
   map.setFilter('eday-hi', ['in', key, ['literal', ids]]);
 }
 function renderLegend() {
-  $('#eday-legend').innerHTML = `<div class="eday-legend-title">Shift from the pre-results forecast</div><div class="eday-ramp"></div>
-    <div class="eday-legend-scale"><span>Paxton +${100 * SHIFT_MAX}</span><span>0</span><span>Talarico +${100 * SHIFT_MAX}</span></div>
+  const half = Math.round(100 * partisanClamp(SHIFT_MAX)), mid = Math.round(100 * partisanCenter());
+  $('#eday-legend').innerHTML = `<div class="eday-legend-title">Shift from the pre-results forecast</div><div class="eday-ramp" style="background:${gradient('partisan', mapTheme())}"></div>
+    <div class="eday-legend-scale"><span>Paxton +${half - mid}</span><span>${mid ? `${mid > 0 ? '+' : '−'}${Math.abs(mid)}` : '0'}</span><span>Talarico +${half + mid}</span></div>
     <div class="eday-legend-note">Points of Talarico two-party share. Fainter counties have less of their expected vote counted.</div>`;
+  const title = $('#eday-legend .eday-legend-title'); title.append(' ', swatchButton('partisan'));
 }
 function tooltipHTML(c) {
   if (!c) return '';
@@ -230,12 +233,14 @@ function start() {
     $('#eday-table').addEventListener('pointerover', e => { const tr = e.target.closest('tr[data-id]'); setHover(tr ? tr.dataset.id : null); });
     $('#eday-table').addEventListener('pointerleave', () => setHover(null));
     new ResizeObserver(() => { if (!tab.hidden && st.live) drawTrajectory(); }).observe($('#eday-traj'));
-    new MutationObserver(() => { if (!tab.hidden) { paintMap(); } }).observe(document.documentElement, { attributes:true, attributeFilter:['data-layout'] });
+    new MutationObserver(() => { if (!tab.hidden) { paintMap(); renderLegend(); } }).observe(document.documentElement, { attributes:true, attributeFilter:['data-layout'] });
   }
   refresh();
   clearInterval(timer);
   timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
 }
+// Palette changes repaint the map and legend.
+window.addEventListener('palette-change', () => { if (!tab.hidden && st.live) { paintMap(); renderLegend(); } });
 window.addEventListener('view-tab', ({ detail }) => {
   const on = detail.view === 'eday';
   tab.hidden = !on;

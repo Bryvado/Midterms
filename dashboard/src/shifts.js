@@ -8,17 +8,19 @@ import { viewBounds, shareColor, setBrush, setArea, startDraw, cancelDraw } from
 import { boxesFor } from './list.js';
 import { acsGroups, loadDemographics, modelEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
 import { createXYPlot, colorLegend, weightedFit as xyFit } from './xyplot.js';
+import { swatchButton, refresh as refreshSwatch, isPartisan, gradient } from './palette.js';
 
 const panel = document.querySelector('#fp-shifts');
 const $ = selector => panel.querySelector(selector);
 const dark = () => document.documentElement.dataset.layout === 'dark';
 const ink = () => dark() ? { text:'#e5edf2', muted:'#acbfcb', grid:'#364a5b', zero:'#8aa1b2', panel:'#1b2937', fit:'#f4d27a' } : { text:'#1b282d', muted:'#64767b', grid:'#e3e9e8', zero:'#8e9ea3', panel:'#ffffff', fit:'#8a5a00' };
 const profileColors = () => dark() ? ['#e0b155', '#5fcbb0', '#b998dc', '#ff9a63'] : ['#b8892f', '#2f9a80', '#7b55a6', '#d9662a'];
+const singular = { precinct:'precinct', county:'county', cd:'district', cousub:'subdivision', puma:'PUMA' };
 const points = v => `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts`;
 let store = null, counties = new Map(), loading = null, checked = null, boxes = null, indexOf = null;
 // Linked brushing with the map: a lasso selection, the place last clicked on the map, chart zoom, and spatial restrictions.
 const link = { tool:'pick', sel:null, focus:-1, zoom:null, inView:false, area:null };
-const zoomKey = () => [state.view, state.level, state.from, state.to, state.y2from, state.y2to, state.xrel, state.yrel, state.demog].join('|');
+const zoomKey = () => [state.view, state.level, state.from, state.to, state.y2from, state.y2to, state.xrel, state.demog].join('|');
 const inside = (x, y, ring) => { let hit = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) hit = !hit; } return hit; };
 // Places pass when their bounding box meets the map view, and when the center of their bounding box falls inside the drawn area.
 function restrict(idx) {
@@ -47,6 +49,7 @@ function syncTools() {
   $('#sh-sel-clear').hidden = !link.sel;
   $('#sh-area-clear').hidden = !link.area;
   $('#sh-restrict').checked = link.inView;
+  if (link.sel || link.area) $('#sh-more').open = true;
   $('#sh-sel-status').textContent = link.sel ? `${link.sel.size.toLocaleString('en-US')} selected, highlighted on the map` : '';
 }
 function setSelection(set) {
@@ -81,11 +84,14 @@ function syncControls() {
   for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to'], ['#sh-level', 'level'], ['#sh-profile', 'profile'], ['#sh-color', 'color']]) $(id).value = state[key];
   $('#sh-min').value = String(state.min);
   $('#sh-weight').value = state.weighted ? '1' : '0';
-  $('#sh-xrel').checked = state.xrel; $('#sh-yrel').checked = state.yrel; $('#sh-contours').checked = state.contours;
+  $('#sh-xrel').checked = state.xrel; $('#sh-contours').checked = state.contours;
+  $('#sh-xy-options').hidden = state.view !== 'xy';
+  const xySwatch = $('#sh-xy-swatch'); if (xySwatch) xySwatch.hidden = state.color !== 'share';
+  $('#sh-swap').hidden = state.view !== 'xy';
+  $('#sh-more').hidden = false;
   $('#sh-county').value = state.county ? counties.get(state.county) || state.county : '';
   for (const button of panel.querySelectorAll('[data-sh-view]')) button.setAttribute('aria-pressed', String(button.dataset.shView === state.view));
   for (const name of ['xy', 'demog', 'table']) $(`#sh-view-${name}`).hidden = state.view !== name;
-  $('#sh-demog-rel').checked = state.xrel;
 }
 
 // ---- Shared text: counts, caveats, summary strip, footer check ----
@@ -291,13 +297,15 @@ let xyHit = null;
 function drawXY() {
   const canvas = $('#sh-xy-canvas'), c = ink();
   const evX = evaluate(store, state.from, state.to), evY = evaluate(store, state.y2from, state.y2to);
-  const xs = metricArray(evX, state.xrel ? 'rshift' : 'shift'), ys = metricArray(evY, state.yrel ? 'rshift' : 'shift');
+  const xs = metricArray(evX, state.xrel ? 'rshift' : 'shift'), ys = metricArray(evY, state.xrel ? 'rshift' : 'shift');
   const idx = [];
   for (let i = 0; i < store.n; i++) if (Number.isFinite(xs[i]) && Number.isFinite(ys[i])) idx.push(i);
   idx.splice(0, idx.length, ...restrict(idx));
+  const rel = state.xrel ? ', relative to the statewide shift' : '';
+  $('#sh-caption').textContent = `Each dot is a ${singular[store.level]}. X: change from ${raceOf(state.from).label} to ${raceOf(state.to).label}${rel}. Y: change from ${raceOf(state.y2from).label} to ${raceOf(state.y2to).label}${rel}.`;
   const { ctx, width, height } = setup(canvas);
   // The same pair on both axes is only the diagonal, so say so instead of drawing it.
-  const message = state.from === state.y2from && state.to === state.y2to && state.xrel === state.yrel ? 'X and Y are the same pair'
+  const message = state.from === state.y2from && state.to === state.y2to ? 'X and Y are the same pair'
     : idx.length < 3 ? 'Too few places have both shifts under the current filters.' : '';
   if (message) { ctx.fillStyle = c.muted; ctx.font = "12px 'DM Sans', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.fillText(message, width / 2, height / 2); xyHit = null; $('#sh-xy-stats').textContent = ''; return; }
   const [xd, yd] = domainFor(domainOf(idx.map(i => xs[i]), { zero:true }), domainOf(idx.map(i => ys[i]), { zero:true }));
@@ -305,7 +313,7 @@ function drawXY() {
   const pts = v => Math.round(100 * v) === 0 ? '0' : `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(100 * v))}`;
   const ticks = (d, step = 0) => scaleLinear().domain(d).ticks(width < 360 ? 4 : 6);
   drawFrame(ctx, plot, { xTicks:ticks(xd), yTicks:ticks(yd), xFormat:pts, yFormat:pts, zeroX:0, zeroY:0,
-    xLabel:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.from).short} to ${raceOf(state.to).short} (points)`, yLabel:`${state.yrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.y2from).short} to ${raceOf(state.y2to).short} (points)` });
+    xLabel:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.from).short} to ${raceOf(state.to).short} (points)`, yLabel:`${state.xrel ? 'Relative shift' : 'Shift'}, ${raceOf(state.y2from).short} to ${raceOf(state.y2to).short} (points)` });
   const wA = tpOf(store, state.from), weights = state.weighted ? wA : null;
   const sorted = idx.map(i => wA[i]).sort((a, b) => a - b), wmax = quantile(sorted, .98) || 1;
   let sets = null;
@@ -358,7 +366,7 @@ function drawXY() {
   $('#sh-xy-stats').innerHTML = fit ? `${state.weighted ? 'Vote-weighted' : 'Unweighted'} correlation <strong>${fit.r.toFixed(2)}</strong> · least-squares slope <strong>${fit.slope.toFixed(2)}</strong> (the line shown) · ${idx.length.toLocaleString('en-US')} ${levelInfo[store.level].noun}${state.contours ? ' · contours enclose 50%, 80% and 95% of the weight (smoothed bins)' : ''}${outside ? ` · ${outside.toLocaleString('en-US')} beyond the axis limits not drawn` : ''}${selectionText(idx, xs, ys, weights)}.${restrictText()}` : '';
   attachHover(canvas, () => xyHit, i => `<strong>${escapeHTML(placeName(i))}</strong>${pairTip(i, state.from, state.to, evX)}<br>${escapeHTML(raceOf(state.y2from).label)} to ${escapeHTML(raceOf(state.y2to).label)}: ${points(evY.shift[i])}`, i => openPlace(store.level, i));
   const legend = $('#sh-xy-legend');
-  legend.innerHTML = state.color === 'share' ? `<span>Color: Democratic share in ${escapeHTML(raceOf(state.from).label)}</span><span class="sh-ramp"></span><span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>` : `${profileNames.map((key, k) => `<span><i style="background:${colors[k]}"></i>${profileLabels[key]}</span>`).join('')}<span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>`;
+  legend.innerHTML = state.color === 'share' ? `<span>Color: Democratic share in ${escapeHTML(raceOf(state.from).label)}</span><span class="sh-ramp" style="background:${gradient('partisan', dark() ? 'dark' : 'light')}"></span><span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>` : `${profileNames.map((key, k) => `<span><i style="background:${colors[k]}"></i>${profileLabels[key]}</span>`).join('')}<span>Point area: two-party votes in ${escapeHTML(raceOf(state.from).label)}</span>`;
 }
 
 // ---- View 2: shift vs demographics ----
@@ -398,6 +406,8 @@ function drawDemog() {
   state.demog = sx.pickers.x.set(usable, usable.some(e => e.key === state.demog) ? state.demog : 'hisp_cvap_share');
   sx.y = sx.pickers.y.set(usable, sx.y); sx.c = sx.pickers.c.set(usable, sx.c);
   const xm = sx.pickers.x.entry(), ym = sx.pickers.y.entry(), cm = sx.pickers.c.entry();
+  if (sx.swatch) { sx.swatch.dataset.palKind = isPartisan(cm) ? 'partisan' : 'sequential'; refreshSwatch(sx.swatch); }
+  $('#sh-demog-caption').textContent = `Each dot is a ${singular[store.level]}. X: ${xm?.label ?? 'the chosen measure'}. Y: ${ym?.label ?? 'the chosen measure'}${state.xrel && ym?.key === 'pair_shift' ? ' (relative to the statewide shift)' : ''}.`;
   // The panel's filters (minimum votes, county, profile) and spatial restrictions apply to every measure.
   const keep = new Uint8Array(store.n);
   const all = []; for (let i = 0; i < store.n; i++) if (ev.status[i] === STATUS.ok) all.push(i);
@@ -473,6 +483,8 @@ async function initDemog() {
     y:createPicker($('#sh-py'), { label:'Y', onChange:v => { sx.y = v; redraw(); } }),
     c:createPicker($('#sh-pc'), { label:'Colour', onChange:v => { sx.c = v; redraw(); } }),
   };
+  sx.swatch = swatchButton('partisan'); $('#sh-pc').append(sx.swatch);
+  const xySwatch = swatchButton('partisan'); xySwatch.id = 'sh-xy-swatch'; $('#sh-color').after(xySwatch);
   sx.plot = createXYPlot($('#sh-plot'), {
     onPick:i => openPlace(store.level, i),
     onBrush:idx => setSelection(new Set(idx)),
@@ -594,8 +606,7 @@ function init() {
     if (hit) set({ county:hit[0] }, 'filters'); else e.target.value = state.county ? counties.get(state.county) || '' : '';
   });
   $('#sh-xrel').addEventListener('change', e => set({ xrel:e.target.checked }, 'view'));
-  $('#sh-demog-rel').addEventListener('change', e => set({ xrel:e.target.checked }, 'view'));
-  $('#sh-yrel').addEventListener('change', e => set({ yrel:e.target.checked }, 'view'));
+  $('#sh-swap').addEventListener('click', () => set({ from:state.y2from, to:state.y2to, y2from:state.from, y2to:state.to }, 'pair'));
   $('#sh-color').addEventListener('change', e => set({ color:e.target.value }, 'view'));
   $('#sh-contours').addEventListener('change', e => set({ contours:e.target.checked }, 'view'));
   for (const button of panel.querySelectorAll('[data-sh-view]')) button.addEventListener('click', () => set({ view:button.dataset.shView }, 'view'));
