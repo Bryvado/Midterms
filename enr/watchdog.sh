@@ -26,6 +26,7 @@ n_runs=$(jq length <<<"$runs")
 run_age_min=$(jq -r --argjson now "$now" 'if length then (($now - (.[0].createdAt | fromdateiso8601)) / 60 | floor) else 99999 end' <<<"$runs")
 # The newest commit on the results branch; a missing branch is "no commit yet".
 commit_utc=$(gh api "repos/$REPO/commits/$BRANCH" --jq .commit.committer.date 2>/dev/null || true)
+[[ "$commit_utc" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] || commit_utc=""
 if [ -n "$commit_utc" ]; then commit_age_min=$(( (now - $(date -u -d "$commit_utc" +%s)) / 60 )); else commit_age_min=99999; fi
 say "Recorder runs queued or in progress: $n_runs (newest started ${run_age_min} min ago). Newest $BRANCH commit: ${commit_utc:-none} (${commit_age_min} min old)."
 
