@@ -101,7 +101,7 @@ try {
 } catch (error) {
   console.error('Map initialization failed:', error);
   $('#map-message').textContent = 'This browser could not display the map. The forecast and polling data remain available.';
-  $('#basemap-theme').disabled = true;
+  for (const b of document.querySelectorAll('[data-basemap]')) b.disabled = true;
   $('#reset-map').disabled = true;
 }
 

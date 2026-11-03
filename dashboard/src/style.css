@@ -880,3 +880,15 @@ a.text-button{text-decoration:none}
 .chart-fc-band.projected{opacity:.1}
 .eday-dot{fill:#1d6483;stroke:#fff;stroke-width:1.5}
 :root[data-layout=dark] .eday-dot{fill:#5fcaf2;stroke:var(--panel)}
+/* Basemap section of Map controls */
+.basemap-section{margin-top:8px;border-top:1px solid #e3e8e7;padding-top:6px}
+.basemap-section summary{cursor:pointer;font-size:12px;font-weight:700;color:#315e70;padding:3px 0}
+.basemap-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.basemap-label{font-size:11px;font-weight:700;color:#455c64;min-width:58px}
+.basemap-section .segmented{box-shadow:none}
+.basemap-section .segmented button[aria-pressed=true]{background:#203b43;color:#fff}
+.basemap-note{font-size:10.5px;color:#64767b;margin:8px 0 0;line-height:1.4}
+:root[data-layout=dark] .basemap-section{border-color:var(--border)}
+:root[data-layout=dark] .basemap-section summary{color:var(--text)}
+:root[data-layout=dark] :is(.basemap-label,.basemap-note){color:var(--muted)}
+:root[data-layout=dark] .basemap-section .segmented button[aria-pressed=true]{background:#2f7ea3}
