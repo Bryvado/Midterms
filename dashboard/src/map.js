@@ -132,6 +132,9 @@ const plainStyle = color => ({ version:8, sources:{}, layers:[{ id:'background',
 const styles = {
   'plain-light':plainStyle('rgb(242,243,240)'),
   'plain-dark':plainStyle('rgb(12,12,12)'),
+  // Roads only: the plain background plus the published highway lines, loaded only when one of these is chosen.
+  'roads-light':plainStyle('rgb(242,243,240)'),
+  'roads-dark':plainStyle('rgb(12,12,12)'),
   // OpenFreeMap styles, no API key. Positron is on the quick-start guide; Dark is listed in the openfreemap-styles README.
   light:'https://tiles.openfreemap.org/styles/positron',
   dark:'https://tiles.openfreemap.org/styles/dark',
@@ -873,6 +876,7 @@ export function initMap(select) {
       if (map.getLayer(`overlay-${level}`)) continue;
       map.addLayer({ id:`overlay-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none', 'line-join':'round' }, paint:{ 'line-color':style[theme], 'line-width':style.width, ...(style.dash ? { 'line-dasharray':style.dash } : {}) } }, labels);
     }
+    addHighways(labels);
     addLinkLayers(labels);
     for (const id of earlyLabels) map.moveLayer(id, labels);
     message.hidden = true;
@@ -932,6 +936,15 @@ const areaData = () => {
   const closed = !drawing && ring.length > 2;
   return { type:'FeatureCollection', features:[{ type:'Feature', properties:{}, geometry:closed ? { type:'Polygon', coordinates:[[...ring, ring[0]]] } : { type:'LineString', coordinates:ring } }] };
 };
+// Interstates a little heavier than US highways, both a low-contrast neutral over the plain background; above the fills, below selections.
+const highwayInk = { light:{ interstate:'#a3aaa8', us:'#bfc5c3' }, dark:{ interstate:'#4d5356', us:'#3b4043' } };
+function addHighways(before) {
+  if (!basemap.startsWith('roads') || map.getLayer('highways')) return;
+  if (!map.getSource('highways')) map.addSource('highways', { type:'geojson', data:`${base}data/highways_tx.geojson` });
+  const ink = highwayInk[theme], interstate = ['==', ['get', 'class'], 'interstate'];
+  map.addLayer({ id:'highways', type:'line', source:'highways', layout:{ 'line-join':'round', 'line-cap':'round' },
+    paint:{ 'line-color':['case', interstate, ink.interstate, ink.us], 'line-width':['interpolate', ['linear'], ['zoom'], 5, ['case', interstate, 1.2, .7], 10, ['case', interstate, 2.6, 1.5]] } }, before);
+}
 function addLinkLayers(before) {
   for (const level of levelKeys) {
     if (map.getLayer(`brush-fill-${level}`)) continue;
