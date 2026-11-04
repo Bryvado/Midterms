@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/112/",
+  "Version": "enr/53815/113/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 254,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 16:48:21",
+    "LastUpdatedTime": "Nov 04, 2026 17:14:11",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -89227,7 +89227,7 @@
             "N": "LESLIE R. JOHNSON",
             "P": "R",
             "C": "#E30202",
-            "T": 523843,
+            "T": 503843,
             "O": 2,
             "LN": "JOHNSON",
             "FN": "LESLIE R."
