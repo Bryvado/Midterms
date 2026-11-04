@@ -637,7 +637,7 @@ a.text-button{text-decoration:none}
 #evt-date-label{font-size:12px;font-weight:600;white-space:nowrap}
 .evt-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .evt-stat{background:#fff;border:1px solid #dde5e4;border-radius:7px;padding:8px 10px;display:grid;gap:1px}
-.evt-stat span{font-size:10.5px;color:#556a71;font-weight:700;text-transform:uppercase;letter-spacing:.03em}.evt-stat strong{font-size:19px}.evt-stat em{font-style:normal;font-size:10.5px;color:#556a71}
+.evt-stat>span{font-size:10.5px;color:#556a71;font-weight:700;text-transform:uppercase;letter-spacing:.03em}.evt-stat strong{font-size:19px}.evt-stat em{font-style:normal;font-size:10.5px;color:#556a71}
 .evt-main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px}
 .evt-map-wrap{position:relative;height:min(62vh,620px);min-height:340px;border-radius:8px;overflow:hidden;border:1px solid #dde5e4;background:#e8eeed}
 #evt-map{position:absolute;inset:0}
@@ -952,3 +952,7 @@ a.text-button{text-decoration:none}
 :root[data-layout=dark] :is(.pal-select select,.pal-colors input[type=number],.pal-swatch-btn,.pal-colors input[type=color]){background:var(--control);color:var(--text);border-color:var(--border)}
 :root[data-layout=dark] .pal-pop{background:var(--panel);border-color:var(--border);color:var(--text)}
 .evt-field[hidden],.pal-swatch-btn[hidden]{display:none}
+.nowrap{white-space:nowrap}
+.topstats .ts-pre{flex:none;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#556a71;border:1px solid #cfd8d8;border-radius:4px;padding:1px 5px}
+.topstats .ts-pre[hidden]{display:none}
+:root[data-layout=dark] .topstats .ts-pre{color:var(--muted);border-color:var(--border)}

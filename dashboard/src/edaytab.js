@@ -21,9 +21,20 @@ let map = null, mapReady = false, timer = null, started = false;
 const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
 const central = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }); };
 const centralFull = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : `${d.toLocaleString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })} Central`; };
+const centralClock = date => `${date.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit', second:'2-digit' })} Central`;
 const pts = v => Number.isFinite(v) ? `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts` : 'n/a';
 const share = v => Number.isFinite(v) ? pct(v, 1) : '–';
 const marginText = v => !Number.isFinite(v) ? 'n/a' : `${v >= 0 ? 'Talarico' : 'Paxton'} +${count(Math.abs(v))}`;
+// The margin card's 80% range uses compact figures (92.4K, 1.11M), names the leader once when both ends favor the
+// same candidate, and keeps each figure on one line, so the note stays within two lines.
+const compact = new Intl.NumberFormat('en-US', { notation:'compact', maximumSignificantDigits:3 });
+const nb = text => `<span class="nowrap">${escapeHTML(text)}</span>`;
+const side = v => `${v >= 0 ? 'Talarico' : 'Paxton'} +${compact.format(Math.abs(v))}`;
+function marginRange(lo, hi) {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return 'n/a';
+  if ((lo >= 0) === (hi >= 0)) { const near = Math.abs(lo) < Math.abs(hi) ? lo : hi, far = near === lo ? hi : lo; return `${nb(side(near))} to ${nb(`+${compact.format(Math.abs(far))}`)}`; }
+  return `${nb(side(lo))} to ${nb(side(hi))}`;
+}
 // The county shift is partisan, so it uses the diverging palette chosen in Colors, centered on no shift.
 const mapTheme = () => mapBasics().theme;
 const shiftColor = v => palRamp('partisan', mapTheme())(partisanT(v, 0, SHIFT_MAX));
@@ -49,16 +60,16 @@ function renderStatus() {
   if (rehearsal) banner.textContent = 'Rehearsal: these are simulated returns, not real results.';
   const s = st.live?.statewide;
   $('#eday-status').textContent = st.error && !st.live ? `Election-night results are not available: ${st.error.message}`
-    : s ? `Returns as of ${centralFull(s.snapshot_utc)}. ${count(s.counties_reporting)} of ${count(counties().length)} counties reporting, ${count(s.counties_complete)} complete. Checked ${st.loadedAt.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}; this page checks again every ${POLL_MS / 1000} seconds. The estimate uses ${count(s.update_rows)} county updates${s.robust_sd > 0 ? ` and allows ±${(100 * s.robust_sd).toFixed(1)} pts of extra statewide shift` : ''}.`
+    : s ? `Returns as of: ${centralFull(s.snapshot_utc)}. ${count(s.counties_reporting)} of ${count(counties().length)} counties reporting, ${count(s.counties_complete)} complete. Page last checked: ${centralClock(st.loadedAt)}; this page checks again every ${POLL_MS / 1000} seconds. The estimate uses ${count(s.update_rows)} county updates${s.robust_sd > 0 ? ` and allows ±${(100 * s.robust_sd).toFixed(1)} pts of extra statewide shift` : ''}.`
     : 'Loading election-night results…';
 }
 function renderSummary() {
   const s = st.live.statewide;
-  const stat = (label, value, note) => `<div class="evt-stat"><span>${escapeHTML(label)}</span><strong>${value}</strong><em>${escapeHTML(note)}</em></div>`;
+  const stat = (label, value, note, html = false) => `<div class="evt-stat"><span>${escapeHTML(label)}</span><strong>${value}</strong><em>${html ? note : escapeHTML(note)}</em></div>`;
   $('#eday-summary').innerHTML = [
     stat('Chance Talarico wins', probPct(s.p_talarico), `Pre-results forecast: ${probPct(s.p_talarico_prior)}`),
     stat('Talarico two-party share', share(s.tal_2p_mean), `80% range ${share(s.tal_2p_q10)} to ${share(s.tal_2p_q90)}`),
-    stat('Margin', escapeHTML(marginText(s.margin_mean)), `80% range ${marginText(s.margin_q10)} to ${marginText(s.margin_q90)}`),
+    stat('Margin', escapeHTML(marginText(s.margin_mean)), `80% range: ${marginRange(s.margin_q10, s.margin_q90)}`, true),
     stat('Votes counted', count(s.votes_counted), `of about ${count(s.votes_expected)} expected (${pct(s.pct_counted, 0)})`),
     stat('Counties', `${count(s.counties_reporting)} reporting`, `${count(s.counties_complete)} of ${count(counties().length)} complete`),
     stat('Election Day turnout vs. expected', Number.isFinite(s.eday_turnout_factor) ? `${s.eday_turnout_factor.toFixed(2)}×` : 'n/a', 'From fully reported counties'),
@@ -69,11 +80,18 @@ function renderSummary() {
 // ---- Map: shift from the pre-results forecast, faded by how much of the county's expected vote is counted ----
 function addLayers() {
   const b = mapBasics();
+  // Fills, borders and highways go beneath the basemap's place labels, as on the Forecast map.
+  const layers = map.getStyle().layers;
+  let first = layers.length;
+  while (first > 0 && layers[first - 1].type === 'symbol') first--;
+  const below = layers[first]?.id;
   if (!map.getSource('eday-county')) map.addSource('eday-county', { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
-  map.addLayer({ id:'eday-fill', type:'fill', source:'eday-county', 'source-layer':'regions', paint:{ 'fill-color':'#cfd5d5', 'fill-opacity':.15 } });
-  map.addLayer({ id:'eday-line', type:'line', source:'eday-county', 'source-layer':'regions', paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':.5 } });
-  b.highways(undefined, map);
-  map.addLayer({ id:'eday-hi', type:'line', source:'eday-county', 'source-layer':'regions', filter:['in', ['to-string', ['get', 'region_id']], ['literal', []]], paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.4 } });
+  map.addLayer({ id:'eday-fill', type:'fill', source:'eday-county', 'source-layer':'regions', paint:{ 'fill-color':'#cfd5d5', 'fill-opacity':.15 } }, below);
+  map.addLayer({ id:'eday-line', type:'line', source:'eday-county', 'source-layer':'regions', paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':.5 } }, below);
+  b.highways(below, map);
+  map.addLayer({ id:'eday-hi', type:'line', source:'eday-county', 'source-layer':'regions', filter:['in', ['to-string', ['get', 'region_id']], ['literal', []]], paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.4 } }, below);
+  // Some styles (OpenFreeMap Dark) put a water-label layer before their roads; lift it above the fills too.
+  if (below) for (const layer of layers.slice(0, first)) if (layer.type === 'symbol') map.moveLayer(layer.id, below);
   b.labels(map);
   mapReady = true;
   paintMap();
@@ -147,7 +165,7 @@ function drawTrajectory() {
   const rows = st.traj.filter(r => Number.isFinite(new Date(r.snapshot_utc).getTime()));
   const prior = st.live?.statewide?.p_talarico_prior;
   host.querySelector('svg')?.remove();
-  const W = Math.max(280, host.clientWidth || 360), H1 = 150, H2 = 170, gap = 34, m = { l:40, r:12, t:16, b:22 }, H = H1 + gap + H2 + m.b;
+  const W = Math.max(280, host.clientWidth || 360), H1 = 150, H2 = 170, gap = 34, m = { l:40, r:12, t:16, b:22 }, H = H1 + gap + H2 + m.b + 12;
   if (rows.length < 1) { host.insertAdjacentHTML('afterbegin', `<p class="note">No snapshots yet.</p>`); return; }
   const t = rows.map(r => new Date(r.snapshot_utc).getTime());
   const x = scaleLinear().domain(t.length > 1 ? [t[0], t.at(-1)] : [t[0] - 6e5, t[0] + 6e5]).range([m.l, W - m.r]);
@@ -172,6 +190,7 @@ function drawTrajectory() {
     <path class="eday-band" d="${band}"/><path class="eday-line s" d="${path(r => r.tal_2p_mean, y2)}"/>
     <circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y1(rows.at(-1).p_talarico)}" r="3.5"/><circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y2(rows.at(-1).tal_2p_mean)}" r="3.5"/>
     ${xAxis(y2.range()[0])}
+    <text class="evt-axis" x="${W - m.r}" y="${y2.range()[0] + 26}" text-anchor="end">Snapshot time, Central</text>
     <line class="eday-cross" x1="0" x2="0" y1="${m.t}" y2="${y2.range()[0]}" visibility="hidden"/>
     <rect class="evt-hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${y2.range()[0] - m.t}"/></svg>`;
   host.insertAdjacentHTML('afterbegin', svg);
@@ -244,6 +263,9 @@ window.addEventListener('palette-change', () => { if (!tab.hidden && st.live) { 
 window.addEventListener('view-tab', ({ detail }) => {
   const on = detail.view === 'eday';
   tab.hidden = !on;
+  // The top bar keeps the published pre-results forecast; on this tab it says so.
+  document.querySelector('#ts-pre').hidden = !on;
+  document.querySelector('.topstats').setAttribute('aria-label', on ? 'Pre-results statewide forecast' : 'Statewide forecast');
   const url = new URL(location.href);
   if (on) { url.searchParams.set('tab', 'eday'); start(); map?.resize(); }
   else { clearInterval(timer); timer = null; if (url.searchParams.get('tab') === 'eday') url.searchParams.delete('tab'); }
