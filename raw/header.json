@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/84/",
+  "Version": "enr/53815/86/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,14 +15624,14 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 08:59:02",
+    "LastUpdatedTime": "Nov 04, 2026 09:08:21",
     "Report": null,
     "Search": "N",
     "Rss": null,
     "RefreshTime": 5,
     "PrecinctsReporting": {
-      "PR": 253,
-      "PT": 253
+      "PR": 18,
+      "PT": 18
     },
     "PollingReporting": {
       "PLR": 4077,
@@ -102568,7 +102568,7 @@
             "N": "KRISTEN HAWKINS",
             "P": "D",
             "C": "#007BBD",
-            "T": 4762032,
+            "T": 4762062,
             "O": 1,
             "LN": "HAWKINS",
             "FN": "KRISTEN"
@@ -122391,7 +122391,7 @@
             "ID": 41291,
             "N": "KRISTEN HAWKINS",
             "P": "DEM",
-            "V": 4762032,
+            "V": 4762062,
             "PE": 52.48,
             "C": "#007BBD",
             "O": 2,
@@ -122412,7 +122412,7 @@
             "FN": "KYLE"
           }
         ],
-        "T": 9073465,
+        "T": 9073495,
         "O": 31,
         "SO": 7
       },
