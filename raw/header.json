@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/97/",
+  "Version": "enr/53815/98/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -11498,8 +11498,8 @@
             "ID": 38919,
             "N": "ANTHONY GUPTA",
             "P": "REP",
-            "V": 22639,
-            "EV": 17098,
+            "V": 22939,
+            "EV": 17398,
             "PE": 24,
             "C": "#E30202",
             "O": 1,
@@ -11519,7 +11519,7 @@
             "FN": "DONNA"
           }
         ],
-        "T": 94955
+        "T": 95255
       },
       {
         "id": 4950,
@@ -15624,7 +15624,7 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 11:30:21",
+    "LastUpdatedTime": "Nov 04, 2026 11:34:28",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -89761,7 +89761,7 @@
             "N": "KEVIN PATRICK YEARY",
             "P": "R",
             "C": "#E30202",
-            "T": 4487195,
+            "T": 4437195,
             "O": 2,
             "LN": "YEARY",
             "FN": "KEVIN PATRICK"
@@ -105169,7 +105169,7 @@
             "N": "ANTHONY GUPTA",
             "P": "R",
             "C": "#E30202",
-            "T": 22639,
+            "T": 22939,
             "O": 2,
             "LN": "GUPTA",
             "FN": "ANTHONY"
@@ -122503,7 +122503,7 @@
             "N": "AUDRA RILEY",
             "P": "DEM",
             "V": 4735183,
-            "PE": 51.34,
+            "PE": 51.62,
             "C": "#007BBD",
             "O": 2,
             "EV": 4026704,
@@ -122514,8 +122514,8 @@
             "ID": 39546,
             "N": "KEVIN PATRICK YEARY (I)",
             "P": "REP",
-            "V": 4487195,
-            "PE": 48.66,
+            "V": 4437195,
+            "PE": 48.38,
             "C": "#E30202",
             "O": 1,
             "EV": 3472606,
@@ -122523,7 +122523,7 @@
             "FN": "KEVIN PATRICK"
           }
         ],
-        "T": 9222378,
+        "T": 9172378,
         "O": 41,
         "SO": 4
       },
