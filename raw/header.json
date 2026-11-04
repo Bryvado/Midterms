@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/81/",
+  "Version": "enr/53815/82/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 08:43:09",
+    "LastUpdatedTime": "Nov 04, 2026 08:47:39",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -89776,7 +89776,7 @@
             "N": "JOHN MESSINGER",
             "P": "R",
             "C": "#E30202",
-            "T": 4319695,
+            "T": 4337695,
             "O": 2,
             "LN": "MESSINGER",
             "FN": "JOHN"
@@ -122535,11 +122535,11 @@
             "ID": 39547,
             "N": "JOHN MESSINGER",
             "P": "REP",
-            "V": 4319695,
-            "PE": 47.89,
+            "V": 4337695,
+            "PE": 47.99,
             "C": "#E30202",
             "O": 1,
-            "EV": 3403957,
+            "EV": 3421957,
             "LN": "MESSINGER",
             "FN": "JOHN"
           },
@@ -122548,7 +122548,7 @@
             "N": "HOLLY TAYLOR",
             "P": "DEM",
             "V": 4700807,
-            "PE": 52.11,
+            "PE": 52.01,
             "C": "#007BBD",
             "O": 2,
             "EV": 4056033,
@@ -122556,7 +122556,7 @@
             "FN": "HOLLY"
           }
         ],
-        "T": 9020502,
+        "T": 9038502,
         "O": 41,
         "SO": 9
       }
