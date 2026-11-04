@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/96/",
+  "Version": "enr/53815/97/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -14150,37 +14150,37 @@
     "OffTypeID": 510,
     "Races": [
       {
-        "id": 5048,
-        "N": "U. S. REPRESENTATIVE DISTRICT 19",
+        "id": 5038,
+        "N": "U. S. REPRESENTATIVE DISTRICT 1",
         "O": 4,
-        "SO": 19,
+        "SO": 1,
         "Candidates": [
           {
-            "ID": 41271,
-            "N": "KYLE RABLE",
-            "P": "DEM",
-            "V": 29672,
-            "PE": 24.882806276048875,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 21769,
-            "LN": "RABLE",
-            "FN": "KYLE"
-          },
-          {
-            "ID": 42427,
-            "N": "TOM SELL",
+            "ID": 39512,
+            "N": "NATHANIEL MORAN (I)",
             "P": "REP",
-            "V": 89575,
-            "PE": 75.11719372395113,
+            "V": 181987,
+            "PE": 69.04300320579699,
             "C": "#E30202",
             "O": 1,
-            "EV": 60326,
-            "LN": "SELL",
-            "FN": "TOM"
+            "EV": 132373,
+            "LN": "MORAN",
+            "FN": "NATHANIEL"
+          },
+          {
+            "ID": 42603,
+            "N": "YOLANDA R.  PRINCE",
+            "P": "DEM",
+            "V": 81598,
+            "PE": 30.956996794203008,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 63969,
+            "LN": "PRINCE",
+            "FN": "YOLANDA R. "
           }
         ],
-        "T": 119247
+        "T": 263585
       },
       {
         "id": 5063,
@@ -14214,6 +14214,105 @@
           }
         ],
         "T": 277615
+      },
+      {
+        "id": 5042,
+        "N": "U. S. REPRESENTATIVE DISTRICT 13",
+        "O": 4,
+        "SO": 13,
+        "Candidates": [
+          {
+            "ID": 39522,
+            "N": "RONNY JACKSON (I)",
+            "P": "REP",
+            "V": 158134,
+            "PE": 65.25537384816636,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 115843,
+            "LN": "JACKSON",
+            "FN": "RONNY"
+          },
+          {
+            "ID": 41269,
+            "N": "MARK NAIR",
+            "P": "DEM",
+            "V": 84197,
+            "PE": 34.74462615183365,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 68156,
+            "LN": "NAIR",
+            "FN": "MARK"
+          }
+        ],
+        "T": 242331
+      },
+      {
+        "id": 5048,
+        "N": "U. S. REPRESENTATIVE DISTRICT 19",
+        "O": 4,
+        "SO": 19,
+        "Candidates": [
+          {
+            "ID": 41271,
+            "N": "KYLE RABLE",
+            "P": "DEM",
+            "V": 29672,
+            "PE": 24.882806276048875,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 21769,
+            "LN": "RABLE",
+            "FN": "KYLE"
+          },
+          {
+            "ID": 42427,
+            "N": "TOM SELL",
+            "P": "REP",
+            "V": 89575,
+            "PE": 75.11719372395113,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 60326,
+            "LN": "SELL",
+            "FN": "TOM"
+          }
+        ],
+        "T": 119247
+      },
+      {
+        "id": 5040,
+        "N": "U. S. REPRESENTATIVE DISTRICT 11",
+        "O": 4,
+        "SO": 11,
+        "Candidates": [
+          {
+            "ID": 39520,
+            "N": "AUGUST PFLUGER (I)",
+            "P": "REP",
+            "V": 138627,
+            "PE": 59.501673963430335,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 100726,
+            "LN": "PFLUGER",
+            "FN": "AUGUST"
+          },
+          {
+            "ID": 41267,
+            "N": "CLAIRE REYNOLDS",
+            "P": "DEM",
+            "V": 94353,
+            "PE": 40.498326036569665,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 76698,
+            "LN": "REYNOLDS",
+            "FN": "CLAIRE"
+          }
+        ],
+        "T": 232980
       },
       {
         "id": 5064,
@@ -14271,7 +14370,7 @@
             "N": "AVERY AYERS",
             "P": "W",
             "V": 1791,
-            "PE": 0.01896575733043464,
+            "PE": 0.018965755322059918,
             "C": "#e0b30e",
             "O": 4,
             "EV": 1223,
@@ -14283,7 +14382,7 @@
             "N": "TED BROWN",
             "P": "LIB",
             "V": 178401,
-            "PE": 1.8891736870501787,
+            "PE": 1.8891734869965444,
             "C": "#e0b30e",
             "O": 3,
             "EV": 119968,
@@ -14294,11 +14393,11 @@
             "ID": 44432,
             "N": "BRADFORD \"BRAD\" HALL",
             "P": "W",
-            "V": 1207,
-            "PE": 0.01278150145049392,
+            "V": 1208,
+            "PE": 0.012792089575124723,
             "C": "#e0b30e",
             "O": 5,
-            "EV": 813,
+            "EV": 814,
             "LN": "HALL",
             "FN": "BRADFORD \"BRAD\""
           },
@@ -14307,7 +14406,7 @@
             "N": "ZUL MOHAMED",
             "P": "W",
             "V": 169,
-            "PE": 0.0017896219926540782,
+            "PE": 0.0017896218031424487,
             "C": "#e0b30e",
             "O": 6,
             "EV": 114,
@@ -14319,7 +14418,7 @@
             "N": "KEN PAXTON",
             "P": "REP",
             "V": 4071527,
-            "PE": 43.11535066795788,
+            "PE": 43.11534610226725,
             "C": "#E30202",
             "O": 1,
             "EV": 3182385,
@@ -14331,7 +14430,7 @@
             "N": "JADE SIMMONS",
             "P": "W",
             "V": 1537,
-            "PE": 0.016276029601830284,
+            "PE": 0.01627602787828369,
             "C": "#e0b30e",
             "O": 7,
             "EV": 1107,
@@ -14343,7 +14442,7 @@
             "N": "JAMES TALARICO",
             "P": "DEM",
             "V": 5188703,
-            "PE": 54.94566273461653,
+            "PE": 54.945656916157596,
             "C": "#007BBD",
             "O": 2,
             "EV": 4356528,
@@ -14351,40 +14450,7 @@
             "FN": "JAMES"
           }
         ],
-        "T": 9443335
-      },
-      {
-        "id": 5040,
-        "N": "U. S. REPRESENTATIVE DISTRICT 11",
-        "O": 4,
-        "SO": 11,
-        "Candidates": [
-          {
-            "ID": 39520,
-            "N": "AUGUST PFLUGER (I)",
-            "P": "REP",
-            "V": 138627,
-            "PE": 59.501673963430335,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 100726,
-            "LN": "PFLUGER",
-            "FN": "AUGUST"
-          },
-          {
-            "ID": 41267,
-            "N": "CLAIRE REYNOLDS",
-            "P": "DEM",
-            "V": 94353,
-            "PE": 40.498326036569665,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 76698,
-            "LN": "REYNOLDS",
-            "FN": "CLAIRE"
-          }
-        ],
-        "T": 232980
+        "T": 9443336
       },
       {
         "id": 5065,
@@ -14451,72 +14517,6 @@
           }
         ],
         "T": 238181
-      },
-      {
-        "id": 5042,
-        "N": "U. S. REPRESENTATIVE DISTRICT 13",
-        "O": 4,
-        "SO": 13,
-        "Candidates": [
-          {
-            "ID": 39522,
-            "N": "RONNY JACKSON (I)",
-            "P": "REP",
-            "V": 158134,
-            "PE": 65.25537384816636,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 115843,
-            "LN": "JACKSON",
-            "FN": "RONNY"
-          },
-          {
-            "ID": 41269,
-            "N": "MARK NAIR",
-            "P": "DEM",
-            "V": 84197,
-            "PE": 34.74462615183365,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 68156,
-            "LN": "NAIR",
-            "FN": "MARK"
-          }
-        ],
-        "T": 242331
-      },
-      {
-        "id": 5038,
-        "N": "U. S. REPRESENTATIVE DISTRICT 1",
-        "O": 4,
-        "SO": 1,
-        "Candidates": [
-          {
-            "ID": 39512,
-            "N": "NATHANIEL MORAN (I)",
-            "P": "REP",
-            "V": 181987,
-            "PE": 69.04300320579699,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 132373,
-            "LN": "MORAN",
-            "FN": "NATHANIEL"
-          },
-          {
-            "ID": 42603,
-            "N": "YOLANDA R.  PRINCE",
-            "P": "DEM",
-            "V": 81598,
-            "PE": 30.956996794203008,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 63969,
-            "LN": "PRINCE",
-            "FN": "YOLANDA R. "
-          }
-        ],
-        "T": 263585
       },
       {
         "id": 5067,
@@ -14595,39 +14595,6 @@
           }
         ],
         "T": 242273
-      },
-      {
-        "id": 5039,
-        "N": "U. S. REPRESENTATIVE DISTRICT 10",
-        "O": 4,
-        "SO": 10,
-        "Candidates": [
-          {
-            "ID": 39519,
-            "N": "CHRIS GOBER",
-            "P": "REP",
-            "V": 161425,
-            "PE": 53.76227698271814,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 118247,
-            "LN": "GOBER",
-            "FN": "CHRIS"
-          },
-          {
-            "ID": 41266,
-            "N": "CAITLIN ROURK",
-            "P": "DEM",
-            "V": 138832,
-            "PE": 46.23772301728186,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 113809,
-            "LN": "ROURK",
-            "FN": "CAITLIN"
-          }
-        ],
-        "T": 300257
       },
       {
         "id": 5069,
@@ -14727,6 +14694,39 @@
           }
         ],
         "T": 271916
+      },
+      {
+        "id": 5039,
+        "N": "U. S. REPRESENTATIVE DISTRICT 10",
+        "O": 4,
+        "SO": 10,
+        "Candidates": [
+          {
+            "ID": 39519,
+            "N": "CHRIS GOBER",
+            "P": "REP",
+            "V": 161425,
+            "PE": 53.76227698271814,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 118247,
+            "LN": "GOBER",
+            "FN": "CHRIS"
+          },
+          {
+            "ID": 41266,
+            "N": "CAITLIN ROURK",
+            "P": "DEM",
+            "V": 138832,
+            "PE": 46.23772301728186,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 113809,
+            "LN": "ROURK",
+            "FN": "CAITLIN"
+          }
+        ],
+        "T": 300257
       },
       {
         "id": 5072,
@@ -15017,63 +15017,6 @@
         "T": 269421
       },
       {
-        "id": 35300,
-        "N": "U. S. REPRESENTATIVE DISTRICT 34",
-        "O": 4,
-        "SO": 34,
-        "Candidates": [
-          {
-            "ID": 42188,
-            "N": "EDDIE ESPINOZA",
-            "P": "GRE",
-            "V": 4737,
-            "PE": 2.343993547461292,
-            "C": "#e0b30e",
-            "O": 4,
-            "EV": 3573,
-            "LN": "ESPINOZA",
-            "FN": "EDDIE"
-          },
-          {
-            "ID": 39535,
-            "N": "ERIC FLORES",
-            "P": "REP",
-            "V": 80168,
-            "PE": 39.669257908565946,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 60731,
-            "LN": "FLORES",
-            "FN": "ERIC"
-          },
-          {
-            "ID": 41282,
-            "N": "VICENTE GONZALEZ (I)",
-            "P": "DEM",
-            "V": 112547,
-            "PE": 55.69124800213765,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 89463,
-            "LN": "GONZALEZ",
-            "FN": "VICENTE"
-          },
-          {
-            "ID": 33606,
-            "N": "CHRIS ROYAL",
-            "P": "LIB",
-            "V": 4639,
-            "PE": 2.2955005418351138,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 3351,
-            "LN": "ROYAL",
-            "FN": "CHRIS"
-          }
-        ],
-        "T": 202091
-      },
-      {
         "id": 5043,
         "N": "U. S. REPRESENTATIVE DISTRICT 14",
         "O": 4,
@@ -15173,6 +15116,63 @@
         "T": 271894
       },
       {
+        "id": 35300,
+        "N": "U. S. REPRESENTATIVE DISTRICT 34",
+        "O": 4,
+        "SO": 34,
+        "Candidates": [
+          {
+            "ID": 42188,
+            "N": "EDDIE ESPINOZA",
+            "P": "GRE",
+            "V": 4737,
+            "PE": 2.343993547461292,
+            "C": "#e0b30e",
+            "O": 4,
+            "EV": 3573,
+            "LN": "ESPINOZA",
+            "FN": "EDDIE"
+          },
+          {
+            "ID": 39535,
+            "N": "ERIC FLORES",
+            "P": "REP",
+            "V": 80168,
+            "PE": 39.669257908565946,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 60731,
+            "LN": "FLORES",
+            "FN": "ERIC"
+          },
+          {
+            "ID": 41282,
+            "N": "VICENTE GONZALEZ (I)",
+            "P": "DEM",
+            "V": 112547,
+            "PE": 55.69124800213765,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 89463,
+            "LN": "GONZALEZ",
+            "FN": "VICENTE"
+          },
+          {
+            "ID": 33606,
+            "N": "CHRIS ROYAL",
+            "P": "LIB",
+            "V": 4639,
+            "PE": 2.2955005418351138,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 3351,
+            "LN": "ROYAL",
+            "FN": "CHRIS"
+          }
+        ],
+        "T": 202091
+      },
+      {
         "id": 5054,
         "N": "U. S. REPRESENTATIVE DISTRICT 24",
         "O": 4,
@@ -15239,39 +15239,6 @@
         "T": 265575
       },
       {
-        "id": 5045,
-        "N": "U. S. REPRESENTATIVE DISTRICT 16",
-        "O": 4,
-        "SO": 16,
-        "Candidates": [
-          {
-            "ID": 42396,
-            "N": "ADAM BAUMAN",
-            "P": "REP",
-            "V": 57247,
-            "PE": 29.238980540374893,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 39992,
-            "LN": "BAUMAN",
-            "FN": "ADAM"
-          },
-          {
-            "ID": 40167,
-            "N": "VERONICA ESCOBAR (I)",
-            "P": "DEM",
-            "V": 138543,
-            "PE": 70.7610194596251,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 105657,
-            "LN": "ESCOBAR",
-            "FN": "VERONICA"
-          }
-        ],
-        "T": 195790
-      },
-      {
         "id": 5056,
         "N": "U. S. REPRESENTATIVE DISTRICT 26",
         "O": 4,
@@ -15317,6 +15284,72 @@
         "T": 334900
       },
       {
+        "id": 5045,
+        "N": "U. S. REPRESENTATIVE DISTRICT 16",
+        "O": 4,
+        "SO": 16,
+        "Candidates": [
+          {
+            "ID": 42396,
+            "N": "ADAM BAUMAN",
+            "P": "REP",
+            "V": 57247,
+            "PE": 29.238980540374893,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 39992,
+            "LN": "BAUMAN",
+            "FN": "ADAM"
+          },
+          {
+            "ID": 40167,
+            "N": "VERONICA ESCOBAR (I)",
+            "P": "DEM",
+            "V": 138543,
+            "PE": 70.7610194596251,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 105657,
+            "LN": "ESCOBAR",
+            "FN": "VERONICA"
+          }
+        ],
+        "T": 195790
+      },
+      {
+        "id": 5046,
+        "N": "U. S. REPRESENTATIVE DISTRICT 17",
+        "O": 4,
+        "SO": 17,
+        "Candidates": [
+          {
+            "ID": 39525,
+            "N": "PETE SESSIONS (I)",
+            "P": "REP",
+            "V": 143524,
+            "PE": 53.56232529846206,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 102074,
+            "LN": "SESSIONS",
+            "FN": "PETE"
+          },
+          {
+            "ID": 42606,
+            "N": "CASEY SHEPARD",
+            "P": "DEM",
+            "V": 124433,
+            "PE": 46.43767470153794,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 102015,
+            "LN": "SHEPARD",
+            "FN": "CASEY"
+          }
+        ],
+        "T": 267957
+      },
+      {
         "id": 5057,
         "N": "U. S. REPRESENTATIVE DISTRICT 27",
         "O": 4,
@@ -15360,39 +15393,6 @@
           }
         ],
         "T": 282416
-      },
-      {
-        "id": 5046,
-        "N": "U. S. REPRESENTATIVE DISTRICT 17",
-        "O": 4,
-        "SO": 17,
-        "Candidates": [
-          {
-            "ID": 39525,
-            "N": "PETE SESSIONS (I)",
-            "P": "REP",
-            "V": 143524,
-            "PE": 53.56232529846206,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 102074,
-            "LN": "SESSIONS",
-            "FN": "PETE"
-          },
-          {
-            "ID": 42606,
-            "N": "CASEY SHEPARD",
-            "P": "DEM",
-            "V": 124433,
-            "PE": 46.43767470153794,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 102015,
-            "LN": "SHEPARD",
-            "FN": "CASEY"
-          }
-        ],
-        "T": 267957
       },
       {
         "id": 5058,
@@ -15624,7 +15624,7 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 11:23:18",
+    "LastUpdatedTime": "Nov 04, 2026 11:30:21",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -15634,7 +15634,7 @@
       "PT": 309
     },
     "PollingReporting": {
-      "PLR": 4506,
+      "PLR": 4650,
       "PLT": 5302
     }
   },
@@ -102661,7 +102661,7 @@
             "N": "STEPHEN SAMUELSON",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 724,
+            "T": 725,
             "O": 5,
             "LN": "SAMUELSON",
             "FN": "STEPHEN"
@@ -102970,7 +102970,7 @@
             "N": "BO FRENCH",
             "P": "R",
             "C": "#E30202",
-            "T": 4212106,
+            "T": 4220106,
             "O": 2,
             "LN": "FRENCH",
             "FN": "BO"
@@ -107872,7 +107872,7 @@
             "N": "BRADFORD \"BRAD\" HALL",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 1207,
+            "T": 1208,
             "O": 6,
             "LN": "HALL",
             "FN": "BRADFORD \"BRAD\""
@@ -122067,16 +122067,16 @@
             "ID": 44427,
             "N": "STEPHEN SAMUELSON",
             "P": "W",
-            "V": 724,
+            "V": 725,
             "PE": 0.01,
             "C": "#e0b30e",
             "O": 6,
-            "EV": 543,
+            "EV": 544,
             "LN": "SAMUELSON",
             "FN": "STEPHEN"
           }
         ],
-        "T": 9386613,
+        "T": 9386614,
         "O": 11,
         "SO": 1
       },
@@ -122292,8 +122292,8 @@
             "ID": 42431,
             "N": "BO FRENCH",
             "P": "REP",
-            "V": 4212106,
-            "PE": 45.67,
+            "V": 4220106,
+            "PE": 45.72,
             "C": "#E30202",
             "O": 1,
             "EV": 3293778,
@@ -122305,7 +122305,7 @@
             "N": "JON ROSENTHAL",
             "P": "DEM",
             "V": 4834860,
-            "PE": 52.43,
+            "PE": 52.38,
             "C": "#007BBD",
             "O": 2,
             "EV": 4124015,
@@ -122313,7 +122313,7 @@
             "FN": "JON"
           }
         ],
-        "T": 9222100,
+        "T": 9230100,
         "O": 17,
         "SO": 1
       },
