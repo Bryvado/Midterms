@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/107/",
+  "Version": "enr/53815/109/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,14 +15624,14 @@
       "CR": 254,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 14:47:53",
+    "LastUpdatedTime": "Nov 04, 2026 15:03:17",
     "Report": null,
     "Search": "N",
     "Rss": null,
     "RefreshTime": 5,
     "PrecinctsReporting": {
-      "PR": 120,
-      "PT": 107
+      "PR": 17,
+      "PT": 17
     },
     "PollingReporting": {
       "PLR": 5253,
@@ -99016,8 +99016,8 @@
             "N": "DOMINGO RODRIGUEZ",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 1405,
-            "O": 2,
+            "T": 838,
+            "O": 3,
             "LN": "RODRIGUEZ",
             "FN": "DOMINGO"
           },
@@ -99026,7 +99026,7 @@
             "P": "R",
             "C": "#E30202",
             "T": 879,
-            "O": 3,
+            "O": 2,
             "LN": "SALAS",
             "FN": "GILBERT"
           }
