@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/53/",
+  "Version": "enr/53815/54/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -35,7 +35,7 @@
             "ID": 39618,
             "N": "BRIAN HOYLE",
             "P": "REP",
-            "V": 246064,
+            "V": 251421,
             "EV": 191667,
             "PE": 100,
             "C": "#E30202",
@@ -44,7 +44,7 @@
             "FN": "BRIAN"
           }
         ],
-        "T": 246064
+        "T": 251421
       },
       {
         "id": 8,
@@ -197,8 +197,8 @@
             "ID": 39617,
             "N": "SCOTT GOLEMON (I)",
             "P": "REP",
-            "V": 265731,
-            "EV": 222947,
+            "V": 284309,
+            "EV": 237076,
             "PE": 100,
             "C": "#E30202",
             "O": 1,
@@ -206,7 +206,7 @@
             "FN": "SCOTT"
           }
         ],
-        "T": 265731
+        "T": 284309
       },
       {
         "id": 2746,
@@ -1247,7 +1247,7 @@
             "ID": 37677,
             "N": "ANGELA ALBERS (I)",
             "P": "REP",
-            "V": 11060,
+            "V": 16199,
             "EV": 11060,
             "PE": 100,
             "C": "#E30202",
@@ -1256,7 +1256,7 @@
             "FN": "ANGELA"
           }
         ],
-        "T": 11060
+        "T": 16199
       },
       {
         "id": 2795,
@@ -4127,8 +4127,8 @@
             "ID": 39666,
             "N": "JOSH FITZGERALD",
             "P": "REP",
-            "V": 16241,
-            "EV": 12392,
+            "V": 34738,
+            "EV": 26465,
             "PE": 100,
             "C": "#E30202",
             "O": 1,
@@ -4136,7 +4136,7 @@
             "FN": "JOSH"
           }
         ],
-        "T": 16241
+        "T": 34738
       },
       {
         "id": 3250,
@@ -7616,16 +7616,16 @@
             "ID": 42445,
             "N": "JAMES \"JD\" CHANDLER",
             "P": "REP",
-            "V": 0,
-            "EV": 0,
-            "PE": 0,
+            "V": 18508,
+            "EV": 14086,
+            "PE": 100,
             "C": "#E30202",
             "O": 1,
             "LN": "CHANDLER",
             "FN": "JAMES \"JD\""
           }
         ],
-        "T": 0
+        "T": 18508
       },
       {
         "id": 3549,
@@ -7859,7 +7859,7 @@
             "ID": 39630,
             "N": "MICHAEL DAVIS (I)",
             "P": "REP",
-            "V": 244599,
+            "V": 249908,
             "EV": 190577,
             "PE": 100,
             "C": "#E30202",
@@ -7868,7 +7868,7 @@
             "FN": "MICHAEL"
           }
         ],
-        "T": 244599
+        "T": 249908
       },
       {
         "id": 4650,
@@ -8186,7 +8186,7 @@
             "ID": 39627,
             "N": "CHARLES VAN CLEEF (I)",
             "P": "REP",
-            "V": 186060,
+            "V": 191362,
             "EV": 140949,
             "PE": 100,
             "C": "#E30202",
@@ -8195,7 +8195,7 @@
             "FN": "CHARLES"
           }
         ],
-        "T": 186060
+        "T": 191362
       },
       {
         "id": 4698,
@@ -8438,8 +8438,8 @@
             "ID": 42613,
             "N": "TIFFANY PERKINZ",
             "P": "DEM",
-            "V": 299141,
-            "EV": 278968,
+            "V": 307525,
+            "EV": 285504,
             "PE": 49,
             "C": "#007BBD",
             "O": 2,
@@ -8450,8 +8450,8 @@
             "ID": 39551,
             "N": "JULIE PICKREN (I)",
             "P": "REP",
-            "V": 307150,
-            "EV": 270990,
+            "V": 323837,
+            "EV": 283590,
             "PE": 51,
             "C": "#E30202",
             "O": 1,
@@ -8459,7 +8459,7 @@
             "FN": "JULIE"
           }
         ],
-        "T": 606291
+        "T": 631362
       },
       {
         "id": 4728,
@@ -8504,9 +8504,9 @@
             "ID": 39553,
             "N": "KASON HUDDLESTON",
             "P": "REP",
-            "V": 352782,
+            "V": 357880,
             "EV": 286682,
-            "PE": 58,
+            "PE": 59,
             "C": "#E30202",
             "O": 1,
             "LN": "HUDDLESTON",
@@ -8516,16 +8516,16 @@
             "ID": 41299,
             "N": "ERICKA LEDFERD",
             "P": "DEM",
-            "V": 250358,
+            "V": 251292,
             "EV": 225471,
-            "PE": 42,
+            "PE": 41,
             "C": "#007BBD",
             "O": 2,
             "LN": "LEDFERD",
             "FN": "ERICKA"
           }
         ],
-        "T": 603140
+        "T": 609172
       },
       {
         "id": 4856,
@@ -10457,9 +10457,9 @@
             "ID": 41327,
             "N": "VALORIE BARTON",
             "P": "DEM",
-            "V": 9348,
-            "EV": 7715,
-            "PE": 24,
+            "V": 17723,
+            "EV": 14210,
+            "PE": 27,
             "C": "#007BBD",
             "O": 2,
             "LN": "BARTON",
@@ -10469,16 +10469,16 @@
             "ID": 39579,
             "N": "JANIS HOLT (I)",
             "P": "REP",
-            "V": 30192,
-            "EV": 22576,
-            "PE": 76,
+            "V": 46914,
+            "EV": 35213,
+            "PE": 73,
             "C": "#E30202",
             "O": 1,
             "LN": "HOLT",
             "FN": "JANIS"
           }
         ],
-        "T": 39540
+        "T": 64637
       },
       {
         "id": 4917,
@@ -11564,9 +11564,9 @@
             "ID": 41319,
             "N": "HECTOR GARZA",
             "P": "DEM",
-            "V": 14186,
+            "V": 15089,
             "EV": 12131,
-            "PE": 24,
+            "PE": 23,
             "C": "#007BBD",
             "O": 2,
             "LN": "GARZA",
@@ -11576,16 +11576,16 @@
             "ID": 39571,
             "N": "COLE HEFNER (I)",
             "P": "REP",
-            "V": 45639,
+            "V": 50782,
             "EV": 38255,
-            "PE": 76,
+            "PE": 77,
             "C": "#E30202",
             "O": 1,
             "LN": "HEFNER",
             "FN": "COLE"
           }
         ],
-        "T": 59825
+        "T": 65871
       },
       {
         "id": 4952,
@@ -12962,8 +12962,8 @@
             "ID": 39610,
             "N": "KEN KING (I)",
             "P": "REP",
-            "V": 36491,
-            "EV": 23856,
+            "V": 36488,
+            "EV": 23853,
             "PE": 78,
             "C": "#E30202",
             "O": 1,
@@ -12971,7 +12971,7 @@
             "FN": "KEN"
           }
         ],
-        "T": 46750
+        "T": 46747
       },
       {
         "id": 4994,
@@ -13355,7 +13355,7 @@
             "ID": 41302,
             "N": "LATICIA AMBROZ",
             "P": "DEM",
-            "V": 81203,
+            "V": 82079,
             "EV": 68623,
             "PE": 29,
             "C": "#007BBD",
@@ -13367,7 +13367,7 @@
             "ID": 39556,
             "N": "BRYAN HUGHES (I)",
             "P": "REP",
-            "V": 199654,
+            "V": 204828,
             "EV": 157750,
             "PE": 71,
             "C": "#E30202",
@@ -13376,7 +13376,7 @@
             "FN": "BRYAN"
           }
         ],
-        "T": 280857
+        "T": 286907
       },
       {
         "id": 5008,
@@ -13706,8 +13706,8 @@
             "ID": 39558,
             "N": "TRENT ASHBY",
             "P": "REP",
-            "V": 187632,
-            "EV": 137408,
+            "V": 204384,
+            "EV": 150063,
             "PE": 69,
             "C": "#E30202",
             "O": 1,
@@ -13718,8 +13718,8 @@
             "ID": 41304,
             "N": "BOBBY TILLMAN",
             "P": "DEM",
-            "V": 83151,
-            "EV": 66100,
+            "V": 91535,
+            "EV": 72616,
             "PE": 31,
             "C": "#007BBD",
             "O": 2,
@@ -13727,7 +13727,7 @@
             "FN": "BOBBY"
           }
         ],
-        "T": 270783
+        "T": 295919
       },
       {
         "id": 5030,
@@ -13871,8 +13871,8 @@
             "ID": 39611,
             "N": "SCOTT BRISTER (I)",
             "P": "REP",
-            "V": 3898889,
-            "EV": 3375982,
+            "V": 3920815,
+            "EV": 3388672,
             "PE": 48,
             "C": "#E30202",
             "O": 1,
@@ -13883,8 +13883,8 @@
             "ID": 41358,
             "N": "JERRY ZIMMERER",
             "P": "DEM",
-            "V": 4203153,
-            "EV": 3950992,
+            "V": 4212285,
+            "EV": 3957422,
             "PE": 52,
             "C": "#007BBD",
             "O": 2,
@@ -13892,7 +13892,7 @@
             "FN": "JERRY"
           }
         ],
-        "T": 8102042
+        "T": 8133100
       },
       {
         "id": 15243,
@@ -13904,8 +13904,8 @@
             "ID": 41359,
             "N": "TOM BAKER",
             "P": "DEM",
-            "V": 4213167,
-            "EV": 3958670,
+            "V": 4222345,
+            "EV": 3965102,
             "PE": 52,
             "C": "#007BBD",
             "O": 2,
@@ -13916,8 +13916,8 @@
             "ID": 39612,
             "N": "SCOTT K. FIELD (I)",
             "P": "REP",
-            "V": 3885253,
-            "EV": 3365057,
+            "V": 3907104,
+            "EV": 3377720,
             "PE": 48,
             "C": "#E30202",
             "O": 1,
@@ -13925,7 +13925,7 @@
             "FN": "SCOTT K."
           }
         ],
-        "T": 8098420
+        "T": 8129449
       },
       {
         "id": 15244,
@@ -13937,8 +13937,8 @@
             "ID": 39613,
             "N": "APRIL FARRIS (I)",
             "P": "REP",
-            "V": 3914631,
-            "EV": 3391549,
+            "V": 3936541,
+            "EV": 3404270,
             "PE": 48,
             "C": "#E30202",
             "O": 1,
@@ -13949,8 +13949,8 @@
             "ID": 41360,
             "N": "MARC M. MEYER",
             "P": "DEM",
-            "V": 4174628,
-            "EV": 3924150,
+            "V": 4183706,
+            "EV": 3930528,
             "PE": 52,
             "C": "#007BBD",
             "O": 2,
@@ -13958,7 +13958,7 @@
             "FN": "MARC M."
           }
         ],
-        "T": 8089259
+        "T": 8120247
       },
       {
         "id": 35512,
@@ -14150,193 +14150,70 @@
     "OffTypeID": 510,
     "Races": [
       {
-        "id": 35300,
-        "N": "U. S. REPRESENTATIVE DISTRICT 34",
+        "id": 5063,
+        "N": "U. S. REPRESENTATIVE DISTRICT 32",
         "O": 4,
-        "SO": 34,
+        "SO": 32,
         "Candidates": [
           {
-            "ID": 42188,
-            "N": "EDDIE ESPINOZA",
-            "P": "GRE",
-            "V": 4736,
-            "PE": 2.3449259288600173,
-            "C": "#e0b30e",
-            "O": 4,
-            "EV": 3572,
-            "LN": "ESPINOZA",
-            "FN": "EDDIE"
-          },
-          {
-            "ID": 39535,
-            "N": "ERIC FLORES",
-            "P": "REP",
-            "V": 80128,
-            "PE": 39.67361166125327,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 60691,
-            "LN": "FLORES",
-            "FN": "ERIC"
-          },
-          {
-            "ID": 41282,
-            "N": "VICENTE GONZALEZ (I)",
+            "ID": 43606,
+            "N": "DAN BARRIOS",
             "P": "DEM",
-            "V": 112465,
-            "PE": 55.684563891309516,
+            "V": 116782,
+            "PE": 48.203443279990424,
             "C": "#007BBD",
             "O": 2,
-            "EV": 89381,
-            "LN": "GONZALEZ",
-            "FN": "VICENTE"
+            "EV": 109938,
+            "LN": "BARRIOS",
+            "FN": "DAN"
           },
           {
-            "ID": 33606,
-            "N": "CHRIS ROYAL",
-            "P": "LIB",
-            "V": 4639,
-            "PE": 2.2968985185772004,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 3351,
-            "LN": "ROYAL",
-            "FN": "CHRIS"
+            "ID": 42865,
+            "N": "JACE YARBROUGH",
+            "P": "REP",
+            "V": 125487,
+            "PE": 51.796556720009576,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 106457,
+            "LN": "YARBROUGH",
+            "FN": "JACE"
           }
         ],
-        "T": 201968
+        "T": 242269
       },
       {
-        "id": 5038,
-        "N": "U. S. REPRESENTATIVE DISTRICT 1",
+        "id": 5048,
+        "N": "U. S. REPRESENTATIVE DISTRICT 19",
         "O": 4,
-        "SO": 1,
+        "SO": 19,
         "Candidates": [
           {
-            "ID": 39512,
-            "N": "NATHANIEL MORAN (I)",
-            "P": "REP",
-            "V": 167062,
-            "PE": 68.91570241115443,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 132042,
-            "LN": "MORAN",
-            "FN": "NATHANIEL"
-          },
-          {
-            "ID": 42603,
-            "N": "YOLANDA R.  PRINCE",
+            "ID": 41271,
+            "N": "KYLE RABLE",
             "P": "DEM",
-            "V": 75353,
-            "PE": 31.084297588845576,
+            "V": 29672,
+            "PE": 24.882806276048875,
             "C": "#007BBD",
             "O": 2,
-            "EV": 63794,
-            "LN": "PRINCE",
-            "FN": "YOLANDA R. "
-          }
-        ],
-        "T": 242415
-      },
-      {
-        "id": 5039,
-        "N": "U. S. REPRESENTATIVE DISTRICT 10",
-        "O": 4,
-        "SO": 10,
-        "Candidates": [
-          {
-            "ID": 39519,
-            "N": "CHRIS GOBER",
-            "P": "REP",
-            "V": 145881,
-            "PE": 53.84632420521111,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 117491,
-            "LN": "GOBER",
-            "FN": "CHRIS"
+            "EV": 21769,
+            "LN": "RABLE",
+            "FN": "KYLE"
           },
           {
-            "ID": 41266,
-            "N": "CAITLIN ROURK",
-            "P": "DEM",
-            "V": 125040,
-            "PE": 46.15367579478889,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 111945,
-            "LN": "ROURK",
-            "FN": "CAITLIN"
-          }
-        ],
-        "T": 270921
-      },
-      {
-        "id": 5040,
-        "N": "U. S. REPRESENTATIVE DISTRICT 11",
-        "O": 4,
-        "SO": 11,
-        "Candidates": [
-          {
-            "ID": 39520,
-            "N": "AUGUST PFLUGER (I)",
+            "ID": 42427,
+            "N": "TOM SELL",
             "P": "REP",
-            "V": 120593,
-            "PE": 59.98845926169122,
+            "V": 89575,
+            "PE": 75.11719372395113,
             "C": "#E30202",
             "O": 1,
-            "EV": 100332,
-            "LN": "PFLUGER",
-            "FN": "AUGUST"
-          },
-          {
-            "ID": 41267,
-            "N": "CLAIRE REYNOLDS",
-            "P": "DEM",
-            "V": 80434,
-            "PE": 40.01154073830878,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 75823,
-            "LN": "REYNOLDS",
-            "FN": "CLAIRE"
+            "EV": 60326,
+            "LN": "SELL",
+            "FN": "TOM"
           }
         ],
-        "T": 201027
-      },
-      {
-        "id": 5041,
-        "N": "U. S. REPRESENTATIVE DISTRICT 12",
-        "O": 4,
-        "SO": 12,
-        "Candidates": [
-          {
-            "ID": 39521,
-            "N": "CRAIG GOLDMAN (I)",
-            "P": "REP",
-            "V": 122107,
-            "PE": 53.41864076820439,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 110757,
-            "LN": "GOLDMAN",
-            "FN": "CRAIG"
-          },
-          {
-            "ID": 41268,
-            "N": "ANGELA \"HELI\" RODRIGUEZ PRILLIMAN",
-            "P": "DEM",
-            "V": 106478,
-            "PE": 46.58135923179561,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 103364,
-            "LN": "RODRIGUEZ PRILLIMAN",
-            "FN": "ANGELA \"HELI\""
-          }
-        ],
-        "T": 228585
+        "T": 119247
       },
       {
         "id": 5042,
@@ -14372,757 +14249,37 @@
         "T": 217486
       },
       {
-        "id": 5043,
-        "N": "U. S. REPRESENTATIVE DISTRICT 14",
+        "id": 5039,
+        "N": "U. S. REPRESENTATIVE DISTRICT 10",
         "O": 4,
-        "SO": 14,
+        "SO": 10,
         "Candidates": [
           {
-            "ID": 42605,
-            "N": "THURMAN BILL BARTIE",
-            "P": "DEM",
-            "V": 122129,
-            "PE": 45.52974947807933,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 108657,
-            "LN": "BARTIE",
-            "FN": "THURMAN BILL"
-          },
-          {
-            "ID": 39523,
-            "N": "RANDY WEBER (I)",
+            "ID": 39519,
+            "N": "CHRIS GOBER",
             "P": "REP",
-            "V": 146111,
-            "PE": 54.47025052192067,
+            "V": 145881,
+            "PE": 53.84632420521111,
             "C": "#E30202",
             "O": 1,
-            "EV": 122158,
-            "LN": "WEBER",
-            "FN": "RANDY"
-          }
-        ],
-        "T": 268240
-      },
-      {
-        "id": 5044,
-        "N": "U. S. REPRESENTATIVE DISTRICT 15",
-        "O": 4,
-        "SO": 15,
-        "Candidates": [
-          {
-            "ID": 39524,
-            "N": "MONICA DE LA CRUZ (I)",
-            "P": "REP",
-            "V": 72761,
-            "PE": 38.354611873108915,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 56113,
-            "LN": "DE LA CRUZ",
-            "FN": "MONICA"
+            "EV": 117491,
+            "LN": "GOBER",
+            "FN": "CHRIS"
           },
           {
-            "ID": 41270,
-            "N": "BOBBY PULIDO",
+            "ID": 41266,
+            "N": "CAITLIN ROURK",
             "P": "DEM",
-            "V": 116945,
-            "PE": 61.645388126891085,
+            "V": 125040,
+            "PE": 46.15367579478889,
             "C": "#007BBD",
             "O": 2,
-            "EV": 101336,
-            "LN": "PULIDO",
-            "FN": "BOBBY"
+            "EV": 111945,
+            "LN": "ROURK",
+            "FN": "CAITLIN"
           }
         ],
-        "T": 189706
-      },
-      {
-        "id": 5045,
-        "N": "U. S. REPRESENTATIVE DISTRICT 16",
-        "O": 4,
-        "SO": 16,
-        "Candidates": [
-          {
-            "ID": 42396,
-            "N": "ADAM BAUMAN",
-            "P": "REP",
-            "V": 43717,
-            "PE": 27.810504084073386,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 39873,
-            "LN": "BAUMAN",
-            "FN": "ADAM"
-          },
-          {
-            "ID": 40167,
-            "N": "VERONICA ESCOBAR (I)",
-            "P": "DEM",
-            "V": 113479,
-            "PE": 72.18949591592661,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 105364,
-            "LN": "ESCOBAR",
-            "FN": "VERONICA"
-          }
-        ],
-        "T": 157196
-      },
-      {
-        "id": 5046,
-        "N": "U. S. REPRESENTATIVE DISTRICT 17",
-        "O": 4,
-        "SO": 17,
-        "Candidates": [
-          {
-            "ID": 39525,
-            "N": "PETE SESSIONS (I)",
-            "P": "REP",
-            "V": 131353,
-            "PE": 53.62156733874095,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 102050,
-            "LN": "SESSIONS",
-            "FN": "PETE"
-          },
-          {
-            "ID": 42606,
-            "N": "CASEY SHEPARD",
-            "P": "DEM",
-            "V": 113610,
-            "PE": 46.37843266125905,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 101969,
-            "LN": "SHEPARD",
-            "FN": "CASEY"
-          }
-        ],
-        "T": 244963
-      },
-      {
-        "id": 5047,
-        "N": "U. S. REPRESENTATIVE DISTRICT 18",
-        "O": 4,
-        "SO": 18,
-        "Candidates": [
-          {
-            "ID": 42607,
-            "N": "CHRISTIAN DASHAUN MENEFEE",
-            "P": "DEM",
-            "V": 156513,
-            "PE": 87.38177920207242,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 156513,
-            "LN": "MENEFEE",
-            "FN": "CHRISTIAN DASHAUN"
-          },
-          {
-            "ID": 39526,
-            "N": "RONALD DWAYNE WHITFIELD",
-            "P": "REP",
-            "V": 22601,
-            "PE": 12.618220797927577,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 22601,
-            "LN": "WHITFIELD",
-            "FN": "RONALD DWAYNE"
-          }
-        ],
-        "T": 179114
-      },
-      {
-        "id": 5048,
-        "N": "U. S. REPRESENTATIVE DISTRICT 19",
-        "O": 4,
-        "SO": 19,
-        "Candidates": [
-          {
-            "ID": 41271,
-            "N": "KYLE RABLE",
-            "P": "DEM",
-            "V": 29672,
-            "PE": 24.903690399254703,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 21769,
-            "LN": "RABLE",
-            "FN": "KYLE"
-          },
-          {
-            "ID": 42427,
-            "N": "TOM SELL",
-            "P": "REP",
-            "V": 89475,
-            "PE": 75.0963096007453,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 60326,
-            "LN": "SELL",
-            "FN": "TOM"
-          }
-        ],
-        "T": 119147
-      },
-      {
-        "id": 5049,
-        "N": "U. S. REPRESENTATIVE DISTRICT 2",
-        "O": 4,
-        "SO": 2,
-        "Candidates": [
-          {
-            "ID": 41262,
-            "N": "SHAUN FINNIE",
-            "P": "DEM",
-            "V": 109632,
-            "PE": 49.98677743226854,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 108405,
-            "LN": "FINNIE",
-            "FN": "SHAUN"
-          },
-          {
-            "ID": 39513,
-            "N": "STEVE TOTH",
-            "P": "REP",
-            "V": 109690,
-            "PE": 50.01322256773146,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 107988,
-            "LN": "TOTH",
-            "FN": "STEVE"
-          }
-        ],
-        "T": 219322
-      },
-      {
-        "id": 5050,
-        "N": "U. S. REPRESENTATIVE DISTRICT 20",
-        "O": 4,
-        "SO": 20,
-        "Candidates": [
-          {
-            "ID": 38097,
-            "N": "EDGARDO RAFAEL BAEZ",
-            "P": "REP",
-            "V": 33605,
-            "PE": 21.23377690159356,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 31290,
-            "LN": "BAEZ",
-            "FN": "EDGARDO RAFAEL"
-          },
-          {
-            "ID": 40937,
-            "N": "JOAQUIN CASTRO (I)",
-            "P": "DEM",
-            "V": 124657,
-            "PE": 78.76622309840644,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 117707,
-            "LN": "CASTRO",
-            "FN": "JOAQUIN"
-          }
-        ],
-        "T": 158262
-      },
-      {
-        "id": 5051,
-        "N": "U. S. REPRESENTATIVE DISTRICT 21",
-        "O": 4,
-        "SO": 21,
-        "Candidates": [
-          {
-            "ID": 41272,
-            "N": "KRISTIN HOOK",
-            "P": "DEM",
-            "V": 146320,
-            "PE": 44.621591702677236,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 134713,
-            "LN": "HOOK",
-            "FN": "KRISTIN"
-          },
-          {
-            "ID": 39527,
-            "N": "MARK TEIXEIRA",
-            "P": "REP",
-            "V": 181593,
-            "PE": 55.378408297322764,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 150648,
-            "LN": "TEIXEIRA",
-            "FN": "MARK"
-          }
-        ],
-        "T": 327913
-      },
-      {
-        "id": 5052,
-        "N": "U. S. REPRESENTATIVE DISTRICT 22",
-        "O": 4,
-        "SO": 22,
-        "Candidates": [
-          {
-            "ID": 41273,
-            "N": "MARQUETTE GREENE-SCOTT",
-            "P": "DEM",
-            "V": 115647,
-            "PE": 48.56852476366065,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 115270,
-            "LN": "GREENE-SCOTT",
-            "FN": "MARQUETTE"
-          },
-          {
-            "ID": 39528,
-            "N": "TREVER NEHLS",
-            "P": "REP",
-            "V": 122464,
-            "PE": 51.43147523633935,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 121619,
-            "LN": "NEHLS",
-            "FN": "TREVER"
-          }
-        ],
-        "T": 238111
-      },
-      {
-        "id": 5053,
-        "N": "U. S. REPRESENTATIVE DISTRICT 23",
-        "O": 4,
-        "SO": 23,
-        "Candidates": [
-          {
-            "ID": 42864,
-            "N": "BRANDON HERRERA",
-            "P": "REP",
-            "V": 100269,
-            "PE": 44.442720753144755,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 86834,
-            "LN": "HERRERA",
-            "FN": "BRANDON"
-          },
-          {
-            "ID": 42976,
-            "N": "BEN MENDOZA",
-            "P": "IND",
-            "V": 8427,
-            "PE": 3.735140549788577,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 6882,
-            "LN": "MENDOZA",
-            "FN": "BEN"
-          },
-          {
-            "ID": 41274,
-            "N": "KATY PADILLA STOUT",
-            "P": "DEM",
-            "V": 116918,
-            "PE": 51.82213869706667,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 107562,
-            "LN": "PADILLA STOUT",
-            "FN": "KATY"
-          }
-        ],
-        "T": 225614
-      },
-      {
-        "id": 5054,
-        "N": "U. S. REPRESENTATIVE DISTRICT 24",
-        "O": 4,
-        "SO": 24,
-        "Candidates": [
-          {
-            "ID": 42608,
-            "N": "KEVIN BURGE",
-            "P": "DEM",
-            "V": 123969,
-            "PE": 47.882041675518046,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 123465,
-            "LN": "BURGE",
-            "FN": "KEVIN"
-          },
-          {
-            "ID": 39529,
-            "N": "BETH VAN DUYNE (I)",
-            "P": "REP",
-            "V": 134936,
-            "PE": 52.117958324481954,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 134139,
-            "LN": "VAN DUYNE",
-            "FN": "BETH"
-          }
-        ],
-        "T": 258905
-      },
-      {
-        "id": 5055,
-        "N": "U. S. REPRESENTATIVE DISTRICT 25",
-        "O": 4,
-        "SO": 25,
-        "Candidates": [
-          {
-            "ID": 41275,
-            "N": "DIONE SIMS",
-            "P": "DEM",
-            "V": 104302,
-            "PE": 44.49914885810462,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 99564,
-            "LN": "SIMS",
-            "FN": "DIONE"
-          },
-          {
-            "ID": 39530,
-            "N": "ROGER WILLIAMS (I)",
-            "P": "REP",
-            "V": 130089,
-            "PE": 55.50085114189538,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 103645,
-            "LN": "WILLIAMS",
-            "FN": "ROGER"
-          }
-        ],
-        "T": 234391
-      },
-      {
-        "id": 5056,
-        "N": "U. S. REPRESENTATIVE DISTRICT 26",
-        "O": 4,
-        "SO": 26,
-        "Candidates": [
-          {
-            "ID": 39531,
-            "N": "BRANDON GILL (I)",
-            "P": "REP",
-            "V": 150239,
-            "PE": 54.60099288408841,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 140335,
-            "LN": "GILL",
-            "FN": "BRANDON"
-          },
-          {
-            "ID": 33625,
-            "N": "PHIL GRAY",
-            "P": "LIB",
-            "V": 3046,
-            "PE": 1.1070003416219045,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 2813,
-            "LN": "GRAY",
-            "FN": "PHIL"
-          },
-          {
-            "ID": 41276,
-            "N": "STEVEN SHOOK",
-            "P": "DEM",
-            "V": 121873,
-            "PE": 44.29200677428968,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 119822,
-            "LN": "SHOOK",
-            "FN": "STEVEN"
-          }
-        ],
-        "T": 275158
-      },
-      {
-        "id": 5057,
-        "N": "U. S. REPRESENTATIVE DISTRICT 27",
-        "O": 4,
-        "SO": 27,
-        "Candidates": [
-          {
-            "ID": 39532,
-            "N": "MICHAEL CLOUD (I)",
-            "P": "REP",
-            "V": 130043,
-            "PE": 52.4711806550273,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 100088,
-            "LN": "CLOUD",
-            "FN": "MICHAEL"
-          },
-          {
-            "ID": 41277,
-            "N": "TANYA LLOYD",
-            "P": "DEM",
-            "V": 117777,
-            "PE": 47.521959997901845,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 104764,
-            "LN": "LLOYD",
-            "FN": "TANYA"
-          },
-          {
-            "ID": 43340,
-            "N": "WAYNE RAASCH",
-            "P": "W",
-            "V": 17,
-            "PE": 0.0068593470708570555,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 9,
-            "LN": "RAASCH",
-            "FN": "WAYNE"
-          }
-        ],
-        "T": 247837
-      },
-      {
-        "id": 5058,
-        "N": "U. S. REPRESENTATIVE DISTRICT 28",
-        "O": 4,
-        "SO": 28,
-        "Candidates": [
-          {
-            "ID": 41278,
-            "N": "HENRY CUELLAR (I)",
-            "P": "DEM",
-            "V": 103132,
-            "PE": 66.0653658411592,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 86628,
-            "LN": "CUELLAR",
-            "FN": "HENRY"
-          },
-          {
-            "ID": 42154,
-            "N": "MARLÓN DURÁN",
-            "P": "GRE",
-            "V": 7415,
-            "PE": 4.749977579337117,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 5977,
-            "LN": "DURÁN",
-            "FN": "MARLÓN"
-          },
-          {
-            "ID": 39533,
-            "N": "TANO E. TIJERINA",
-            "P": "REP",
-            "V": 45559,
-            "PE": 29.18465657950367,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 36512,
-            "LN": "TIJERINA",
-            "FN": "TANO E."
-          }
-        ],
-        "T": 156106
-      },
-      {
-        "id": 5059,
-        "N": "U. S. REPRESENTATIVE DISTRICT 29",
-        "O": 4,
-        "SO": 29,
-        "Candidates": [
-          {
-            "ID": 38512,
-            "N": "MARTHA FIERRO",
-            "P": "REP",
-            "V": 23956,
-            "PE": 18.754599401882036,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 23956,
-            "LN": "FIERRO",
-            "FN": "MARTHA"
-          },
-          {
-            "ID": 40329,
-            "N": "SYLVIA GARCIA (I)",
-            "P": "DEM",
-            "V": 103778,
-            "PE": 81.24540059811797,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 103778,
-            "LN": "GARCIA",
-            "FN": "SYLVIA"
-          }
-        ],
-        "T": 127734
-      },
-      {
-        "id": 5060,
-        "N": "U. S. REPRESENTATIVE DISTRICT 3",
-        "O": 4,
-        "SO": 3,
-        "Candidates": [
-          {
-            "ID": 41263,
-            "N": "EVAN HUNT",
-            "P": "DEM",
-            "V": 142495,
-            "PE": 47.75493652559754,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 126163,
-            "LN": "HUNT",
-            "FN": "EVAN"
-          },
-          {
-            "ID": 39514,
-            "N": "KEITH SELF (I)",
-            "P": "REP",
-            "V": 155893,
-            "PE": 52.24506347440246,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 131776,
-            "LN": "SELF",
-            "FN": "KEITH"
-          }
-        ],
-        "T": 298388
-      },
-      {
-        "id": 5061,
-        "N": "U. S. REPRESENTATIVE DISTRICT 30",
-        "O": 4,
-        "SO": 30,
-        "Candidates": [
-          {
-            "ID": 41279,
-            "N": "FREDERICK D. HAYNES III",
-            "P": "DEM",
-            "V": 153123,
-            "PE": 83.76669201354508,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 153102,
-            "LN": "HAYNES III",
-            "FN": "FREDERICK D."
-          },
-          {
-            "ID": 42428,
-            "N": "EVERETT JACKSON",
-            "P": "REP",
-            "V": 29674,
-            "PE": 16.23330798645492,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 29672,
-            "LN": "JACKSON",
-            "FN": "EVERETT"
-          }
-        ],
-        "T": 182797
-      },
-      {
-        "id": 5062,
-        "N": "U. S. REPRESENTATIVE DISTRICT 31",
-        "O": 4,
-        "SO": 31,
-        "Candidates": [
-          {
-            "ID": 39534,
-            "N": "JOHN CARTER (I)",
-            "P": "REP",
-            "V": 136652,
-            "PE": 53.263589519718735,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 126714,
-            "LN": "CARTER",
-            "FN": "JOHN"
-          },
-          {
-            "ID": 41280,
-            "N": "JUSTIN EARLY",
-            "P": "DEM",
-            "V": 116699,
-            "PE": 45.48640073589598,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 113738,
-            "LN": "EARLY",
-            "FN": "JUSTIN"
-          },
-          {
-            "ID": 42187,
-            "N": "GREG STOKER",
-            "P": "GRE",
-            "V": 3207,
-            "PE": 1.2500097443852851,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 2927,
-            "LN": "STOKER",
-            "FN": "GREG"
-          }
-        ],
-        "T": 256558
-      },
-      {
-        "id": 5063,
-        "N": "U. S. REPRESENTATIVE DISTRICT 32",
-        "O": 4,
-        "SO": 32,
-        "Candidates": [
-          {
-            "ID": 43606,
-            "N": "DAN BARRIOS",
-            "P": "DEM",
-            "V": 115890,
-            "PE": 49.067052801381955,
-            "C": "#007BBD",
-            "O": 2,
-            "EV": 109938,
-            "LN": "BARRIOS",
-            "FN": "DAN"
-          },
-          {
-            "ID": 42865,
-            "N": "JACE YARBROUGH",
-            "P": "REP",
-            "V": 120297,
-            "PE": 50.932947198618045,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 106457,
-            "LN": "YARBROUGH",
-            "FN": "JACE"
-          }
-        ],
-        "T": 236187
+        "T": 270921
       },
       {
         "id": 5064,
@@ -15168,6 +14325,132 @@
           }
         ],
         "T": 149576
+      },
+      {
+        "id": 5075,
+        "N": "U. S. SENATOR ",
+        "O": 3,
+        "SO": 3,
+        "Candidates": [
+          {
+            "ID": 44430,
+            "N": "AVERY AYERS",
+            "P": "W",
+            "V": 1201,
+            "PE": 0.014389378745461834,
+            "C": "#e0b30e",
+            "O": 4,
+            "EV": 956,
+            "LN": "AYERS",
+            "FN": "AVERY"
+          },
+          {
+            "ID": 33528,
+            "N": "TED BROWN",
+            "P": "LIB",
+            "V": 145697,
+            "PE": 1.7456197461095362,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 117669,
+            "LN": "BROWN",
+            "FN": "TED"
+          },
+          {
+            "ID": 44432,
+            "N": "BRADFORD \"BRAD\" HALL",
+            "P": "W",
+            "V": 832,
+            "PE": 0.009968328989362403,
+            "C": "#e0b30e",
+            "O": 5,
+            "EV": 626,
+            "LN": "HALL",
+            "FN": "BRADFORD \"BRAD\""
+          },
+          {
+            "ID": 44434,
+            "N": "ZUL MOHAMED",
+            "P": "W",
+            "V": 142,
+            "PE": 0.0017013253803959871,
+            "C": "#e0b30e",
+            "O": 6,
+            "EV": 100,
+            "LN": "MOHAMED",
+            "FN": "ZUL"
+          },
+          {
+            "ID": 42424,
+            "N": "KEN PAXTON",
+            "P": "REP",
+            "V": 3618044,
+            "PE": 43.34838087739027,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 3121643,
+            "LN": "PAXTON",
+            "FN": "KEN"
+          },
+          {
+            "ID": 44534,
+            "N": "JADE SIMMONS",
+            "P": "W",
+            "V": 923,
+            "PE": 0.011058614972573917,
+            "C": "#e0b30e",
+            "O": 7,
+            "EV": 793,
+            "LN": "SIMMONS",
+            "FN": "JADE"
+          },
+          {
+            "ID": 41261,
+            "N": "JAMES TALARICO",
+            "P": "DEM",
+            "V": 4579595,
+            "PE": 54.8688817284124,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 4286112,
+            "LN": "TALARICO",
+            "FN": "JAMES"
+          }
+        ],
+        "T": 8346434
+      },
+      {
+        "id": 5040,
+        "N": "U. S. REPRESENTATIVE DISTRICT 11",
+        "O": 4,
+        "SO": 11,
+        "Candidates": [
+          {
+            "ID": 39520,
+            "N": "AUGUST PFLUGER (I)",
+            "P": "REP",
+            "V": 120593,
+            "PE": 59.98845926169122,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 100332,
+            "LN": "PFLUGER",
+            "FN": "AUGUST"
+          },
+          {
+            "ID": 41267,
+            "N": "CLAIRE REYNOLDS",
+            "P": "DEM",
+            "V": 80434,
+            "PE": 40.01154073830878,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 75823,
+            "LN": "REYNOLDS",
+            "FN": "CLAIRE"
+          }
+        ],
+        "T": 201027
       },
       {
         "id": 5065,
@@ -15234,6 +14517,39 @@
           }
         ],
         "T": 222493
+      },
+      {
+        "id": 5038,
+        "N": "U. S. REPRESENTATIVE DISTRICT 1",
+        "O": 4,
+        "SO": 1,
+        "Candidates": [
+          {
+            "ID": 39512,
+            "N": "NATHANIEL MORAN (I)",
+            "P": "REP",
+            "V": 167062,
+            "PE": 68.91570241115443,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 132042,
+            "LN": "MORAN",
+            "FN": "NATHANIEL"
+          },
+          {
+            "ID": 42603,
+            "N": "YOLANDA R.  PRINCE",
+            "P": "DEM",
+            "V": 75353,
+            "PE": 31.084297588845576,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 63794,
+            "LN": "PRINCE",
+            "FN": "YOLANDA R. "
+          }
+        ],
+        "T": 242415
       },
       {
         "id": 5067,
@@ -15500,11 +14816,11 @@
             "ID": 41265,
             "N": "LETICIA GUTIERREZ",
             "P": "DEM",
-            "V": 68866,
-            "PE": 61.98169332265294,
+            "V": 77193,
+            "PE": 56.584811611200706,
             "C": "#007BBD",
             "O": 2,
-            "EV": 68866,
+            "EV": 75362,
             "LN": "GUTIERREZ",
             "FN": "LETICIA"
           },
@@ -15512,129 +14828,813 @@
             "ID": 42426,
             "N": "ALEX MEALER",
             "P": "REP",
-            "V": 42241,
-            "PE": 38.01830667734706,
+            "V": 59227,
+            "PE": 43.415188388799294,
             "C": "#E30202",
             "O": 1,
-            "EV": 42241,
+            "EV": 55067,
             "LN": "MEALER",
             "FN": "ALEX"
           }
         ],
-        "T": 111107
+        "T": 136420
       },
       {
-        "id": 5075,
-        "N": "U. S. SENATOR ",
-        "O": 3,
+        "id": 5049,
+        "N": "U. S. REPRESENTATIVE DISTRICT 2",
+        "O": 4,
+        "SO": 2,
+        "Candidates": [
+          {
+            "ID": 41262,
+            "N": "SHAUN FINNIE",
+            "P": "DEM",
+            "V": 109632,
+            "PE": 49.98677743226854,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 108405,
+            "LN": "FINNIE",
+            "FN": "SHAUN"
+          },
+          {
+            "ID": 39513,
+            "N": "STEVE TOTH",
+            "P": "REP",
+            "V": 109690,
+            "PE": 50.01322256773146,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 107988,
+            "LN": "TOTH",
+            "FN": "STEVE"
+          }
+        ],
+        "T": 219322
+      },
+      {
+        "id": 5050,
+        "N": "U. S. REPRESENTATIVE DISTRICT 20",
+        "O": 4,
+        "SO": 20,
+        "Candidates": [
+          {
+            "ID": 38097,
+            "N": "EDGARDO RAFAEL BAEZ",
+            "P": "REP",
+            "V": 33605,
+            "PE": 21.23377690159356,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 31290,
+            "LN": "BAEZ",
+            "FN": "EDGARDO RAFAEL"
+          },
+          {
+            "ID": 40937,
+            "N": "JOAQUIN CASTRO (I)",
+            "P": "DEM",
+            "V": 124657,
+            "PE": 78.76622309840644,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 117707,
+            "LN": "CASTRO",
+            "FN": "JOAQUIN"
+          }
+        ],
+        "T": 158262
+      },
+      {
+        "id": 5051,
+        "N": "U. S. REPRESENTATIVE DISTRICT 21",
+        "O": 4,
+        "SO": 21,
+        "Candidates": [
+          {
+            "ID": 41272,
+            "N": "KRISTIN HOOK",
+            "P": "DEM",
+            "V": 146320,
+            "PE": 44.621591702677236,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 134713,
+            "LN": "HOOK",
+            "FN": "KRISTIN"
+          },
+          {
+            "ID": 39527,
+            "N": "MARK TEIXEIRA",
+            "P": "REP",
+            "V": 181593,
+            "PE": 55.378408297322764,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 150648,
+            "LN": "TEIXEIRA",
+            "FN": "MARK"
+          }
+        ],
+        "T": 327913
+      },
+      {
+        "id": 5052,
+        "N": "U. S. REPRESENTATIVE DISTRICT 22",
+        "O": 4,
+        "SO": 22,
+        "Candidates": [
+          {
+            "ID": 41273,
+            "N": "MARQUETTE GREENE-SCOTT",
+            "P": "DEM",
+            "V": 115647,
+            "PE": 48.56852476366065,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 115270,
+            "LN": "GREENE-SCOTT",
+            "FN": "MARQUETTE"
+          },
+          {
+            "ID": 39528,
+            "N": "TREVER NEHLS",
+            "P": "REP",
+            "V": 122464,
+            "PE": 51.43147523633935,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 121619,
+            "LN": "NEHLS",
+            "FN": "TREVER"
+          }
+        ],
+        "T": 238111
+      },
+      {
+        "id": 35300,
+        "N": "U. S. REPRESENTATIVE DISTRICT 34",
+        "O": 4,
+        "SO": 34,
+        "Candidates": [
+          {
+            "ID": 42188,
+            "N": "EDDIE ESPINOZA",
+            "P": "GRE",
+            "V": 4736,
+            "PE": 2.3449259288600173,
+            "C": "#e0b30e",
+            "O": 4,
+            "EV": 3572,
+            "LN": "ESPINOZA",
+            "FN": "EDDIE"
+          },
+          {
+            "ID": 39535,
+            "N": "ERIC FLORES",
+            "P": "REP",
+            "V": 80128,
+            "PE": 39.67361166125327,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 60691,
+            "LN": "FLORES",
+            "FN": "ERIC"
+          },
+          {
+            "ID": 41282,
+            "N": "VICENTE GONZALEZ (I)",
+            "P": "DEM",
+            "V": 112465,
+            "PE": 55.684563891309516,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 89381,
+            "LN": "GONZALEZ",
+            "FN": "VICENTE"
+          },
+          {
+            "ID": 33606,
+            "N": "CHRIS ROYAL",
+            "P": "LIB",
+            "V": 4639,
+            "PE": 2.2968985185772004,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 3351,
+            "LN": "ROYAL",
+            "FN": "CHRIS"
+          }
+        ],
+        "T": 201968
+      },
+      {
+        "id": 5053,
+        "N": "U. S. REPRESENTATIVE DISTRICT 23",
+        "O": 4,
+        "SO": 23,
+        "Candidates": [
+          {
+            "ID": 42864,
+            "N": "BRANDON HERRERA",
+            "P": "REP",
+            "V": 100269,
+            "PE": 44.442720753144755,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 86834,
+            "LN": "HERRERA",
+            "FN": "BRANDON"
+          },
+          {
+            "ID": 42976,
+            "N": "BEN MENDOZA",
+            "P": "IND",
+            "V": 8427,
+            "PE": 3.735140549788577,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 6882,
+            "LN": "MENDOZA",
+            "FN": "BEN"
+          },
+          {
+            "ID": 41274,
+            "N": "KATY PADILLA STOUT",
+            "P": "DEM",
+            "V": 116918,
+            "PE": 51.82213869706667,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 107562,
+            "LN": "PADILLA STOUT",
+            "FN": "KATY"
+          }
+        ],
+        "T": 225614
+      },
+      {
+        "id": 5043,
+        "N": "U. S. REPRESENTATIVE DISTRICT 14",
+        "O": 4,
+        "SO": 14,
+        "Candidates": [
+          {
+            "ID": 42605,
+            "N": "THURMAN BILL BARTIE",
+            "P": "DEM",
+            "V": 122129,
+            "PE": 45.52974947807933,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 108657,
+            "LN": "BARTIE",
+            "FN": "THURMAN BILL"
+          },
+          {
+            "ID": 39523,
+            "N": "RANDY WEBER (I)",
+            "P": "REP",
+            "V": 146111,
+            "PE": 54.47025052192067,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 122158,
+            "LN": "WEBER",
+            "FN": "RANDY"
+          }
+        ],
+        "T": 268240
+      },
+      {
+        "id": 5044,
+        "N": "U. S. REPRESENTATIVE DISTRICT 15",
+        "O": 4,
+        "SO": 15,
+        "Candidates": [
+          {
+            "ID": 39524,
+            "N": "MONICA DE LA CRUZ (I)",
+            "P": "REP",
+            "V": 72761,
+            "PE": 38.354611873108915,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 56113,
+            "LN": "DE LA CRUZ",
+            "FN": "MONICA"
+          },
+          {
+            "ID": 41270,
+            "N": "BOBBY PULIDO",
+            "P": "DEM",
+            "V": 116945,
+            "PE": 61.645388126891085,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 101336,
+            "LN": "PULIDO",
+            "FN": "BOBBY"
+          }
+        ],
+        "T": 189706
+      },
+      {
+        "id": 5041,
+        "N": "U. S. REPRESENTATIVE DISTRICT 12",
+        "O": 4,
+        "SO": 12,
+        "Candidates": [
+          {
+            "ID": 39521,
+            "N": "CRAIG GOLDMAN (I)",
+            "P": "REP",
+            "V": 122107,
+            "PE": 53.41864076820439,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 110757,
+            "LN": "GOLDMAN",
+            "FN": "CRAIG"
+          },
+          {
+            "ID": 41268,
+            "N": "ANGELA \"HELI\" RODRIGUEZ PRILLIMAN",
+            "P": "DEM",
+            "V": 106478,
+            "PE": 46.58135923179561,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 103364,
+            "LN": "RODRIGUEZ PRILLIMAN",
+            "FN": "ANGELA \"HELI\""
+          }
+        ],
+        "T": 228585
+      },
+      {
+        "id": 5054,
+        "N": "U. S. REPRESENTATIVE DISTRICT 24",
+        "O": 4,
+        "SO": 24,
+        "Candidates": [
+          {
+            "ID": 42608,
+            "N": "KEVIN BURGE",
+            "P": "DEM",
+            "V": 123969,
+            "PE": 47.882041675518046,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 123465,
+            "LN": "BURGE",
+            "FN": "KEVIN"
+          },
+          {
+            "ID": 39529,
+            "N": "BETH VAN DUYNE (I)",
+            "P": "REP",
+            "V": 134936,
+            "PE": 52.117958324481954,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 134139,
+            "LN": "VAN DUYNE",
+            "FN": "BETH"
+          }
+        ],
+        "T": 258905
+      },
+      {
+        "id": 5055,
+        "N": "U. S. REPRESENTATIVE DISTRICT 25",
+        "O": 4,
+        "SO": 25,
+        "Candidates": [
+          {
+            "ID": 41275,
+            "N": "DIONE SIMS",
+            "P": "DEM",
+            "V": 104302,
+            "PE": 44.49914885810462,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 99564,
+            "LN": "SIMS",
+            "FN": "DIONE"
+          },
+          {
+            "ID": 39530,
+            "N": "ROGER WILLIAMS (I)",
+            "P": "REP",
+            "V": 130089,
+            "PE": 55.50085114189538,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 103645,
+            "LN": "WILLIAMS",
+            "FN": "ROGER"
+          }
+        ],
+        "T": 234391
+      },
+      {
+        "id": 5056,
+        "N": "U. S. REPRESENTATIVE DISTRICT 26",
+        "O": 4,
+        "SO": 26,
+        "Candidates": [
+          {
+            "ID": 39531,
+            "N": "BRANDON GILL (I)",
+            "P": "REP",
+            "V": 150239,
+            "PE": 54.60099288408841,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 140335,
+            "LN": "GILL",
+            "FN": "BRANDON"
+          },
+          {
+            "ID": 33625,
+            "N": "PHIL GRAY",
+            "P": "LIB",
+            "V": 3046,
+            "PE": 1.1070003416219045,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 2813,
+            "LN": "GRAY",
+            "FN": "PHIL"
+          },
+          {
+            "ID": 41276,
+            "N": "STEVEN SHOOK",
+            "P": "DEM",
+            "V": 121873,
+            "PE": 44.29200677428968,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 119822,
+            "LN": "SHOOK",
+            "FN": "STEVEN"
+          }
+        ],
+        "T": 275158
+      },
+      {
+        "id": 5045,
+        "N": "U. S. REPRESENTATIVE DISTRICT 16",
+        "O": 4,
+        "SO": 16,
+        "Candidates": [
+          {
+            "ID": 42396,
+            "N": "ADAM BAUMAN",
+            "P": "REP",
+            "V": 43717,
+            "PE": 27.810504084073386,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 39873,
+            "LN": "BAUMAN",
+            "FN": "ADAM"
+          },
+          {
+            "ID": 40167,
+            "N": "VERONICA ESCOBAR (I)",
+            "P": "DEM",
+            "V": 113479,
+            "PE": 72.18949591592661,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 105364,
+            "LN": "ESCOBAR",
+            "FN": "VERONICA"
+          }
+        ],
+        "T": 157196
+      },
+      {
+        "id": 5057,
+        "N": "U. S. REPRESENTATIVE DISTRICT 27",
+        "O": 4,
+        "SO": 27,
+        "Candidates": [
+          {
+            "ID": 39532,
+            "N": "MICHAEL CLOUD (I)",
+            "P": "REP",
+            "V": 130043,
+            "PE": 52.4711806550273,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 100088,
+            "LN": "CLOUD",
+            "FN": "MICHAEL"
+          },
+          {
+            "ID": 41277,
+            "N": "TANYA LLOYD",
+            "P": "DEM",
+            "V": 117777,
+            "PE": 47.521959997901845,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 104764,
+            "LN": "LLOYD",
+            "FN": "TANYA"
+          },
+          {
+            "ID": 43340,
+            "N": "WAYNE RAASCH",
+            "P": "W",
+            "V": 17,
+            "PE": 0.0068593470708570555,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 9,
+            "LN": "RAASCH",
+            "FN": "WAYNE"
+          }
+        ],
+        "T": 247837
+      },
+      {
+        "id": 5046,
+        "N": "U. S. REPRESENTATIVE DISTRICT 17",
+        "O": 4,
+        "SO": 17,
+        "Candidates": [
+          {
+            "ID": 39525,
+            "N": "PETE SESSIONS (I)",
+            "P": "REP",
+            "V": 131353,
+            "PE": 53.62156733874095,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 102050,
+            "LN": "SESSIONS",
+            "FN": "PETE"
+          },
+          {
+            "ID": 42606,
+            "N": "CASEY SHEPARD",
+            "P": "DEM",
+            "V": 113610,
+            "PE": 46.37843266125905,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 101969,
+            "LN": "SHEPARD",
+            "FN": "CASEY"
+          }
+        ],
+        "T": 244963
+      },
+      {
+        "id": 5058,
+        "N": "U. S. REPRESENTATIVE DISTRICT 28",
+        "O": 4,
+        "SO": 28,
+        "Candidates": [
+          {
+            "ID": 41278,
+            "N": "HENRY CUELLAR (I)",
+            "P": "DEM",
+            "V": 103132,
+            "PE": 66.0653658411592,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 86628,
+            "LN": "CUELLAR",
+            "FN": "HENRY"
+          },
+          {
+            "ID": 42154,
+            "N": "MARLÓN DURÁN",
+            "P": "GRE",
+            "V": 7415,
+            "PE": 4.749977579337117,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 5977,
+            "LN": "DURÁN",
+            "FN": "MARLÓN"
+          },
+          {
+            "ID": 39533,
+            "N": "TANO E. TIJERINA",
+            "P": "REP",
+            "V": 45559,
+            "PE": 29.18465657950367,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 36512,
+            "LN": "TIJERINA",
+            "FN": "TANO E."
+          }
+        ],
+        "T": 156106
+      },
+      {
+        "id": 5047,
+        "N": "U. S. REPRESENTATIVE DISTRICT 18",
+        "O": 4,
+        "SO": 18,
+        "Candidates": [
+          {
+            "ID": 42607,
+            "N": "CHRISTIAN DASHAUN MENEFEE",
+            "P": "DEM",
+            "V": 156513,
+            "PE": 87.38177920207242,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 156513,
+            "LN": "MENEFEE",
+            "FN": "CHRISTIAN DASHAUN"
+          },
+          {
+            "ID": 39526,
+            "N": "RONALD DWAYNE WHITFIELD",
+            "P": "REP",
+            "V": 22601,
+            "PE": 12.618220797927577,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 22601,
+            "LN": "WHITFIELD",
+            "FN": "RONALD DWAYNE"
+          }
+        ],
+        "T": 179114
+      },
+      {
+        "id": 5059,
+        "N": "U. S. REPRESENTATIVE DISTRICT 29",
+        "O": 4,
+        "SO": 29,
+        "Candidates": [
+          {
+            "ID": 38512,
+            "N": "MARTHA FIERRO",
+            "P": "REP",
+            "V": 23956,
+            "PE": 18.754599401882036,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 23956,
+            "LN": "FIERRO",
+            "FN": "MARTHA"
+          },
+          {
+            "ID": 40329,
+            "N": "SYLVIA GARCIA (I)",
+            "P": "DEM",
+            "V": 103778,
+            "PE": 81.24540059811797,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 103778,
+            "LN": "GARCIA",
+            "FN": "SYLVIA"
+          }
+        ],
+        "T": 127734
+      },
+      {
+        "id": 5060,
+        "N": "U. S. REPRESENTATIVE DISTRICT 3",
+        "O": 4,
         "SO": 3,
         "Candidates": [
           {
-            "ID": 44430,
-            "N": "AVERY AYERS",
-            "P": "W",
-            "V": 1179,
-            "PE": 0.014179465368008841,
-            "C": "#e0b30e",
-            "O": 4,
-            "EV": 945,
-            "LN": "AYERS",
-            "FN": "AVERY"
-          },
-          {
-            "ID": 33528,
-            "N": "TED BROWN",
-            "P": "LIB",
-            "V": 144909,
-            "PE": 1.7427753579413003,
-            "C": "#e0b30e",
-            "O": 3,
-            "EV": 117311,
-            "LN": "BROWN",
-            "FN": "TED"
-          },
-          {
-            "ID": 44432,
-            "N": "BRADFORD \"BRAD\" HALL",
-            "P": "W",
-            "V": 817,
-            "PE": 0.009825804245685516,
-            "C": "#e0b30e",
-            "O": 5,
-            "EV": 616,
-            "LN": "HALL",
-            "FN": "BRADFORD \"BRAD\""
-          },
-          {
-            "ID": 44434,
-            "N": "ZUL MOHAMED",
-            "P": "W",
-            "V": 142,
-            "PE": 0.001707789722016332,
-            "C": "#e0b30e",
-            "O": 6,
-            "EV": 100,
-            "LN": "MOHAMED",
-            "FN": "ZUL"
-          },
-          {
-            "ID": 42424,
-            "N": "KEN PAXTON",
-            "P": "REP",
-            "V": 3597235,
-            "PE": 43.26282366674239,
-            "C": "#E30202",
-            "O": 1,
-            "EV": 3109452,
-            "LN": "PAXTON",
-            "FN": "KEN"
-          },
-          {
-            "ID": 44534,
-            "N": "JADE SIMMONS",
-            "P": "W",
-            "V": 911,
-            "PE": 0.010956312934907595,
-            "C": "#e0b30e",
-            "O": 7,
-            "EV": 785,
-            "LN": "SIMMONS",
-            "FN": "JADE"
-          },
-          {
-            "ID": 41261,
-            "N": "JAMES TALARICO",
+            "ID": 41263,
+            "N": "EVAN HUNT",
             "P": "DEM",
-            "V": 4569648,
-            "PE": 54.95773160304569,
+            "V": 142495,
+            "PE": 47.75493652559754,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4279237,
-            "LN": "TALARICO",
-            "FN": "JAMES"
+            "EV": 126163,
+            "LN": "HUNT",
+            "FN": "EVAN"
+          },
+          {
+            "ID": 39514,
+            "N": "KEITH SELF (I)",
+            "P": "REP",
+            "V": 155893,
+            "PE": 52.24506347440246,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 131776,
+            "LN": "SELF",
+            "FN": "KEITH"
           }
         ],
-        "T": 8314841
+        "T": 298388
+      },
+      {
+        "id": 5061,
+        "N": "U. S. REPRESENTATIVE DISTRICT 30",
+        "O": 4,
+        "SO": 30,
+        "Candidates": [
+          {
+            "ID": 41279,
+            "N": "FREDERICK D. HAYNES III",
+            "P": "DEM",
+            "V": 153123,
+            "PE": 83.76669201354508,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 153102,
+            "LN": "HAYNES III",
+            "FN": "FREDERICK D."
+          },
+          {
+            "ID": 42428,
+            "N": "EVERETT JACKSON",
+            "P": "REP",
+            "V": 29674,
+            "PE": 16.23330798645492,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 29672,
+            "LN": "JACKSON",
+            "FN": "EVERETT"
+          }
+        ],
+        "T": 182797
+      },
+      {
+        "id": 5062,
+        "N": "U. S. REPRESENTATIVE DISTRICT 31",
+        "O": 4,
+        "SO": 31,
+        "Candidates": [
+          {
+            "ID": 39534,
+            "N": "JOHN CARTER (I)",
+            "P": "REP",
+            "V": 136652,
+            "PE": 53.263589519718735,
+            "C": "#E30202",
+            "O": 1,
+            "EV": 126714,
+            "LN": "CARTER",
+            "FN": "JOHN"
+          },
+          {
+            "ID": 41280,
+            "N": "JUSTIN EARLY",
+            "P": "DEM",
+            "V": 116699,
+            "PE": 45.48640073589598,
+            "C": "#007BBD",
+            "O": 2,
+            "EV": 113738,
+            "LN": "EARLY",
+            "FN": "JUSTIN"
+          },
+          {
+            "ID": 42187,
+            "N": "GREG STOKER",
+            "P": "GRE",
+            "V": 3207,
+            "PE": 1.2500097443852851,
+            "C": "#e0b30e",
+            "O": 3,
+            "EV": 2927,
+            "LN": "STOKER",
+            "FN": "GREG"
+          }
+        ],
+        "T": 256558
       }
     ]
   },
   "Home": {
     "ElecDate": "11032026",
     "CountiesReporting": {
-      "CR": 244,
+      "CR": 245,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 05:54:19",
+    "LastUpdatedTime": "Nov 04, 2026 05:59:07",
     "Report": null,
     "Search": "N",
     "Rss": null,
     "RefreshTime": 5,
     "PrecinctsReporting": {
-      "PR": 15,
-      "PT": 15
+      "PR": 23,
+      "PT": 24
     },
     "PollingReporting": {
-      "PLR": 2578,
+      "PLR": 2602,
       "PLT": 5302
     }
   },
@@ -54868,7 +54868,7 @@
             "N": "NATHAN JOHNSON",
             "P": "D",
             "C": "#007BBD",
-            "T": 4330647,
+            "T": 4339889,
             "O": 1,
             "LN": "JOHNSON",
             "FN": "NATHAN"
@@ -54877,7 +54877,7 @@
             "N": "MAYES MIDDLETON",
             "P": "R",
             "C": "#E30202",
-            "T": 3789063,
+            "T": 3810818,
             "O": 2,
             "LN": "MIDDLETON",
             "FN": "MAYES"
@@ -54886,7 +54886,7 @@
             "N": "TOM OXFORD",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 124708,
+            "T": 125213,
             "O": 3,
             "LN": "OXFORD",
             "FN": "TOM"
@@ -54901,7 +54901,7 @@
             "N": "BRIAN HOYLE",
             "P": "R",
             "C": "#E30202",
-            "T": 246064,
+            "T": 251421,
             "O": 1,
             "LN": "HOYLE",
             "FN": "BRIAN"
@@ -55018,7 +55018,7 @@
             "N": "SCOTT GOLEMON",
             "P": "R",
             "C": "#E30202",
-            "T": 265731,
+            "T": 284309,
             "O": 1,
             "LN": "GOLEMON",
             "FN": "SCOTT"
@@ -55033,7 +55033,7 @@
             "N": "JIMMY BLACKLOCK",
             "P": "R",
             "C": "#E30202",
-            "T": 3887682,
+            "T": 3909605,
             "O": 2,
             "LN": "BLACKLOCK",
             "FN": "JIMMY"
@@ -55042,7 +55042,7 @@
             "N": "MAGGIE ELLIS",
             "P": "D",
             "C": "#007BBD",
-            "T": 4297496,
+            "T": 4306765,
             "O": 1,
             "LN": "ELLIS",
             "FN": "MAGGIE"
@@ -55057,7 +55057,7 @@
             "N": "AUSTIN R. KELLY",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 151435,
+            "T": 152106,
             "O": 3,
             "LN": "KELLY",
             "FN": "AUSTIN R."
@@ -55066,7 +55066,7 @@
             "N": "NATE SHEETS",
             "P": "R",
             "C": "#E30202",
-            "T": 3822896,
+            "T": 3844461,
             "O": 2,
             "LN": "SHEETS",
             "FN": "NATE"
@@ -55075,7 +55075,7 @@
             "N": "CLAYTON TUCKER",
             "P": "D",
             "C": "#007BBD",
-            "T": 4213032,
+            "T": 4222120,
             "O": 1,
             "LN": "TUCKER",
             "FN": "CLAYTON"
@@ -55090,7 +55090,7 @@
             "N": "DAWN BUCKINGHAM",
             "P": "R",
             "C": "#E30202",
-            "T": 3855535,
+            "T": 3877200,
             "O": 2,
             "LN": "BUCKINGHAM",
             "FN": "DAWN"
@@ -55099,7 +55099,7 @@
             "N": "BENJAMIN FLORES",
             "P": "D",
             "C": "#007BBD",
-            "T": 4227789,
+            "T": 4236846,
             "O": 1,
             "LN": "FLORES",
             "FN": "BENJAMIN"
@@ -55108,7 +55108,7 @@
             "N": "NEILL SNIDER",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 117767,
+            "T": 118308,
             "O": 3,
             "LN": "SNIDER",
             "FN": "NEILL"
@@ -55123,7 +55123,7 @@
             "N": "V. ALONZO ECHAVARRIA-GARZA",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 140388,
+            "T": 140986,
             "O": 3,
             "LN": "ECHAVARRIA-GARZA",
             "FN": "V. ALONZO"
@@ -55132,7 +55132,7 @@
             "N": "SARAH ECKHARDT",
             "P": "D",
             "C": "#007BBD",
-            "T": 4236893,
+            "T": 4245907,
             "O": 1,
             "LN": "ECKHARDT",
             "FN": "SARAH"
@@ -55141,7 +55141,7 @@
             "N": "SHEHLA FAIZI",
             "P": "G",
             "C": "#AAAAAA",
-            "T": 49478,
+            "T": 49612,
             "O": 4,
             "LN": "FAIZI",
             "FN": "SHEHLA"
@@ -55150,7 +55150,7 @@
             "N": "DON HUFFINES",
             "P": "R",
             "C": "#E30202",
-            "T": 3797438,
+            "T": 3819087,
             "O": 2,
             "LN": "HUFFINES",
             "FN": "DON"
@@ -55999,7 +55999,7 @@
             "N": "KELLEY ROBINSON PRICE",
             "P": "R",
             "C": "#E30202",
-            "T": 11437,
+            "T": 16751,
             "O": 1,
             "LN": "PRICE",
             "FN": "KELLEY ROBINSON"
@@ -56941,7 +56941,7 @@
             "N": "LEE HAIDUSEK CHAMBERS",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18421,
             "O": 1,
             "LN": "CHAMBERS",
             "FN": "LEE HAIDUSEK"
@@ -59689,7 +59689,7 @@
             "N": "WADE BROWN",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 5935,
             "O": 1,
             "LN": "BROWN",
             "FN": "WADE"
@@ -59821,7 +59821,7 @@
             "N": "CARLIST R BRINKLEY",
             "P": "D",
             "C": "#007BBD",
-            "T": 624,
+            "T": 856,
             "O": 2,
             "LN": "BRINKLEY",
             "FN": "CARLIST R"
@@ -59830,7 +59830,7 @@
             "N": "JERRY GASKILL",
             "P": "R",
             "C": "#E30202",
-            "T": 2751,
+            "T": 3737,
             "O": 1,
             "LN": "GASKILL",
             "FN": "JERRY"
@@ -65596,7 +65596,7 @@
             "N": "GERALD KOLARIK",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 4585,
             "O": 1,
             "LN": "KOLARIK",
             "FN": "GERALD"
@@ -67222,7 +67222,7 @@
             "N": "RUSSELL ACKER",
             "P": "R",
             "C": "#E30202",
-            "T": 2306,
+            "T": 3524,
             "O": 1,
             "LN": "ACKER",
             "FN": "RUSSELL"
@@ -67231,7 +67231,7 @@
             "N": "P. TAYLOR",
             "P": "D",
             "C": "#007BBD",
-            "T": 443,
+            "T": 623,
             "O": 2,
             "LN": "TAYLOR",
             "FN": "P."
@@ -68383,7 +68383,7 @@
             "N": "JEREMY RAGSDALE",
             "P": "R",
             "C": "#E30202",
-            "T": 2754,
+            "T": 3753,
             "O": 1,
             "LN": "RAGSDALE",
             "FN": "JEREMY"
@@ -69466,7 +69466,7 @@
             "N": "KEVIN WHITE",
             "P": "R",
             "C": "#E30202",
-            "T": 11450,
+            "T": 16765,
             "O": 1,
             "LN": "WHITE",
             "FN": "KEVIN"
@@ -71605,7 +71605,7 @@
             "N": "JAY KNIGHT",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18197,
             "O": 1,
             "LN": "KNIGHT",
             "FN": "JAY"
@@ -74524,7 +74524,7 @@
             "N": "KIM HARRIS",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18612,
             "O": 1,
             "LN": "HARRIS",
             "FN": "KIM"
@@ -76180,7 +76180,7 @@
             "N": "MATTHEW PRATHER",
             "P": "R",
             "C": "#E30202",
-            "T": 11388,
+            "T": 16683,
             "O": 1,
             "LN": "PRATHER",
             "FN": "MATTHEW"
@@ -78196,7 +78196,7 @@
             "N": "ANGELA ALBERS",
             "P": "R",
             "C": "#E30202",
-            "T": 11060,
+            "T": 16199,
             "O": 1,
             "LN": "ALBERS",
             "FN": "ANGELA"
@@ -79735,7 +79735,7 @@
             "N": "DOLORES WILEY",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18377,
             "O": 1,
             "LN": "WILEY",
             "FN": "DOLORES"
@@ -81190,7 +81190,7 @@
             "N": "SUZY RICHARDS WRIGHT",
             "P": "R",
             "C": "#E30202",
-            "T": 11353,
+            "T": 16617,
             "O": 1,
             "LN": "WRIGHT",
             "FN": "SUZY RICHARDS"
@@ -83218,7 +83218,7 @@
             "N": "JOSH FITZGERALD",
             "P": "R",
             "C": "#E30202",
-            "T": 16241,
+            "T": 34738,
             "O": 1,
             "LN": "FITZGERALD",
             "FN": "JOSH"
@@ -85723,7 +85723,7 @@
             "N": "JAMES \"JD\" CHANDLER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18508,
             "O": 1,
             "LN": "CHANDLER",
             "FN": "JAMES \"JD\""
@@ -85867,7 +85867,7 @@
             "N": "GREG ABBOTT",
             "P": "R",
             "C": "#E30202",
-            "T": 3804838,
+            "T": 3826300,
             "O": 2,
             "LN": "ABBOTT",
             "FN": "GREG"
@@ -85876,7 +85876,7 @@
             "N": "PAT DIXON",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 111856,
+            "T": 112364,
             "O": 3,
             "LN": "DIXON",
             "FN": "PAT"
@@ -85885,7 +85885,7 @@
             "N": "EDWARD EARL GILES",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 287,
+            "T": 288,
             "O": 6,
             "LN": "GILES",
             "FN": "EDWARD EARL"
@@ -85894,7 +85894,7 @@
             "N": "GINA HINOJOSA",
             "P": "D",
             "C": "#007BBD",
-            "T": 4405149,
+            "T": 4414808,
             "O": 1,
             "LN": "HINOJOSA",
             "FN": "GINA"
@@ -85903,7 +85903,7 @@
             "N": "JENN MACK",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 1459,
+            "T": 1477,
             "O": 4,
             "LN": "MACK",
             "FN": "JENN"
@@ -85912,7 +85912,7 @@
             "N": "JINGHPAW MAJOISHINGRA",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 44,
+            "T": 46,
             "O": 7,
             "LN": "MAJOISHINGRA",
             "FN": "JINGHPAW"
@@ -85921,7 +85921,7 @@
             "N": "MIKE MILLER",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 753,
+            "T": 768,
             "O": 5,
             "LN": "MILLER",
             "FN": "MIKE"
@@ -86725,7 +86725,7 @@
             "N": "THOMAS A. \"TOMMY\" CHAMBERS",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 18481,
             "O": 1,
             "LN": "CHAMBERS",
             "FN": "THOMAS A. \"TOMMY\""
@@ -89719,7 +89719,7 @@
             "N": "OKEY ANYIAM",
             "P": "D",
             "C": "#007BBD",
-            "T": 4088019,
+            "T": 4096688,
             "O": 1,
             "LN": "ANYIAM",
             "FN": "OKEY"
@@ -89728,7 +89728,7 @@
             "N": "MARK ASH",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 179407,
+            "T": 180102,
             "O": 3,
             "LN": "ASH",
             "FN": "MARK"
@@ -89737,7 +89737,7 @@
             "N": "THOMAS SMITH",
             "P": "R",
             "C": "#E30202",
-            "T": 3872569,
+            "T": 3894400,
             "O": 2,
             "LN": "SMITH",
             "FN": "THOMAS"
@@ -89752,7 +89752,7 @@
             "N": "AUDRA RILEY",
             "P": "D",
             "C": "#007BBD",
-            "T": 4211014,
+            "T": 4220183,
             "O": 1,
             "LN": "RILEY",
             "FN": "AUDRA"
@@ -89761,7 +89761,7 @@
             "N": "KEVIN PATRICK YEARY",
             "P": "R",
             "C": "#E30202",
-            "T": 3918028,
+            "T": 3940016,
             "O": 2,
             "LN": "YEARY",
             "FN": "KEVIN PATRICK"
@@ -89776,7 +89776,7 @@
             "N": "JOHN MESSINGER",
             "P": "R",
             "C": "#E30202",
-            "T": 3868820,
+            "T": 3890708,
             "O": 2,
             "LN": "MESSINGER",
             "FN": "JOHN"
@@ -89785,7 +89785,7 @@
             "N": "HOLLY TAYLOR",
             "P": "D",
             "C": "#007BBD",
-            "T": 4252173,
+            "T": 4261422,
             "O": 1,
             "LN": "TAYLOR",
             "FN": "HOLLY"
@@ -91744,7 +91744,7 @@
             "N": "STEPHEN HEBERT",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 2295,
             "O": 1,
             "LN": "HEBERT",
             "FN": "STEPHEN"
@@ -92560,7 +92560,7 @@
             "N": "TONY GILBREATH",
             "P": "R",
             "C": "#E30202",
-            "T": 4885,
+            "T": 6481,
             "O": 1,
             "LN": "GILBREATH",
             "FN": "TONY"
@@ -94573,7 +94573,7 @@
             "N": "JANAE HOLLAND",
             "P": "R",
             "C": "#E30202",
-            "T": 2968,
+            "T": 4064,
             "O": 1,
             "LN": "HOLLAND",
             "FN": "JANAE"
@@ -96022,7 +96022,7 @@
             "N": "JIMMY BELT",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 890,
             "O": 1,
             "LN": "BELT",
             "FN": "JIMMY"
@@ -97885,7 +97885,7 @@
             "N": "CODY PARRISH",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 2335,
             "O": 1,
             "LN": "PARRISH",
             "FN": "CODY"
@@ -98650,7 +98650,7 @@
             "N": "JERRY E. PARKER",
             "P": "R",
             "C": "#E30202",
-            "T": 1549,
+            "T": 2553,
             "O": 1,
             "LN": "PARKER",
             "FN": "JERRY E."
@@ -100297,7 +100297,7 @@
             "N": "LARRY WILBURN",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 6160,
             "O": 1,
             "LN": "WILBURN",
             "FN": "LARRY"
@@ -100987,7 +100987,7 @@
             "N": "JODY PAUL HETTICH",
             "P": "R",
             "C": "#E30202",
-            "T": 1782,
+            "T": 2902,
             "O": 1,
             "LN": "HETTICH",
             "FN": "JODY PAUL"
@@ -101431,7 +101431,7 @@
             "N": "JOE MCANALLY",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 3161,
             "O": 1,
             "LN": "MCANALLY",
             "FN": "JOE"
@@ -101893,7 +101893,7 @@
             "N": "RALPH FULLER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 3951,
             "O": 1,
             "LN": "FULLER",
             "FN": "RALPH"
@@ -102277,7 +102277,7 @@
             "N": "MICHAEL DAVIS",
             "P": "R",
             "C": "#E30202",
-            "T": 244599,
+            "T": 249908,
             "O": 1,
             "LN": "DAVIS",
             "FN": "MICHAEL"
@@ -102514,7 +102514,7 @@
             "N": "CHARLES VAN CLEEF",
             "P": "R",
             "C": "#E30202",
-            "T": 186060,
+            "T": 191362,
             "O": 1,
             "LN": "VAN CLEEF",
             "FN": "CHARLES"
@@ -102544,7 +102544,7 @@
             "N": "CHARI KELLY",
             "P": "D",
             "C": "#007BBD",
-            "T": 4273762,
+            "T": 4282927,
             "O": 1,
             "LN": "KELLY",
             "FN": "CHARI"
@@ -102553,7 +102553,7 @@
             "N": "JAMES P. SULLIVAN",
             "P": "R",
             "C": "#E30202",
-            "T": 3889873,
+            "T": 3911891,
             "O": 2,
             "LN": "SULLIVAN",
             "FN": "JAMES P."
@@ -102568,7 +102568,7 @@
             "N": "KRISTEN HAWKINS",
             "P": "D",
             "C": "#007BBD",
-            "T": 4306275,
+            "T": 4315602,
             "O": 1,
             "LN": "HAWKINS",
             "FN": "KRISTEN"
@@ -102577,7 +102577,7 @@
             "N": "KYLE HAWKINS",
             "P": "R",
             "C": "#E30202",
-            "T": 3845041,
+            "T": 3866865,
             "O": 2,
             "LN": "HAWKINS",
             "FN": "KYLE"
@@ -102592,7 +102592,7 @@
             "N": "BRETT BUSBY",
             "P": "R",
             "C": "#E30202",
-            "T": 3905573,
+            "T": 3927508,
             "O": 2,
             "LN": "BUSBY",
             "FN": "BRETT"
@@ -102601,7 +102601,7 @@
             "N": "GISELA D. TRIANA",
             "P": "D",
             "C": "#007BBD",
-            "T": 4239247,
+            "T": 4248404,
             "O": 1,
             "LN": "TRIANA",
             "FN": "GISELA D."
@@ -102616,7 +102616,7 @@
             "N": "ANTHONY CRISTO",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 129335,
+            "T": 129898,
             "O": 3,
             "LN": "CRISTO",
             "FN": "ANTHONY"
@@ -102625,7 +102625,7 @@
             "N": "ARTURO ESPINOSA",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 387,
+            "T": 391,
             "O": 6,
             "LN": "ESPINOSA",
             "FN": "ARTURO"
@@ -102634,7 +102634,7 @@
             "N": "VIKKI GOODWIN",
             "P": "D",
             "C": "#007BBD",
-            "T": 4291612,
+            "T": 4300893,
             "O": 1,
             "LN": "GOODWIN",
             "FN": "VIKKI"
@@ -102643,7 +102643,7 @@
             "N": "KEVIN MCCORMICK",
             "P": "G",
             "C": "#AAAAAA",
-            "T": 67362,
+            "T": 67590,
             "O": 4,
             "LN": "MCCORMICK",
             "FN": "KEVIN"
@@ -102652,7 +102652,7 @@
             "N": "DAN PATRICK",
             "P": "R",
             "C": "#E30202",
-            "T": 3775945,
+            "T": 3797387,
             "O": 2,
             "LN": "PATRICK",
             "FN": "DAN"
@@ -102661,7 +102661,7 @@
             "N": "STEPHEN SAMUELSON",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 487,
+            "T": 498,
             "O": 5,
             "LN": "SAMUELSON",
             "FN": "STEPHEN"
@@ -102829,7 +102829,7 @@
             "N": "TIFFANY PERKINZ",
             "P": "D",
             "C": "#007BBD",
-            "T": 299141,
+            "T": 307525,
             "O": 2,
             "LN": "PERKINZ",
             "FN": "TIFFANY"
@@ -102838,7 +102838,7 @@
             "N": "JULIE PICKREN",
             "P": "R",
             "C": "#E30202",
-            "T": 307150,
+            "T": 323837,
             "O": 1,
             "LN": "PICKREN",
             "FN": "JULIE"
@@ -102877,7 +102877,7 @@
             "N": "KASON HUDDLESTON",
             "P": "R",
             "C": "#E30202",
-            "T": 352782,
+            "T": 357880,
             "O": 1,
             "LN": "HUDDLESTON",
             "FN": "KASON"
@@ -102886,7 +102886,7 @@
             "N": "ERICKA LEDFERD",
             "P": "D",
             "C": "#007BBD",
-            "T": 250358,
+            "T": 251292,
             "O": 2,
             "LN": "LEDFERD",
             "FN": "ERICKA"
@@ -102961,7 +102961,7 @@
             "N": "ARTHUR DIBIANCA",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 143349,
+            "T": 143914,
             "O": 3,
             "LN": "DIBIANCA",
             "FN": "ARTHUR"
@@ -102970,7 +102970,7 @@
             "N": "BO FRENCH",
             "P": "R",
             "C": "#E30202",
-            "T": 3726489,
+            "T": 3748101,
             "O": 2,
             "LN": "FRENCH",
             "FN": "BO"
@@ -102979,7 +102979,7 @@
             "N": "JON ROSENTHAL",
             "P": "D",
             "C": "#007BBD",
-            "T": 4308372,
+            "T": 4317466,
             "O": 1,
             "LN": "ROSENTHAL",
             "FN": "JON"
@@ -104413,7 +104413,7 @@
             "N": "VALORIE BARTON",
             "P": "D",
             "C": "#007BBD",
-            "T": 9348,
+            "T": 17723,
             "O": 2,
             "LN": "BARTON",
             "FN": "VALORIE"
@@ -104422,7 +104422,7 @@
             "N": "JANIS HOLT",
             "P": "R",
             "C": "#E30202",
-            "T": 30192,
+            "T": 46914,
             "O": 1,
             "LN": "HOLT",
             "FN": "JANIS"
@@ -105217,7 +105217,7 @@
             "N": "HECTOR GARZA",
             "P": "D",
             "C": "#007BBD",
-            "T": 14186,
+            "T": 15089,
             "O": 2,
             "LN": "GARZA",
             "FN": "HECTOR"
@@ -105226,7 +105226,7 @@
             "N": "COLE HEFNER",
             "P": "R",
             "C": "#E30202",
-            "T": 45639,
+            "T": 50782,
             "O": 1,
             "LN": "HEFNER",
             "FN": "COLE"
@@ -106234,7 +106234,7 @@
             "N": "KEN KING",
             "P": "R",
             "C": "#E30202",
-            "T": 36491,
+            "T": 36488,
             "O": 1,
             "LN": "KING",
             "FN": "KEN"
@@ -106519,7 +106519,7 @@
             "N": "LATICIA AMBROZ",
             "P": "D",
             "C": "#007BBD",
-            "T": 81203,
+            "T": 82079,
             "O": 2,
             "LN": "AMBROZ",
             "FN": "LATICIA"
@@ -106528,7 +106528,7 @@
             "N": "BRYAN HUGHES",
             "P": "R",
             "C": "#E30202",
-            "T": 199654,
+            "T": 204828,
             "O": 1,
             "LN": "HUGHES",
             "FN": "BRYAN"
@@ -106774,7 +106774,7 @@
             "N": "TRENT ASHBY",
             "P": "R",
             "C": "#E30202",
-            "T": 187632,
+            "T": 204384,
             "O": 1,
             "LN": "ASHBY",
             "FN": "TRENT"
@@ -106783,7 +106783,7 @@
             "N": "BOBBY TILLMAN",
             "P": "D",
             "C": "#007BBD",
-            "T": 83151,
+            "T": 91535,
             "O": 2,
             "LN": "TILLMAN",
             "FN": "BOBBY"
@@ -107143,7 +107143,7 @@
             "N": "TOM SELL",
             "P": "R",
             "C": "#E30202",
-            "T": 89475,
+            "T": 89575,
             "O": 1,
             "LN": "SELL",
             "FN": "TOM"
@@ -107539,7 +107539,7 @@
             "N": "DAN BARRIOS",
             "P": "D",
             "C": "#007BBD",
-            "T": 115890,
+            "T": 116782,
             "O": 2,
             "LN": "BARRIOS",
             "FN": "DAN"
@@ -107548,7 +107548,7 @@
             "N": "JACE YARBROUGH",
             "P": "R",
             "C": "#E30202",
-            "T": 120297,
+            "T": 125487,
             "O": 1,
             "LN": "YARBROUGH",
             "FN": "JACE"
@@ -107830,7 +107830,7 @@
             "N": "LETICIA GUTIERREZ",
             "P": "D",
             "C": "#007BBD",
-            "T": 68866,
+            "T": 77193,
             "O": 1,
             "LN": "GUTIERREZ",
             "FN": "LETICIA"
@@ -107839,7 +107839,7 @@
             "N": "ALEX MEALER",
             "P": "R",
             "C": "#E30202",
-            "T": 42241,
+            "T": 59227,
             "O": 2,
             "LN": "MEALER",
             "FN": "ALEX"
@@ -107854,7 +107854,7 @@
             "N": "AVERY AYERS",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 1179,
+            "T": 1201,
             "O": 4,
             "LN": "AYERS",
             "FN": "AVERY"
@@ -107863,7 +107863,7 @@
             "N": "TED BROWN",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 144909,
+            "T": 145697,
             "O": 3,
             "LN": "BROWN",
             "FN": "TED"
@@ -107872,7 +107872,7 @@
             "N": "BRADFORD \"BRAD\" HALL",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 817,
+            "T": 832,
             "O": 6,
             "LN": "HALL",
             "FN": "BRADFORD \"BRAD\""
@@ -107890,7 +107890,7 @@
             "N": "KEN PAXTON",
             "P": "R",
             "C": "#E30202",
-            "T": 3597235,
+            "T": 3618044,
             "O": 2,
             "LN": "PAXTON",
             "FN": "KEN"
@@ -107899,7 +107899,7 @@
             "N": "JADE SIMMONS",
             "P": "W",
             "C": "#AAAAAA",
-            "T": 911,
+            "T": 923,
             "O": 5,
             "LN": "SIMMONS",
             "FN": "JADE"
@@ -107908,7 +107908,7 @@
             "N": "JAMES TALARICO",
             "P": "D",
             "C": "#007BBD",
-            "T": 4569648,
+            "T": 4579595,
             "O": 1,
             "LN": "TALARICO",
             "FN": "JAMES"
@@ -108583,7 +108583,7 @@
             "N": "SCOTT BRISTER",
             "P": "R",
             "C": "#E30202",
-            "T": 3898889,
+            "T": 3920815,
             "O": 2,
             "LN": "BRISTER",
             "FN": "SCOTT"
@@ -108592,7 +108592,7 @@
             "N": "JERRY ZIMMERER",
             "P": "D",
             "C": "#007BBD",
-            "T": 4203153,
+            "T": 4212285,
             "O": 1,
             "LN": "ZIMMERER",
             "FN": "JERRY"
@@ -108607,7 +108607,7 @@
             "N": "TOM BAKER",
             "P": "D",
             "C": "#007BBD",
-            "T": 4213167,
+            "T": 4222345,
             "O": 1,
             "LN": "BAKER",
             "FN": "TOM"
@@ -108616,7 +108616,7 @@
             "N": "SCOTT K. FIELD",
             "P": "R",
             "C": "#E30202",
-            "T": 3885253,
+            "T": 3907104,
             "O": 2,
             "LN": "FIELD",
             "FN": "SCOTT K."
@@ -108631,7 +108631,7 @@
             "N": "APRIL FARRIS",
             "P": "R",
             "C": "#E30202",
-            "T": 3914631,
+            "T": 3936541,
             "O": 2,
             "LN": "FARRIS",
             "FN": "APRIL"
@@ -108640,7 +108640,7 @@
             "N": "MARC M. MEYER",
             "P": "D",
             "C": "#007BBD",
-            "T": 4174628,
+            "T": 4183706,
             "O": 1,
             "LN": "MEYER",
             "FN": "MARC M."
@@ -113149,12 +113149,12 @@
             "N": "COUNTY CLERK"
           },
           {
-            "id": 3032,
-            "N": "DISTRICT CLERK"
-          },
-          {
             "id": 345,
             "N": "COUNTY CLERK"
+          },
+          {
+            "id": 3032,
+            "N": "DISTRICT CLERK"
           },
           {
             "id": 362,
@@ -115649,12 +115649,12 @@
             "N": "COUNTY CLERK"
           },
           {
-            "id": 3745,
-            "N": "JUDGE, COUNTY COURT AT LAW NO. 4"
-          },
-          {
             "id": 2560,
             "N": "COUNTY TREASURER"
+          },
+          {
+            "id": 3745,
+            "N": "JUDGE, COUNTY COURT AT LAW NO. 4"
           },
           {
             "id": 2657,
@@ -121914,11 +121914,11 @@
             "ID": 39537,
             "N": "GREG ABBOTT (I)",
             "P": "REP",
-            "V": 3804838,
-            "PE": 45.71,
+            "V": 3826300,
+            "PE": 45.79,
             "C": "#E30202",
             "O": 1,
-            "EV": 3292229,
+            "EV": 3304722,
             "LN": "ABBOTT",
             "FN": "GREG"
           },
@@ -121926,11 +121926,11 @@
             "ID": 33621,
             "N": "PAT DIXON",
             "P": "LIB",
-            "V": 111856,
+            "V": 112364,
             "PE": 1.34,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 92679,
+            "EV": 92902,
             "LN": "DIXON",
             "FN": "PAT"
           },
@@ -121938,7 +121938,7 @@
             "ID": 44433,
             "N": "EDWARD EARL GILES",
             "P": "W",
-            "V": 287,
+            "V": 288,
             "PE": 0.0,
             "C": "#e0b30e",
             "O": 4,
@@ -121950,11 +121950,11 @@
             "ID": 41284,
             "N": "GINA HINOJOSA",
             "P": "DEM",
-            "V": 4405149,
-            "PE": 52.92,
+            "V": 4414808,
+            "PE": 52.83,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4134040,
+            "EV": 4140783,
             "LN": "HINOJOSA",
             "FN": "GINA"
           },
@@ -121962,11 +121962,11 @@
             "ID": 43373,
             "N": "JENN MACK",
             "P": "W",
-            "V": 1459,
+            "V": 1477,
             "PE": 0.02,
             "C": "#e0b30e",
             "O": 5,
-            "EV": 1167,
+            "EV": 1174,
             "LN": "MACK",
             "FN": "JENN"
           },
@@ -121974,11 +121974,11 @@
             "ID": 44429,
             "N": "JINGHPAW MAJOISHINGRA",
             "P": "W",
-            "V": 44,
+            "V": 46,
             "PE": 0.0,
             "C": "#e0b30e",
             "O": 6,
-            "EV": 39,
+            "EV": 40,
             "LN": "MAJOISHINGRA",
             "FN": "JINGHPAW"
           },
@@ -121986,16 +121986,16 @@
             "ID": 44431,
             "N": "MIKE MILLER",
             "P": "W",
-            "V": 753,
+            "V": 768,
             "PE": 0.01,
             "C": "#e0b30e",
             "O": 7,
-            "EV": 599,
+            "EV": 611,
             "LN": "MILLER",
             "FN": "MIKE"
           }
         ],
-        "T": 8324386,
+        "T": 8356051,
         "O": 10,
         "SO": 1
       },
@@ -122007,11 +122007,11 @@
             "ID": 33589,
             "N": "ANTHONY CRISTO",
             "P": "LIB",
-            "V": 129335,
-            "PE": 1.56,
+            "V": 129898,
+            "PE": 1.57,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 108748,
+            "EV": 109019,
             "LN": "CRISTO",
             "FN": "ANTHONY"
           },
@@ -122019,11 +122019,11 @@
             "ID": 43273,
             "N": "ARTURO ESPINOSA",
             "P": "W",
-            "V": 387,
+            "V": 391,
             "PE": 0.0,
             "C": "#e0b30e",
             "O": 5,
-            "EV": 306,
+            "EV": 310,
             "LN": "ESPINOSA",
             "FN": "ARTURO"
           },
@@ -122031,11 +122031,11 @@
             "ID": 42610,
             "N": "VIKKI GOODWIN",
             "P": "DEM",
-            "V": 4291612,
-            "PE": 51.92,
+            "V": 4300893,
+            "PE": 51.84,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4038225,
+            "EV": 4044769,
             "LN": "GOODWIN",
             "FN": "VIKKI"
           },
@@ -122043,11 +122043,11 @@
             "ID": 42222,
             "N": "KEVIN MCCORMICK",
             "P": "GRE",
-            "V": 67362,
-            "PE": 0.82,
+            "V": 67590,
+            "PE": 0.81,
             "C": "#e0b30e",
             "O": 4,
-            "EV": 57406,
+            "EV": 57517,
             "LN": "MCCORMICK",
             "FN": "KEVIN"
           },
@@ -122055,11 +122055,11 @@
             "ID": 39538,
             "N": "DAN PATRICK (I)",
             "P": "REP",
-            "V": 3775945,
-            "PE": 45.69,
+            "V": 3797387,
+            "PE": 45.77,
             "C": "#E30202",
             "O": 1,
-            "EV": 3266278,
+            "EV": 3278739,
             "LN": "PATRICK",
             "FN": "DAN"
           },
@@ -122067,16 +122067,16 @@
             "ID": 44427,
             "N": "STEPHEN SAMUELSON",
             "P": "W",
-            "V": 487,
+            "V": 498,
             "PE": 0.01,
             "C": "#e0b30e",
             "O": 6,
-            "EV": 411,
+            "EV": 421,
             "LN": "SAMUELSON",
             "FN": "STEPHEN"
           }
         ],
-        "T": 8265128,
+        "T": 8296657,
         "O": 11,
         "SO": 1
       },
@@ -122088,11 +122088,11 @@
             "ID": 42611,
             "N": "NATHAN JOHNSON",
             "P": "DEM",
-            "V": 4330647,
-            "PE": 52.53,
+            "V": 4339889,
+            "PE": 52.44,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4071762,
+            "EV": 4078275,
             "LN": "JOHNSON",
             "FN": "NATHAN"
           },
@@ -122100,11 +122100,11 @@
             "ID": 42430,
             "N": "MAYES MIDDLETON",
             "P": "REP",
-            "V": 3789063,
-            "PE": 45.96,
+            "V": 3810818,
+            "PE": 46.05,
             "C": "#E30202",
             "O": 1,
-            "EV": 3275265,
+            "EV": 3287911,
             "LN": "MIDDLETON",
             "FN": "MAYES"
           },
@@ -122112,16 +122112,16 @@
             "ID": 33631,
             "N": "TOM OXFORD",
             "P": "LIB",
-            "V": 124708,
+            "V": 125213,
             "PE": 1.51,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 104392,
+            "EV": 104625,
             "LN": "OXFORD",
             "FN": "TOM"
           }
         ],
-        "T": 8244418,
+        "T": 8275920,
         "O": 12,
         "SO": 1
       },
@@ -122133,11 +122133,11 @@
             "ID": 33572,
             "N": "V. ALONZO ECHAVARRIA-GARZA",
             "P": "LIB",
-            "V": 140388,
+            "V": 140986,
             "PE": 1.71,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 119444,
+            "EV": 119767,
             "LN": "ECHAVARRIA-GARZA",
             "FN": "V. ALONZO"
           },
@@ -122145,11 +122145,11 @@
             "ID": 41285,
             "N": "SARAH ECKHARDT",
             "P": "DEM",
-            "V": 4236893,
-            "PE": 51.52,
+            "V": 4245907,
+            "PE": 51.43,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3985388,
+            "EV": 3991740,
             "LN": "ECKHARDT",
             "FN": "SARAH"
           },
@@ -122157,11 +122157,11 @@
             "ID": 42255,
             "N": "SHEHLA FAIZI",
             "P": "GRE",
-            "V": 49478,
+            "V": 49612,
             "PE": 0.6,
             "C": "#e0b30e",
             "O": 4,
-            "EV": 44530,
+            "EV": 44606,
             "LN": "FAIZI",
             "FN": "SHEHLA"
           },
@@ -122169,16 +122169,16 @@
             "ID": 39539,
             "N": "DON HUFFINES",
             "P": "REP",
-            "V": 3797438,
-            "PE": 46.17,
+            "V": 3819087,
+            "PE": 46.26,
             "C": "#E30202",
             "O": 1,
-            "EV": 3285017,
+            "EV": 3297585,
             "LN": "HUFFINES",
             "FN": "DON"
           }
         ],
-        "T": 8224197,
+        "T": 8255592,
         "O": 13,
         "SO": 1
       },
@@ -122190,11 +122190,11 @@
             "ID": 39540,
             "N": "DAWN BUCKINGHAM (I)",
             "P": "REP",
-            "V": 3855535,
-            "PE": 47.01,
+            "V": 3877200,
+            "PE": 47.1,
             "C": "#E30202",
             "O": 1,
-            "EV": 3341647,
+            "EV": 3354241,
             "LN": "BUCKINGHAM",
             "FN": "DAWN"
           },
@@ -122202,11 +122202,11 @@
             "ID": 41286,
             "N": "BENJAMIN FLORES",
             "P": "DEM",
-            "V": 4227789,
-            "PE": 51.55,
+            "V": 4236846,
+            "PE": 51.47,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3972957,
+            "EV": 3979350,
             "LN": "FLORES",
             "FN": "BENJAMIN"
           },
@@ -122214,16 +122214,16 @@
             "ID": 33617,
             "N": "NEILL SNIDER",
             "P": "LIB",
-            "V": 117767,
+            "V": 118308,
             "PE": 1.44,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 98842,
+            "EV": 99090,
             "LN": "SNIDER",
             "FN": "NEILL"
           }
         ],
-        "T": 8201091,
+        "T": 8232354,
         "O": 15,
         "SO": 1
       },
@@ -122235,11 +122235,11 @@
             "ID": 33597,
             "N": "AUSTIN R. KELLY",
             "P": "LIB",
-            "V": 151435,
+            "V": 152106,
             "PE": 1.85,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 128081,
+            "EV": 128385,
             "LN": "KELLY",
             "FN": "AUSTIN R."
           },
@@ -122247,11 +122247,11 @@
             "ID": 39541,
             "N": "NATE SHEETS",
             "P": "REP",
-            "V": 3822896,
-            "PE": 46.69,
+            "V": 3844461,
+            "PE": 46.78,
             "C": "#E30202",
             "O": 1,
-            "EV": 3313590,
+            "EV": 3326149,
             "LN": "SHEETS",
             "FN": "NATE"
           },
@@ -122259,16 +122259,16 @@
             "ID": 41287,
             "N": "CLAYTON TUCKER",
             "P": "DEM",
-            "V": 4213032,
-            "PE": 51.46,
+            "V": 4222120,
+            "PE": 51.37,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3958833,
+            "EV": 3965262,
             "LN": "TUCKER",
             "FN": "CLAYTON"
           }
         ],
-        "T": 8187363,
+        "T": 8218687,
         "O": 16,
         "SO": 1
       },
@@ -122280,11 +122280,11 @@
             "ID": 33593,
             "N": "ARTHUR DIBIANCA",
             "P": "LIB",
-            "V": 143349,
+            "V": 143914,
             "PE": 1.75,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 122086,
+            "EV": 122369,
             "LN": "DIBIANCA",
             "FN": "ARTHUR"
           },
@@ -122292,11 +122292,11 @@
             "ID": 42431,
             "N": "BO FRENCH",
             "P": "REP",
-            "V": 3726489,
-            "PE": 45.57,
+            "V": 3748101,
+            "PE": 45.66,
             "C": "#E30202",
             "O": 1,
-            "EV": 3218439,
+            "EV": 3230971,
             "LN": "FRENCH",
             "FN": "BO"
           },
@@ -122304,16 +122304,16 @@
             "ID": 41288,
             "N": "JON ROSENTHAL",
             "P": "DEM",
-            "V": 4308372,
-            "PE": 52.68,
+            "V": 4317466,
+            "PE": 52.59,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4052716,
+            "EV": 4059140,
             "LN": "ROSENTHAL",
             "FN": "JON"
           }
         ],
-        "T": 8178210,
+        "T": 8209481,
         "O": 17,
         "SO": 1
       },
@@ -122325,11 +122325,11 @@
             "ID": 39542,
             "N": "JIMMY BLACKLOCK (I)",
             "P": "REP",
-            "V": 3887682,
-            "PE": 47.5,
+            "V": 3909605,
+            "PE": 47.58,
             "C": "#E30202",
             "O": 1,
-            "EV": 3364282,
+            "EV": 3376965,
             "LN": "BLACKLOCK",
             "FN": "JIMMY"
           },
@@ -122337,16 +122337,16 @@
             "ID": 41289,
             "N": "MAGGIE ELLIS",
             "P": "DEM",
-            "V": 4297496,
-            "PE": 52.5,
+            "V": 4306765,
+            "PE": 52.42,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4037912,
+            "EV": 4044427,
             "LN": "ELLIS",
             "FN": "MAGGIE"
           }
         ],
-        "T": 8185178,
+        "T": 8216370,
         "O": 30,
         "SO": 1
       },
@@ -122358,11 +122358,11 @@
             "ID": 41290,
             "N": "CHARI KELLY",
             "P": "DEM",
-            "V": 4273762,
-            "PE": 52.35,
+            "V": 4282927,
+            "PE": 52.26,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4018563,
+            "EV": 4025012,
             "LN": "KELLY",
             "FN": "CHARI"
           },
@@ -122370,16 +122370,16 @@
             "ID": 39543,
             "N": "JAMES P. SULLIVAN (I)",
             "P": "REP",
-            "V": 3889873,
-            "PE": 47.65,
+            "V": 3911891,
+            "PE": 47.74,
             "C": "#E30202",
             "O": 1,
-            "EV": 3362883,
+            "EV": 3375627,
             "LN": "SULLIVAN",
             "FN": "JAMES P."
           }
         ],
-        "T": 8163635,
+        "T": 8194818,
         "O": 31,
         "SO": 2
       },
@@ -122391,11 +122391,11 @@
             "ID": 41291,
             "N": "KRISTEN HAWKINS",
             "P": "DEM",
-            "V": 4306275,
-            "PE": 52.83,
+            "V": 4315602,
+            "PE": 52.74,
             "C": "#007BBD",
             "O": 2,
-            "EV": 4045687,
+            "EV": 4052238,
             "LN": "HAWKINS",
             "FN": "KRISTEN"
           },
@@ -122403,16 +122403,16 @@
             "ID": 39544,
             "N": "KYLE HAWKINS (I)",
             "P": "REP",
-            "V": 3845041,
-            "PE": 47.17,
+            "V": 3866865,
+            "PE": 47.26,
             "C": "#E30202",
             "O": 1,
-            "EV": 3325323,
+            "EV": 3337944,
             "LN": "HAWKINS",
             "FN": "KYLE"
           }
         ],
-        "T": 8151316,
+        "T": 8182467,
         "O": 31,
         "SO": 7
       },
@@ -122424,11 +122424,11 @@
             "ID": 39545,
             "N": "BRETT BUSBY (I)",
             "P": "REP",
-            "V": 3905573,
-            "PE": 47.95,
+            "V": 3927508,
+            "PE": 48.04,
             "C": "#E30202",
             "O": 1,
-            "EV": 3382642,
+            "EV": 3395325,
             "LN": "BUSBY",
             "FN": "BRETT"
           },
@@ -122436,16 +122436,16 @@
             "ID": 41292,
             "N": "GISELA D. TRIANA",
             "P": "DEM",
-            "V": 4239247,
-            "PE": 52.05,
+            "V": 4248404,
+            "PE": 51.96,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3983165,
+            "EV": 3989625,
             "LN": "TRIANA",
             "FN": "GISELA D."
           }
         ],
-        "T": 8144820,
+        "T": 8175912,
         "O": 31,
         "SO": 8
       },
@@ -122457,11 +122457,11 @@
             "ID": 41293,
             "N": "OKEY ANYIAM",
             "P": "DEM",
-            "V": 4088019,
-            "PE": 50.22,
+            "V": 4096688,
+            "PE": 50.14,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3851848,
+            "EV": 3858022,
             "LN": "ANYIAM",
             "FN": "OKEY"
           },
@@ -122469,11 +122469,11 @@
             "ID": 33636,
             "N": "MARK ASH",
             "P": "LIB",
-            "V": 179407,
+            "V": 180102,
             "PE": 2.2,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 153916,
+            "EV": 154238,
             "LN": "ASH",
             "FN": "MARK"
           },
@@ -122481,16 +122481,16 @@
             "ID": 42432,
             "N": "THOMAS SMITH",
             "P": "REP",
-            "V": 3872569,
-            "PE": 47.57,
+            "V": 3894400,
+            "PE": 47.66,
             "C": "#E30202",
             "O": 1,
-            "EV": 3354367,
+            "EV": 3367062,
             "LN": "SMITH",
             "FN": "THOMAS"
           }
         ],
-        "T": 8139995,
+        "T": 8171190,
         "O": 41,
         "SO": 3
       },
@@ -122502,11 +122502,11 @@
             "ID": 41294,
             "N": "AUDRA RILEY",
             "P": "DEM",
-            "V": 4211014,
-            "PE": 51.8,
+            "V": 4220183,
+            "PE": 51.72,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3956646,
+            "EV": 3963103,
             "LN": "RILEY",
             "FN": "AUDRA"
           },
@@ -122514,16 +122514,16 @@
             "ID": 39546,
             "N": "KEVIN PATRICK YEARY (I)",
             "P": "REP",
-            "V": 3918028,
-            "PE": 48.2,
+            "V": 3940016,
+            "PE": 48.28,
             "C": "#E30202",
             "O": 1,
-            "EV": 3394820,
+            "EV": 3407544,
             "LN": "YEARY",
             "FN": "KEVIN PATRICK"
           }
         ],
-        "T": 8129042,
+        "T": 8160199,
         "O": 41,
         "SO": 4
       },
@@ -122535,11 +122535,11 @@
             "ID": 39547,
             "N": "JOHN MESSINGER",
             "P": "REP",
-            "V": 3868820,
-            "PE": 47.64,
+            "V": 3890708,
+            "PE": 47.73,
             "C": "#E30202",
             "O": 1,
-            "EV": 3348289,
+            "EV": 3360958,
             "LN": "MESSINGER",
             "FN": "JOHN"
           },
@@ -122547,16 +122547,16 @@
             "ID": 41295,
             "N": "HOLLY TAYLOR",
             "P": "DEM",
-            "V": 4252173,
-            "PE": 52.36,
+            "V": 4261422,
+            "PE": 52.27,
             "C": "#007BBD",
             "O": 2,
-            "EV": 3995932,
+            "EV": 4002422,
             "LN": "TAYLOR",
             "FN": "HOLLY"
           }
         ],
-        "T": 8120993,
+        "T": 8152130,
         "O": 41,
         "SO": 9
       }
