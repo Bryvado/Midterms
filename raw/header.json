@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/115/",
+  "Version": "enr/53815/116/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -3820,7 +3820,7 @@
             "P": "DEM",
             "V": 189320,
             "EV": 159926,
-            "PE": 63,
+            "PE": 59,
             "C": "#007BBD",
             "O": 2,
             "LN": "PATTEL",
@@ -3830,16 +3830,16 @@
             "ID": 39299,
             "N": "ASHA REDDI",
             "P": "REP",
-            "V": 109334,
+            "V": 129784,
             "EV": 107063,
-            "PE": 37,
+            "PE": 41,
             "C": "#E30202",
             "O": 1,
             "LN": "REDDI",
             "FN": "ASHA"
           }
         ],
-        "T": 298654
+        "T": 319104
       },
       {
         "id": 3236,
@@ -15624,7 +15624,7 @@
       "CR": 254,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 22:18:41",
+    "LastUpdatedTime": "Nov 04, 2026 22:38:50",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -83005,7 +83005,7 @@
             "N": "ASHA REDDI",
             "P": "R",
             "C": "#E30202",
-            "T": 109334,
+            "T": 129784,
             "O": 2,
             "LN": "REDDI",
             "FN": "ASHA"
