@@ -126719,7 +126719,7 @@
   },
   "152": {
     "N": "LUBBOCK",
-    "TV": 621769,
+    "TV": 2594624,
     "C": "#e7f500",
     "Races": {
       "3": {
@@ -126777,17 +126777,17 @@
       "15": {
         "OID": 15,
         "N": "CHIEF JUSTICE, 7TH COURT OF APPEALS DISTRICT",
-        "T": 0,
+        "T": 74476,
         "C": {
           "39616": {
             "id": 39616,
             "N": "JUDY PARKER",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 74476,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 59073,
             "LN": "PARKER",
             "FN": "JUDY"
           }
@@ -126805,17 +126805,17 @@
       "18": {
         "OID": 18,
         "N": "CHIEF JUSTICE, SUPREME COURT",
-        "T": 0,
+        "T": 102963,
         "C": {
           "41289": {
             "id": 41289,
             "N": "MAGGIE ELLIS",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38765,
+            "PE": 37.65,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31992,
             "LN": "ELLIS",
             "FN": "MAGGIE"
           },
@@ -126823,11 +126823,11 @@
             "id": 39542,
             "N": "JIMMY BLACKLOCK (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 64198,
+            "PE": 62.35,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51324,
             "LN": "BLACKLOCK",
             "FN": "JIMMY"
           }
@@ -126845,17 +126845,17 @@
       "19": {
         "OID": 19,
         "N": "COMMISSIONER OF AGRICULTURE",
-        "T": 0,
+        "T": 102969,
         "C": {
           "41287": {
             "id": 41287,
             "N": "CLAYTON TUCKER",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37762,
+            "PE": 36.67,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31296,
             "LN": "TUCKER",
             "FN": "CLAYTON"
           },
@@ -126863,11 +126863,11 @@
             "id": 39541,
             "N": "NATE SHEETS",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63125,
+            "PE": 61.3,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50651,
             "LN": "SHEETS",
             "FN": "NATE"
           },
@@ -126875,11 +126875,11 @@
             "id": 33597,
             "N": "AUSTIN R. KELLY",
             "P": "L",
-            "V": 0,
-            "PE": 0.0,
+            "V": 2082,
+            "PE": 2.02,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 0,
+            "EV": 1414,
             "LN": "KELLY",
             "FN": "AUSTIN R."
           }
@@ -126897,17 +126897,17 @@
       "20": {
         "OID": 20,
         "N": "COMMISSIONER OF THE GENERAL LAND OFFICE",
-        "T": 0,
+        "T": 102842,
         "C": {
           "41286": {
             "id": 41286,
             "N": "BENJAMIN FLORES",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37864,
+            "PE": 36.82,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31297,
             "LN": "FLORES",
             "FN": "BENJAMIN"
           },
@@ -126915,11 +126915,11 @@
             "id": 39540,
             "N": "DAWN BUCKINGHAM (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63219,
+            "PE": 61.47,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50745,
             "LN": "BUCKINGHAM",
             "FN": "DAWN"
           },
@@ -126927,11 +126927,11 @@
             "id": 33617,
             "N": "NEILL SNIDER",
             "P": "L",
-            "V": 0,
-            "PE": 0.0,
+            "V": 1759,
+            "PE": 1.71,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 0,
+            "EV": 1203,
             "LN": "SNIDER",
             "FN": "NEILL"
           }
@@ -127013,17 +127013,17 @@
       "2773": {
         "OID": 2773,
         "N": "CRIMINAL DISTRICT ATTORNEY LUBBOCK COUNTY",
-        "T": 0,
+        "T": 72629,
         "C": {
           "37369": {
             "id": 37369,
             "N": "K. SUNSHINE STANEK (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 72629,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 57626,
             "LN": "STANEK",
             "FN": "K. SUNSHINE"
           }
@@ -127041,17 +127041,17 @@
       "3120": {
         "OID": 3120,
         "N": "DISTRICT JUDGE, 137TH JUDICIAL DISTRICT",
-        "T": 0,
+        "T": 73049,
         "C": {
           "37366": {
             "id": 37366,
             "N": "LAURA BETH  FOSSETT",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 73049,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 57935,
             "LN": "FOSSETT ",
             "FN": "LAURA BETH "
           }
@@ -127069,17 +127069,17 @@
       "3231": {
         "OID": 3231,
         "N": "DISTRICT JUDGE, 237TH JUDICIAL DISTRICT",
-        "T": 0,
+        "T": 73118,
         "C": {
           "37367": {
             "id": 37367,
             "N": "LES HATCH (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 73118,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 58023,
             "LN": "HATCH",
             "FN": "LES"
           }
@@ -127097,17 +127097,17 @@
       "3373": {
         "OID": 3373,
         "N": "DISTRICT JUDGE, 364TH JUDICIAL DISTRICT",
-        "T": 0,
+        "T": 72511,
         "C": {
           "37368": {
             "id": 37368,
             "N": "BILLY  EICHMAN (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 72511,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 57540,
             "LN": "EICHMAN",
             "FN": "BILLY "
           }
@@ -127225,17 +127225,17 @@
       "3819": {
         "OID": 3819,
         "N": "JUDGE, COURT OF CRIMINAL APPEALS, PLACE 3",
-        "T": 0,
+        "T": 102193,
         "C": {
           "41293": {
             "id": 41293,
             "N": "OKEY ANYIAM",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 35920,
+            "PE": 35.15,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 29865,
             "LN": "ANYIAM",
             "FN": "OKEY"
           },
@@ -127243,11 +127243,11 @@
             "id": 42432,
             "N": "THOMAS SMITH",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63700,
+            "PE": 62.33,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51028,
             "LN": "SMITH",
             "FN": "THOMAS"
           },
@@ -127255,11 +127255,11 @@
             "id": 33636,
             "N": "MARK ASH",
             "P": "L",
-            "V": 0,
-            "PE": 0.0,
+            "V": 2573,
+            "PE": 2.52,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 0,
+            "EV": 1816,
             "LN": "ASH",
             "FN": "MARK"
           }
@@ -127277,17 +127277,17 @@
       "3820": {
         "OID": 3820,
         "N": "JUDGE, COURT OF CRIMINAL APPEALS, PLACE 4",
-        "T": 0,
+        "T": 102089,
         "C": {
           "41294": {
             "id": 41294,
             "N": "AUDRA RILEY",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38087,
+            "PE": 37.31,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31484,
             "LN": "RILEY",
             "FN": "AUDRA"
           },
@@ -127295,11 +127295,11 @@
             "id": 39546,
             "N": "KEVIN PATRICK YEARY (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 64002,
+            "PE": 62.69,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51173,
             "LN": "YEARY",
             "FN": "KEVIN PATRICK"
           }
@@ -127317,17 +127317,17 @@
       "3823": {
         "OID": 3823,
         "N": "JUDGE, COURT OF CRIMINAL APPEALS, PLACE 9",
-        "T": 0,
+        "T": 101992,
         "C": {
           "41295": {
             "id": 41295,
             "N": "HOLLY TAYLOR",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38247,
+            "PE": 37.5,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31607,
             "LN": "TAYLOR",
             "FN": "HOLLY"
           },
@@ -127335,11 +127335,11 @@
             "id": 39547,
             "N": "JOHN MESSINGER",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63745,
+            "PE": 62.5,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50981,
             "LN": "MESSINGER",
             "FN": "JOHN"
           }
@@ -127357,17 +127357,17 @@
       "4698": {
         "OID": 4698,
         "N": "JUSTICE, 7TH COURT OF APPEALS DISTRICT, PLACE 2 - UNEXPIRED TERM",
-        "T": 0,
+        "T": 73513,
         "C": {
           "44668": {
             "id": 44668,
             "N": "LAURA PRATT",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 73513,
+            "PE": 100.0,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 58296,
             "LN": "PRATT",
             "FN": "LAURA"
           }
@@ -127385,17 +127385,17 @@
       "4706": {
         "OID": 4706,
         "N": "JUSTICE, SUPREME COURT, PLACE 2 - UNEXPIRED TERM",
-        "T": 0,
+        "T": 102768,
         "C": {
           "41290": {
             "id": 41290,
             "N": "CHARI KELLY",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38379,
+            "PE": 37.35,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31737,
             "LN": "KELLY",
             "FN": "CHARI"
           },
@@ -127403,11 +127403,11 @@
             "id": 39543,
             "N": "JAMES P. SULLIVAN (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 64389,
+            "PE": 62.65,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51446,
             "LN": "SULLIVAN",
             "FN": "JAMES P."
           }
@@ -127425,17 +127425,17 @@
       "4711": {
         "OID": 4711,
         "N": "JUSTICE, SUPREME COURT, PLACE 7",
-        "T": 0,
+        "T": 102506,
         "C": {
           "41291": {
             "id": 41291,
             "N": "KRISTEN HAWKINS",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38901,
+            "PE": 37.95,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 32088,
             "LN": "HAWKINS",
             "FN": "KRISTEN"
           },
@@ -127443,11 +127443,11 @@
             "id": 39544,
             "N": "KYLE HAWKINS (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63605,
+            "PE": 62.05,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50891,
             "LN": "HAWKINS",
             "FN": "KYLE"
           }
@@ -127465,17 +127465,17 @@
       "4712": {
         "OID": 4712,
         "N": "JUSTICE, SUPREME COURT, PLACE 8",
-        "T": 0,
+        "T": 102355,
         "C": {
           "41292": {
             "id": 41292,
             "N": "GISELA D. TRIANA",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38222,
+            "PE": 37.34,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31587,
             "LN": "TRIANA",
             "FN": "GISELA D."
           },
@@ -127483,11 +127483,11 @@
             "id": 39545,
             "N": "BRETT BUSBY (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 64133,
+            "PE": 62.66,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51257,
             "LN": "BUSBY",
             "FN": "BRETT"
           }
@@ -127593,17 +127593,17 @@
       "4843": {
         "OID": 4843,
         "N": "RAILROAD COMMISSIONER ",
-        "T": 0,
+        "T": 102618,
         "C": {
           "41288": {
             "id": 41288,
             "N": "JON ROSENTHAL",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38571,
+            "PE": 37.59,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 32010,
             "LN": "ROSENTHAL",
             "FN": "JON"
           },
@@ -127611,11 +127611,11 @@
             "id": 42431,
             "N": "BO FRENCH",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 62121,
+            "PE": 60.54,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 49741,
             "LN": "FRENCH",
             "FN": "BO"
           },
@@ -127623,11 +127623,11 @@
             "id": 33593,
             "N": "ARTHUR DIBIANCA",
             "P": "L",
-            "V": 0,
-            "PE": 0.0,
+            "V": 1926,
+            "PE": 1.88,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 0,
+            "EV": 1335,
             "LN": "DIBIANCA",
             "FN": "ARTHUR"
           }
@@ -127645,17 +127645,17 @@
       "4988": {
         "OID": 4988,
         "N": "STATE REPRESENTATIVE DISTRICT 83",
-        "T": 0,
+        "T": 52349,
         "C": {
           "41353": {
             "id": 41353,
             "N": "MALIK WILLIAMS",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 14940,
+            "PE": 28.54,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 12573,
             "LN": "WILLIAMS",
             "FN": "MALIK"
           },
@@ -127663,11 +127663,11 @@
             "id": 39606,
             "N": "DUSTIN BURROWS (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37409,
+            "PE": 71.46,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 30588,
             "LN": "BURROWS",
             "FN": "DUSTIN"
           }
@@ -127676,7 +127676,7 @@
         "O": 51,
         "SO": 83,
         "OR": 51,
-        "PR": 0,
+        "PR": 101,
         "OTRV": 92363,
         "TP": 101,
         "TV": 0,
@@ -127685,17 +127685,17 @@
       "4989": {
         "OID": 4989,
         "N": "STATE REPRESENTATIVE DISTRICT 84",
-        "T": 0,
+        "T": 48893,
         "C": {
           "37365": {
             "id": 37365,
             "N": "CARL TEPPER (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 26023,
+            "PE": 53.22,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 20055,
             "LN": "TEPPER",
             "FN": "CARL"
           },
@@ -127703,11 +127703,11 @@
             "id": 40910,
             "N": "MARGARET DURHAM",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 22870,
+            "PE": 46.78,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 18474,
             "LN": "DURHAM",
             "FN": "MARGARET"
           }
@@ -127716,7 +127716,7 @@
         "O": 51,
         "SO": 84,
         "OR": 51,
-        "PR": 0,
+        "PR": 83,
         "OTRV": 111901,
         "TP": 83,
         "TV": 0,
@@ -127725,17 +127725,17 @@
       "5026": {
         "OID": 5026,
         "N": "STATE SENATOR, DISTRICT 28",
-        "T": 0,
+        "T": 101702,
         "C": {
           "41314": {
             "id": 41314,
             "N": "RILEY RODRIQUEZ",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37849,
+            "PE": 37.22,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31065,
             "LN": "RODRIQUEZ",
             "FN": "RILEY"
           },
@@ -127743,11 +127743,11 @@
             "id": 39566,
             "N": "CHARLES PERRY (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63853,
+            "PE": 62.78,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50988,
             "LN": "PERRY",
             "FN": "CHARLES"
           }
@@ -127905,17 +127905,17 @@
       "15242": {
         "OID": 15242,
         "N": "CHIEF JUSTICE, 15TH COURT OF APPEALS DISTRICT",
-        "T": 0,
+        "T": 101910,
         "C": {
           "41358": {
             "id": 41358,
             "N": "JERRY ZIMMERER",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37871,
+            "PE": 37.16,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31334,
             "LN": "ZIMMERER",
             "FN": "JERRY"
           },
@@ -127923,11 +127923,11 @@
             "id": 39611,
             "N": "SCOTT BRISTER (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 64039,
+            "PE": 62.84,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51196,
             "LN": "BRISTER",
             "FN": "SCOTT"
           }
@@ -127945,17 +127945,17 @@
       "15243": {
         "OID": 15243,
         "N": "JUSTICE, 15TH COURT OF APPEALS DISTRICT, PLACE 2",
-        "T": 0,
+        "T": 101793,
         "C": {
           "41359": {
             "id": 41359,
             "N": "TOM BAKER",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 38109,
+            "PE": 37.44,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31493,
             "LN": "BAKER",
             "FN": "TOM"
           },
@@ -127963,11 +127963,11 @@
             "id": 39612,
             "N": "SCOTT K. FIELD (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63684,
+            "PE": 62.56,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 50959,
             "LN": "FIELD",
             "FN": "SCOTT K."
           }
@@ -127985,17 +127985,17 @@
       "15244": {
         "OID": 15244,
         "N": "JUSTICE, 15TH COURT OF APPEALS DISTRICT, PLACE 3",
-        "T": 0,
+        "T": 101617,
         "C": {
           "41360": {
             "id": 41360,
             "N": "MARC M. MEYER",
             "P": "DEM",
-            "V": 0,
-            "PE": 0.0,
+            "V": 37683,
+            "PE": 37.08,
             "C": "#007BBD",
             "O": 2,
-            "EV": 0,
+            "EV": 31167,
             "LN": "MEYER",
             "FN": "MARC M."
           },
@@ -128003,11 +128003,11 @@
             "id": 39613,
             "N": "APRIL FARRIS (I)",
             "P": "REP",
-            "V": 0,
-            "PE": 0.0,
+            "V": 63934,
+            "PE": 62.92,
             "C": "#E30202",
             "O": 1,
-            "EV": 0,
+            "EV": 51124,
             "LN": "FARRIS",
             "FN": "APRIL"
           }
