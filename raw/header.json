@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/106/",
+  "Version": "enr/53815/107/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 254,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 14:42:53",
+    "LastUpdatedTime": "Nov 04, 2026 14:47:53",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -60175,7 +60175,7 @@
             "N": "KEVIN POUNDS",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 17580,
             "O": 1,
             "LN": "POUNDS",
             "FN": "KEVIN"
@@ -66553,7 +66553,7 @@
             "N": "JORDAN RACKLER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 16614,
             "O": 1,
             "LN": "RACKLER",
             "FN": "JORDAN"
@@ -74065,7 +74065,7 @@
             "N": "CHRIS  WINN",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 72178,
             "O": 1,
             "LN": "WINN",
             "FN": "CHRIS "
@@ -91243,7 +91243,7 @@
             "N": "JEFF FISHER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 30213,
             "O": 1,
             "LN": "FISHER",
             "FN": "JEFF"
@@ -95287,8 +95287,8 @@
             "N": "NELLIE HOPSON",
             "P": "D",
             "C": "#007BBD",
-            "T": 0,
-            "O": 1,
+            "T": 9203,
+            "O": 2,
             "LN": "HOPSON",
             "FN": "NELLIE"
           },
@@ -95296,7 +95296,7 @@
             "N": "SUSAN ROWLEY",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 15253,
             "O": 1,
             "LN": "ROWLEY",
             "FN": "SUSAN"
@@ -98944,8 +98944,8 @@
             "N": "TRACI BAXA",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
-            "O": 1,
+            "T": 5573,
+            "O": 2,
             "LN": "BAXA",
             "FN": "TRACI"
           },
@@ -98953,7 +98953,7 @@
             "N": "MARINA GARCIA",
             "P": "D",
             "C": "#007BBD",
-            "T": 0,
+            "T": 8335,
             "O": 1,
             "LN": "GARCIA",
             "FN": "MARINA"
@@ -100972,7 +100972,7 @@
             "N": "LANCE CANSINO",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 16593,
             "O": 1,
             "LN": "CANSINO",
             "FN": "LANCE"
