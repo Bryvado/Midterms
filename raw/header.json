@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/80/",
+  "Version": "enr/53815/81/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 08:38:54",
+    "LastUpdatedTime": "Nov 04, 2026 08:43:09",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -15634,7 +15634,7 @@
       "PT": 253
     },
     "PollingReporting": {
-      "PLR": 4068,
+      "PLR": 4077,
       "PLT": 5302
     }
   },
@@ -57616,7 +57616,7 @@
             "N": "JENNY L. GARNER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 11009,
             "O": 1,
             "LN": "GARNER",
             "FN": "JENNY L."
@@ -63466,7 +63466,7 @@
             "N": "BRANDON WALLACE",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 3231,
             "O": 1,
             "LN": "WALLACE",
             "FN": "BRANDON"
@@ -64525,7 +64525,7 @@
             "N": "MIKE KEENE",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 2490,
             "O": 1,
             "LN": "KEENE",
             "FN": "MIKE"
@@ -75211,7 +75211,7 @@
             "N": "DEREK MOORE",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 10961,
             "O": 1,
             "LN": "MOORE",
             "FN": "DEREK"
@@ -80077,7 +80077,7 @@
             "N": "APRIL GIBBS",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 11051,
             "O": 1,
             "LN": "GIBBS",
             "FN": "APRIL"
@@ -85876,7 +85876,7 @@
             "N": "PAT DIXON",
             "P": "L",
             "C": "#AAAAAA",
-            "T": 132746,
+            "T": 133746,
             "O": 3,
             "LN": "DIXON",
             "FN": "PAT"
@@ -93301,7 +93301,7 @@
             "N": "LOUISE GOODWATER",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 5025,
             "O": 1,
             "LN": "GOODWATER",
             "FN": "LOUISE"
@@ -94375,7 +94375,7 @@
             "N": "MARK BUCHANAN",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 4007,
             "O": 1,
             "LN": "BUCHANAN",
             "FN": "MARK"
@@ -98053,7 +98053,7 @@
             "N": "KENNETH \"KENNY\" KARL",
             "P": "R",
             "C": "#E30202",
-            "T": 0,
+            "T": 1938,
             "O": 1,
             "LN": "KARL",
             "FN": "KENNETH \"KENNY\""
@@ -121926,11 +121926,11 @@
             "ID": 33621,
             "N": "PAT DIXON",
             "P": "LIB",
-            "V": 132746,
-            "PE": 1.43,
+            "V": 133746,
+            "PE": 1.44,
             "C": "#e0b30e",
             "O": 3,
-            "EV": 93290,
+            "EV": 94290,
             "LN": "DIXON",
             "FN": "PAT"
           },
@@ -121995,7 +121995,7 @@
             "FN": "MIKE"
           }
         ],
-        "T": 9274494,
+        "T": 9275494,
         "O": 10,
         "SO": 1
       },
