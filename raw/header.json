@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/94/",
+  "Version": "enr/53815/95/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 253,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 11:03:40",
+    "LastUpdatedTime": "Nov 04, 2026 11:13:14",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -85867,7 +85867,7 @@
             "N": "GREG ABBOTT",
             "P": "R",
             "C": "#E30202",
-            "T": 4331320,
+            "T": 4331410,
             "O": 2,
             "LN": "ABBOTT",
             "FN": "GREG"
@@ -121914,11 +121914,11 @@
             "ID": 39537,
             "N": "GREG ABBOTT (I)",
             "P": "REP",
-            "V": 4331320,
+            "V": 4331410,
             "PE": 45.8,
             "C": "#E30202",
             "O": 1,
-            "EV": 3368622,
+            "EV": 3368712,
             "LN": "ABBOTT",
             "FN": "GREG"
           },
@@ -121995,7 +121995,7 @@
             "FN": "MIKE"
           }
         ],
-        "T": 9457600,
+        "T": 9457690,
         "O": 10,
         "SO": 1
       },
