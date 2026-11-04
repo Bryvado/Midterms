@@ -1,5 +1,5 @@
 {
-  "Version": "enr/53815/116/",
+  "Version": "enr/53815/117/",
   "Districted": {
     "OffType": "DISTRICT OFFICES",
     "OffTypeID": 1442,
@@ -15624,7 +15624,7 @@
       "CR": 254,
       "CT": 254
     },
-    "LastUpdatedTime": "Nov 04, 2026 22:38:50",
+    "LastUpdatedTime": "Nov 04, 2026 22:48:37",
     "Report": null,
     "Search": "N",
     "Rss": null,
@@ -62500,7 +62500,7 @@
             "N": "TONY ARANDA",
             "P": "R",
             "C": "#E30202",
-            "T": 21484,
+            "T": 21474,
             "O": 2,
             "LN": "ARANDA",
             "FN": "TONY"
