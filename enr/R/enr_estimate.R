@@ -185,3 +185,4 @@ prep_pack <- function(pack) {
       traj[[length(traj) + 1L]] <- out$statewide[keep]
     write_json(traj, tp, auto_unbox = TRUE, digits = 6)
   }
+}
