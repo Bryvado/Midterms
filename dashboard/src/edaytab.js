@@ -6,8 +6,9 @@ import { showView } from './evtab.js';
 import { ramp as palRamp, partisanT, partisanClamp, partisanCenter, gradient, swatchButton } from './palette.js';
 
 // Election night tab. Everything shown comes from data/live: live.json (the estimator's current statewide and county
-// output) and trajectory.json (one statewide row per snapshot). ?src=rehearsal reads the rehearsal copy under data/rehearsal
-// instead and labels it as simulated. Nothing is estimated here.
+// output), trajectory.json (one statewide row per snapshot) and, once the night's series is rebuilt, observed.json (raw
+// statewide Senate counts by vote type). ?src=rehearsal reads the rehearsal copy under data/rehearsal instead and labels it
+// as simulated. Nothing is estimated here. When every county is complete the tab switches to a final-results view.
 const tab = document.querySelector('#eday-tab');
 const $ = selector => tab.querySelector(selector);
 const tabButton = document.querySelector('[data-view="eday"]');
@@ -15,7 +16,8 @@ const params = new URLSearchParams(location.search);
 const POLL_MS = 20000;
 const SHIFT_MAX = .06;
 const rehearsal = params.get('src') === 'rehearsal';
-const st = { live:null, traj:[], loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null };
+const COUNTIES = 254;
+const st = { live:null, traj:[], observed:null, loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null, active:false };
 let map = null, mapReady = false, timer = null, started = false;
 
 const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
@@ -39,6 +41,12 @@ function marginRange(lo, hi) {
 const mapTheme = () => mapBasics().theme;
 const shiftColor = v => palRamp('partisan', mapTheme())(partisanT(v, 0, SHIFT_MAX));
 const counties = () => st.live?.counties || [];
+// Final mode: every county has reported all its precincts. Live mode stays as it was for any other night.
+const isFinal = () => st.live?.statewide?.counties_complete === COUNTIES;
+// Raw counts by vote type, used only when they describe the same snapshot as live.json.
+const observed = () => st.observed?.snapshot_utc === st.live?.statewide?.snapshot_utc ? st.observed : null;
+// An 80% range is shown only when its ends differ at the precision displayed.
+const rangeShown = (lo, hi, fmt) => Number.isFinite(lo) && Number.isFinite(hi) && fmt(lo) !== fmt(hi);
 const byId = () => new Map(counties().map(c => [c.fips3, c]));
 
 // ---- Loading ----
@@ -46,13 +54,29 @@ async function refresh() {
   try {
     const [live, traj] = await Promise.all([fetchJSON('live.json'), fetchJSON('trajectory.json').catch(() => [])]);
     st.live = live; st.traj = Array.isArray(traj) ? traj : []; st.loadedAt = new Date(); st.error = null;
+    st.observed = isFinal() ? await fetchJSON('observed.json').catch(() => null) : null;
   } catch (error) { st.error = error; }
   render();
 }
 function render() {
-  renderStatus();
+  // Final returns do not change during the night, so the page stops checking for new ones.
+  if (isFinal()) { clearInterval(timer); timer = null; }
+  tab.classList.toggle('eday-final', isFinal());
+  renderStatus(); syncTopbar();
   if (!st.live) return;
   renderSummary(); paintMap(); renderLegend(); drawTrajectory(); drawTable();
+}
+// The top bar keeps the published pre-results forecast. On this tab it is labelled as such, and with final returns the
+// result leads and the forecast becomes a smaller secondary label.
+function syncTopbar() {
+  const bar = document.querySelector('.topstats'), final = st.active && isFinal(), s = st.live?.statewide;
+  document.querySelector('#ts-pre').hidden = !st.active;
+  document.querySelector('#ts-pre').textContent = final ? 'Pre-results forecast' : 'Pre-results';
+  const result = document.querySelector('#ts-final');
+  result.hidden = !final;
+  if (final) result.innerHTML = `Talarico <strong>${escapeHTML(share(s.tal_2p_mean))}</strong> <span class="ts-sep">·</span> margin <strong>${Number.isFinite(s.margin_mean) ? `${s.margin_mean >= 0 ? '+' : '−'}${count(Math.abs(s.margin_mean))}` : 'n/a'}</strong> <span class="ts-note">unofficial, canvass pending</span>`;
+  bar.classList.toggle('is-final', final);
+  bar.setAttribute('aria-label', final ? 'Unofficial result, then the pre-results statewide forecast' : st.active ? 'Pre-results statewide forecast' : 'Statewide forecast');
 }
 function renderStatus() {
   const banner = $('#eday-banner');
@@ -60,12 +84,14 @@ function renderStatus() {
   if (rehearsal) banner.textContent = 'Rehearsal: these are simulated returns, not real results.';
   const s = st.live?.statewide;
   $('#eday-status').textContent = st.error && !st.live ? `Election-night results are not available: ${st.error.message}`
+    : s && isFinal() ? `Final unofficial returns as of ${centralFull(s.snapshot_utc)}.`
     : s ? `Returns as of: ${centralFull(s.snapshot_utc)}. ${count(s.counties_reporting)} of ${count(counties().length)} counties reporting, ${count(s.counties_complete)} complete. Page last checked: ${centralClock(st.loadedAt)}; this page checks again every ${POLL_MS / 1000} seconds. The estimate uses ${count(s.update_rows)} county updates${s.robust_sd > 0 ? ` and allows ±${(100 * s.robust_sd).toFixed(1)} pts of extra statewide shift` : ''}.`
     : 'Loading election-night results…';
 }
 function renderSummary() {
   const s = st.live.statewide;
-  const stat = (label, value, note, html = false) => `<div class="evt-stat"><span>${escapeHTML(label)}</span><strong>${value}</strong><em>${html ? note : escapeHTML(note)}</em></div>`;
+  const stat = (label, value, note, html = false, cls = '') => `<div class="evt-stat${cls ? ` ${cls}` : ''}"><span>${escapeHTML(label)}</span><strong>${value}</strong><em>${html ? note : escapeHTML(note)}</em></div>`;
+  if (isFinal()) { $('#eday-summary').innerHTML = finalSummary(s, stat); return; }
   $('#eday-summary').innerHTML = [
     stat('Chance Talarico wins', probPct(s.p_talarico), `Pre-results forecast: ${probPct(s.p_talarico_prior)}`),
     stat('Talarico two-party share', share(s.tal_2p_mean), `80% range ${share(s.tal_2p_q10)} to ${share(s.tal_2p_q90)}`),
@@ -74,6 +100,21 @@ function renderSummary() {
     stat('Counties', `${count(s.counties_reporting)} reporting`, `${count(s.counties_complete)} of ${count(counties().length)} complete`),
     stat('Election Day turnout vs. expected', Number.isFinite(s.eday_turnout_factor) ? `${s.eday_turnout_factor.toFixed(2)}×` : 'n/a', 'From fully reported counties'),
     stat('Early minus Election Day', pts(s.early_gap_mean), `Talarico share gap, ± ${Number.isFinite(s.early_gap_sd) ? (100 * s.early_gap_sd).toFixed(1) : 'n/a'} pts`),
+  ].join('');
+}
+
+function finalSummary(s, stat) {
+  const sharePlain = v => share(v), marginPlain = v => marginText(v);
+  const o = observed(), gapSd = Number.isFinite(s.early_gap_sd) ? `, ± ${(100 * s.early_gap_sd).toFixed(1)} pts` : '';
+  const raw = o ? ` Raw statewide shares: early ${share(o.early.dem_2p)}, Election Day + late ${share(o.eday_late.dem_2p)}. The raw gap is wider because it also reflects which counties the Election Day vote came from.` : '';
+  return [
+    stat('Talarico two-party share', share(s.tal_2p_mean), rangeShown(s.tal_2p_q10, s.tal_2p_q90, sharePlain) ? `80% range ${share(s.tal_2p_q10)} to ${share(s.tal_2p_q90)}` : 'Of the Talarico and Paxton vote'),
+    stat('Margin', escapeHTML(marginText(s.margin_mean)), rangeShown(s.margin_q10, s.margin_q90, marginPlain) ? `80% range: ${marginRange(s.margin_q10, s.margin_q90)}` : 'Votes, Talarico minus Paxton', true),
+    stat('Votes counted', count(s.votes_counted), 'All candidates'),
+    stat('Counties', `${count(s.counties_complete)} complete`, `of ${count(COUNTIES)}`),
+    stat('Election Day turnout vs. expected', Number.isFinite(s.eday_turnout_factor) ? `${s.eday_turnout_factor.toFixed(2)}×` : 'n/a', 'From fully reported counties'),
+    stat('Early minus Election Day, within county', pts(s.early_gap_mean), `Model estimate of the Talarico share gap inside the same county${gapSd}.${raw}`, false, 'eday-gap'),
+    `<p class="eday-final-note">These are unofficial returns. Provisional ballots, late military and overseas ballots, and the county canvass are still to come, so the counts can change.</p>`,
   ].join('');
 }
 
@@ -113,12 +154,17 @@ function renderLegend() {
   const half = Math.round(100 * partisanClamp(SHIFT_MAX)), mid = Math.round(100 * partisanCenter());
   $('#eday-legend').innerHTML = `<div class="eday-legend-title">Shift from the pre-results forecast</div><div class="eday-ramp" style="background:${gradient('partisan', mapTheme())}"></div>
     <div class="eday-legend-scale"><span>Paxton +${half - mid}</span><span>${mid ? `${mid > 0 ? '+' : '−'}${Math.abs(mid)}` : '0'}</span><span>Talarico +${half + mid}</span></div>
-    <div class="eday-legend-note">Points of Talarico two-party share. Fainter counties have less of their expected vote counted.</div>`;
+    <div class="eday-legend-note">Points of Talarico two-party share.${isFinal() ? '' : ' Fainter counties have less of their expected vote counted.'}</div>`;
   const title = $('#eday-legend .eday-legend-title'); title.append(' ', swatchButton('partisan'));
 }
 function tooltipHTML(c) {
   if (!c) return '';
   const line = (k, v) => `${escapeHTML(k)}: ${v}`;
+  if (isFinal()) return `<strong>${escapeHTML(titleCase(c.county))}</strong>${[
+    line('Counted', `${count(c.counted_early)} early, ${count(c.counted_eday)} Election Day + late`),
+    line('Talarico share, early', share(c.obs_2p_early)), line('Talarico share, Election Day + late', share(c.obs_2p_eday)),
+    line('Pre-results forecast', share(c.prior_2p)), line('Result', share(c.post_2p)), line('Shift vs forecast', pts(c.shift)),
+  ].join('<br>')}`;
   return `<strong>${escapeHTML(titleCase(c.county))}</strong>${[
     line('Counted', `${count(c.counted_early)} early, ${count(c.counted_eday)} Election Day (${pct(c.pct_counted, 0)} of expected)${c.complete ? ', complete' : ''}`),
     line('Talarico share, early', share(c.obs_2p_early)), line('Talarico share, Election Day', share(c.obs_2p_eday)),
@@ -222,16 +268,22 @@ const columns = [
   { key:'shift', label:'Shift', show:c => pts(c.shift) },
   { key:'expected_total', label:'Expected votes', show:c => count(c.expected_total) },
 ];
+// Final mode renames three columns and hides the two that only describe counting progress.
+const finalLabels = { counted_eday:'Election Day + late', post_2p:'Result', shift:'Shift vs forecast' };
+const finalHidden = new Set(['pct_counted', 'complete']);
 function drawTable() {
-  const col = columns.find(c => c.key === st.sort) || columns.at(-1);
+  const final = isFinal();
+  const cols = final ? columns.filter(c => !finalHidden.has(c.key)).map(c => finalLabels[c.key] ? { ...c, label:finalLabels[c.key] } : c) : columns;
+  if (final && finalHidden.has(st.sort)) { st.sort = 'expected_total'; st.dir = -1; }
+  const col = cols.find(c => c.key === st.sort) || cols.at(-1);
   const val = c => col.key === 'complete' ? +!!c.complete : c[col.key];
   const rows = [...counties()].sort((a, b) => {
     const p = val(a), q = val(b);
     return (col.text ? String(p).localeCompare(String(q)) : (Number.isFinite(p) ? p : -Infinity) - (Number.isFinite(q) ? q : -Infinity)) * st.dir;
   });
-  $('#eday-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${columns.map(c => `<th class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${escapeHTML(c.label)}</button></th>`).join('')}</tr></thead>
-    <tbody>${rows.map(c => `<tr data-id="${escapeHTML(c.fips3)}" tabindex="0">${columns.map(k => `<td class="${k.text ? 'name' : ''}">${k.show(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <p class="note">Shares are Talarico's share of the two-party vote. Early and Election Day shares are the counted votes so far; the estimate is the updated county share. A dash means no votes of that kind are counted yet.</p>`;
+  $('#eday-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${cols.map(c => `<th class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${escapeHTML(c.label)}</button></th>`).join('')}</tr></thead>
+    <tbody>${rows.map(c => `<tr data-id="${escapeHTML(c.fips3)}" tabindex="0">${cols.map(k => `<td class="${k.text ? 'name' : ''}">${k.show(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="note">${final ? "Shares are Talarico's share of the two-party vote. Election Day + late is every vote not cast early, including ballots counted after Election Day. The result is the county's counted share; shift vs forecast is the result minus the pre-results forecast." : "Shares are Talarico's share of the two-party vote. Early and Election Day shares are the counted votes so far; the estimate is the updated county share. A dash means no votes of that kind are counted yet."}</p>`;
   markTable();
 }
 function markTable() {
@@ -255,17 +307,15 @@ function start() {
     new MutationObserver(() => { if (!tab.hidden) { paintMap(); renderLegend(); } }).observe(document.documentElement, { attributes:true, attributeFilter:['data-layout'] });
   }
   refresh();
-  clearInterval(timer);
-  timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+  clearInterval(timer); timer = null;
+  if (!isFinal()) timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
 }
 // Palette changes repaint the map and legend.
 window.addEventListener('palette-change', () => { if (!tab.hidden && st.live) { paintMap(); renderLegend(); } });
 window.addEventListener('view-tab', ({ detail }) => {
   const on = detail.view === 'eday';
-  tab.hidden = !on;
-  // The top bar keeps the published pre-results forecast; on this tab it says so.
-  document.querySelector('#ts-pre').hidden = !on;
-  document.querySelector('.topstats').setAttribute('aria-label', on ? 'Pre-results statewide forecast' : 'Statewide forecast');
+  tab.hidden = !on; st.active = on;
+  syncTopbar();
   const url = new URL(location.href);
   if (on) { url.searchParams.set('tab', 'eday'); start(); map?.resize(); }
   else { clearInterval(timer); timer = null; if (url.searchParams.get('tab') === 'eday') url.searchParams.delete('tab'); }

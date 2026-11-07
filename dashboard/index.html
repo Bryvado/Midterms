@@ -13,6 +13,7 @@
         <div class="identity"><h1>TX Senate 2026 · Forecast explorer</h1></div>
         <div class="view-tabs" role="tablist" aria-label="Views"><button type="button" role="tab" data-view="forecast" aria-selected="true">Forecast</button><button type="button" role="tab" data-view="early" aria-selected="false">Early vote</button><button type="button" role="tab" data-view="eday" aria-selected="false" hidden>Election night</button></div>
         <div class="topstats" aria-label="Statewide forecast" aria-live="polite">
+          <span class="ts-final" id="ts-final" hidden></span>
           <span class="ts-pre" id="ts-pre" hidden>Pre-results</span>
           <span class="ts-item" title="Talarico two-party share, Election Day estimate, ± model SD">Talarico <strong id="share-value">—</strong> <span id="share-sub"></span></span>
           <span class="ts-sep">·</span>
@@ -308,7 +309,7 @@
           </section>
         </div>
         <section class="evt-table-wrap"><h3>Counties</h3><div id="eday-table"></div></section>
-        <p class="note evt-foot"><strong>Method.</strong> Counts are the Secretary of State's unofficial county returns for the U.S. Senate race. The estimate starts from the pre-election model's simulated county results and updates each county's Talarico two-party share as early and Election Day votes are counted, with a statewide gap between early and Election Day voters and statewide Election Day turnout against expectations learned from fully reported counties. Ranges are the 10th to 90th percentiles of the updated simulations. Shift is the updated county share minus the pre-results forecast's share; on the map, counties are fainter the less of their expected vote has been counted.</p>
+        <p class="note evt-foot"><strong>Method.</strong> Counts are the Secretary of State's unofficial county returns for the U.S. Senate race. The estimate starts from the pre-election model's simulated county results and updates each county's Talarico two-party share as early and Election Day votes are counted, with a statewide gap between early and Election Day voters and statewide Election Day turnout against expectations learned from fully reported counties. Ranges are the 10th to 90th percentiles of the updated simulations. Shift is the updated county share minus the pre-results forecast's share<span class="eday-live-only">; on the map, counties are fainter the less of their expected vote has been counted</span>.<span class="eday-final-only"> Once every county has reported all its precincts the tab shows final unofficial returns: each county's result is its counted two-party share, and the statewide figures are the counted totals.</span></p>
       </main>
             <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
     </div>

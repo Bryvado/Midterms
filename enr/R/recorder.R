@@ -27,6 +27,7 @@ cfg <- list(
   run_attempt = Sys.getenv("GITHUB_RUN_ATTEMPT", "1"),
   branch      = arg("branch", "enr-2026"),
   workflow    = arg("workflow", "enr-recorder.yml"),
+  fips        = arg("fips", "enr/county_fips.csv"),            # county name -> FIPS lookup, 254 rows
   ua          = "bryson-tx2026-research"
 )
 base_url <- "https://goelect.txelections.civixapps.com/api-ivis-system/api/s3/enr"
@@ -74,6 +75,15 @@ write_json_text <- function(txt, path) {
   if (!identical(ok, 0L)) file.copy(tmp, path, overwrite = TRUE)
 }
 
+# SOS numbers counties alphabetically with MADISON..MAVERICK before MCCULLOCH, so FIPS comes from the name, not the number.
+county_key <- function(x) gsub("[^A-Z]", "", toupper(x))
+fips_lookup <- read.csv(cfg$fips, colClasses = "character")
+if (nrow(fips_lookup) != 254 || anyDuplicated(county_key(fips_lookup$county_name))) stop("County FIPS lookup must have 254 distinct names: ", cfg$fips)
+fips_for <- function(name) {
+  f <- fips_lookup$county_fips[match(county_key(name), county_key(fips_lookup$county_name))]
+  if (anyNA(f)) stop("County names with no FIPS match: ", paste(unique(name[is.na(f)]), collapse = ", "))
+  f
+}
 num <- function(x) if (is.null(x)) NA_real_ else suppressWarnings(as.numeric(x))
 chr <- function(x) if (is.null(x)) NA_character_ else as.character(x)
 # Statewide (SW) and federal (FD) races, one row per county x office x candidate, in a fixed order.
@@ -95,7 +105,7 @@ results_from_county <- function(ci, snap) {
     }
   }
   df <- as.data.frame(lapply(cols, unlist), stringsAsFactors = FALSE)
-  df$county_fips <- sprintf("48%03d", 2L * df$county_num - 1L)
+  df$county_fips <- fips_for(df$county_name)
   df$snapshot_utc <- snap
   normalize(df[order(df$county_num, df$office_id, df$cand_id), result_cols])
 }
