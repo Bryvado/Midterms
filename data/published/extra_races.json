@@ -1,0 +1,275 @@
+[
+  {
+    "key": "sen26",
+    "year": 2026,
+    "office": "sen",
+    "label": "2026 Senate (results)",
+    "short": "2026 Senate (results)"
+  },
+  {
+    "key": "gov26",
+    "year": 2026,
+    "office": "gov",
+    "label": "2026 Governor (results)",
+    "short": "2026 Governor (results)"
+  },
+  {
+    "key": "2018_ag_commissioner",
+    "year": 2018,
+    "office": "ag_commissioner",
+    "label": "2018 Agriculture Commissioner",
+    "short": "2018 Agriculture Commissioner"
+  },
+  {
+    "key": "2018_attorney_general",
+    "year": 2018,
+    "office": "attorney_general",
+    "label": "2018 Attorney General",
+    "short": "2018 Attorney General"
+  },
+  {
+    "key": "2018_cca_7",
+    "year": 2018,
+    "office": "cca_7",
+    "label": "2018 Criminal Appeals Place 7",
+    "short": "2018 Criminal Appeals Place 7"
+  },
+  {
+    "key": "2018_cca_presiding",
+    "year": 2018,
+    "office": "cca_presiding",
+    "label": "2018 Criminal Appeals Presiding Judge",
+    "short": "2018 Criminal Appeals Presiding Judge"
+  },
+  {
+    "key": "2018_comptroller",
+    "year": 2018,
+    "office": "comptroller",
+    "label": "2018 Comptroller",
+    "short": "2018 Comptroller"
+  },
+  {
+    "key": "2018_land_commissioner",
+    "year": 2018,
+    "office": "land_commissioner",
+    "label": "2018 Land Commissioner",
+    "short": "2018 Land Commissioner"
+  },
+  {
+    "key": "2018_lt_governor",
+    "year": 2018,
+    "office": "lt_governor",
+    "label": "2018 Lt. Governor",
+    "short": "2018 Lt. Governor"
+  },
+  {
+    "key": "2018_railroad_1",
+    "year": 2018,
+    "office": "railroad_1",
+    "label": "2018 Railroad Commissioner 1",
+    "short": "2018 Railroad Commissioner 1"
+  },
+  {
+    "key": "2018_supreme_court_2",
+    "year": 2018,
+    "office": "supreme_court_2",
+    "label": "2018 Supreme Court Place 2",
+    "short": "2018 Supreme Court Place 2"
+  },
+  {
+    "key": "2018_supreme_court_4",
+    "year": 2018,
+    "office": "supreme_court_4",
+    "label": "2018 Supreme Court Place 4",
+    "short": "2018 Supreme Court Place 4"
+  },
+  {
+    "key": "2018_supreme_court_6",
+    "year": 2018,
+    "office": "supreme_court_6",
+    "label": "2018 Supreme Court Place 6",
+    "short": "2018 Supreme Court Place 6"
+  },
+  {
+    "key": "2020_cca_3",
+    "year": 2020,
+    "office": "cca_3",
+    "label": "2020 Criminal Appeals Place 3",
+    "short": "2020 Criminal Appeals Place 3"
+  },
+  {
+    "key": "2020_cca_4",
+    "year": 2020,
+    "office": "cca_4",
+    "label": "2020 Criminal Appeals Place 4",
+    "short": "2020 Criminal Appeals Place 4"
+  },
+  {
+    "key": "2020_cca_9",
+    "year": 2020,
+    "office": "cca_9",
+    "label": "2020 Criminal Appeals Place 9",
+    "short": "2020 Criminal Appeals Place 9"
+  },
+  {
+    "key": "2020_railroad_1",
+    "year": 2020,
+    "office": "railroad_1",
+    "label": "2020 Railroad Commissioner 1",
+    "short": "2020 Railroad Commissioner 1"
+  },
+  {
+    "key": "2020_supreme_court_6",
+    "year": 2020,
+    "office": "supreme_court_6",
+    "label": "2020 Supreme Court Place 6",
+    "short": "2020 Supreme Court Place 6"
+  },
+  {
+    "key": "2020_supreme_court_7",
+    "year": 2020,
+    "office": "supreme_court_7",
+    "label": "2020 Supreme Court Place 7",
+    "short": "2020 Supreme Court Place 7"
+  },
+  {
+    "key": "2020_supreme_court_8",
+    "year": 2020,
+    "office": "supreme_court_8",
+    "label": "2020 Supreme Court Place 8",
+    "short": "2020 Supreme Court Place 8"
+  },
+  {
+    "key": "2020_supreme_court_chief",
+    "year": 2020,
+    "office": "supreme_court_chief",
+    "label": "2020 Supreme Court Chief Justice",
+    "short": "2020 Supreme Court Chief Justice"
+  },
+  {
+    "key": "2022_ag_commissioner",
+    "year": 2022,
+    "office": "ag_commissioner",
+    "label": "2022 Agriculture Commissioner",
+    "short": "2022 Agriculture Commissioner"
+  },
+  {
+    "key": "2022_attorney_general",
+    "year": 2022,
+    "office": "attorney_general",
+    "label": "2022 Attorney General",
+    "short": "2022 Attorney General"
+  },
+  {
+    "key": "2022_cca_5",
+    "year": 2022,
+    "office": "cca_5",
+    "label": "2022 Criminal Appeals Place 5",
+    "short": "2022 Criminal Appeals Place 5"
+  },
+  {
+    "key": "2022_cca_6",
+    "year": 2022,
+    "office": "cca_6",
+    "label": "2022 Criminal Appeals Place 6",
+    "short": "2022 Criminal Appeals Place 6"
+  },
+  {
+    "key": "2022_comptroller",
+    "year": 2022,
+    "office": "comptroller",
+    "label": "2022 Comptroller",
+    "short": "2022 Comptroller"
+  },
+  {
+    "key": "2022_land_commissioner",
+    "year": 2022,
+    "office": "land_commissioner",
+    "label": "2022 Land Commissioner",
+    "short": "2022 Land Commissioner"
+  },
+  {
+    "key": "2022_lt_governor",
+    "year": 2022,
+    "office": "lt_governor",
+    "label": "2022 Lt. Governor",
+    "short": "2022 Lt. Governor"
+  },
+  {
+    "key": "2022_railroad_1",
+    "year": 2022,
+    "office": "railroad_1",
+    "label": "2022 Railroad Commissioner 1",
+    "short": "2022 Railroad Commissioner 1"
+  },
+  {
+    "key": "2022_supreme_court_3",
+    "year": 2022,
+    "office": "supreme_court_3",
+    "label": "2022 Supreme Court Place 3",
+    "short": "2022 Supreme Court Place 3"
+  },
+  {
+    "key": "2022_supreme_court_5",
+    "year": 2022,
+    "office": "supreme_court_5",
+    "label": "2022 Supreme Court Place 5",
+    "short": "2022 Supreme Court Place 5"
+  },
+  {
+    "key": "2022_supreme_court_9",
+    "year": 2022,
+    "office": "supreme_court_9",
+    "label": "2022 Supreme Court Place 9",
+    "short": "2022 Supreme Court Place 9"
+  },
+  {
+    "key": "2024_cca_7",
+    "year": 2024,
+    "office": "cca_7",
+    "label": "2024 Criminal Appeals Place 7",
+    "short": "2024 Criminal Appeals Place 7"
+  },
+  {
+    "key": "2024_cca_8",
+    "year": 2024,
+    "office": "cca_8",
+    "label": "2024 Criminal Appeals Place 8",
+    "short": "2024 Criminal Appeals Place 8"
+  },
+  {
+    "key": "2024_cca_presiding",
+    "year": 2024,
+    "office": "cca_presiding",
+    "label": "2024 Criminal Appeals Presiding Judge",
+    "short": "2024 Criminal Appeals Presiding Judge"
+  },
+  {
+    "key": "2024_railroad_1",
+    "year": 2024,
+    "office": "railroad_1",
+    "label": "2024 Railroad Commissioner 1",
+    "short": "2024 Railroad Commissioner 1"
+  },
+  {
+    "key": "2024_supreme_court_2",
+    "year": 2024,
+    "office": "supreme_court_2",
+    "label": "2024 Supreme Court Place 2",
+    "short": "2024 Supreme Court Place 2"
+  },
+  {
+    "key": "2024_supreme_court_4",
+    "year": 2024,
+    "office": "supreme_court_4",
+    "label": "2024 Supreme Court Place 4",
+    "short": "2024 Supreme Court Place 4"
+  },
+  {
+    "key": "2024_supreme_court_6",
+    "year": 2024,
+    "office": "supreme_court_6",
+    "label": "2024 Supreme Court Place 6",
+    "short": "2024 Supreme Court Place 6"
+  }
+]
