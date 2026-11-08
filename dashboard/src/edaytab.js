@@ -1,8 +1,10 @@
 import maplibregl from 'maplibre-gl';
 import { scaleLinear } from 'd3-scale';
-import { base, pct, probPct, count, escapeHTML } from './data.js';
+import { base, csv, pct, probPct, count, escapeHTML } from './data.js';
 import { mapBasics } from './map.js';
 import { showView } from './evtab.js';
+import { resultsAvailable, activate as activateResults } from './resultsmap.js';
+import { ensureStore } from './compare.js';
 import { ramp as palRamp, partisanT, partisanClamp, partisanCenter, gradient, swatchButton } from './palette.js';
 
 // Election night tab. Everything shown comes from data/live: live.json (the estimator's current statewide and county
@@ -18,7 +20,7 @@ const SHIFT_MAX = .06;
 const rehearsal = params.get('src') === 'rehearsal';
 const COUNTIES = 254;
 const st = { live:null, traj:[], observed:null, loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null, active:false };
-let map = null, mapReady = false, timer = null, started = false;
+let map = null, mapReady = false, timer = null, started = false, resultsOK = null, forecast = null;
 
 const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
 const central = utc => { const d = new Date(utc); return Number.isNaN(+d) ? String(utc ?? '') : d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }); };
@@ -55,23 +57,48 @@ async function refresh() {
     const [live, traj] = await Promise.all([fetchJSON('live.json'), fetchJSON('trajectory.json').catch(() => [])]);
     st.live = live; st.traj = Array.isArray(traj) ? traj : []; st.loadedAt = new Date(); st.error = null;
     st.observed = isFinal() ? await fetchJSON('observed.json').catch(() => null) : null;
+    if (isFinal()) { resultsOK ??= await resultsAvailable(); forecast ??= await loadForecast().catch(() => null); }
   } catch (error) { st.error = error; }
   render();
 }
 function render() {
   // Final returns do not change during the night, so the page stops checking for new ones.
   if (isFinal()) { clearInterval(timer); timer = null; }
+  const results = isFinal() && !!resultsOK;
   tab.classList.toggle('eday-final', isFinal());
+  tab.classList.toggle('eday-results', results);
   renderStatus(); syncTopbar();
   if (!st.live) return;
-  renderSummary(); paintMap(); renderLegend(); drawTrajectory(); drawTable();
+  $('#eday-traj-title').textContent = isFinal() ? 'How the count unfolded' : 'Through the night';
+  renderSummary(); drawTrajectory();
+  if (results) { renderForecastVsResult(); activateResults(st.active); return; }
+  if (!map) initMap();
+  paintMap(); renderLegend(); drawTable();
+}
+// Pre-election figures for the forecast-vs-result card: the published combined estimate, and the county expected votes summed.
+async function loadForecast() {
+  const [headline, store] = await Promise.all([csv('headline.csv'), ensureStore('county')]);
+  const combined = headline.find(row => row.component === 'combined');
+  let margin = 0;
+  for (let i = 0; i < store.n; i++) margin += store.tal[i] - store.pax[i];
+  return { share:combined ? +combined.mean : NaN, margin };
+}
+function renderForecastVsResult() {
+  const s = st.live.statewide, f = forecast, host = $('#eday-fvr');
+  if (!f || !Number.isFinite(f.share)) { host.innerHTML = ''; return; }
+  const gap = s.tal_2p_mean - f.share, mgap = s.margin_mean - f.margin;
+  const row = (label, a, b, d) => `<div class="fvr-row"><span class="fvr-label">${escapeHTML(label)}</span><span>${a}</span><span>${b}</span><strong>${d}</strong></div>`;
+  host.innerHTML = `<h4>Forecast and result</h4><div class="fvr-grid"><div class="fvr-row fvr-head"><span></span><span>Pre-election forecast</span><span>Result</span><span>Gap</span></div>
+    ${row('Talarico two-party share', escapeHTML(share(f.share)), escapeHTML(share(s.tal_2p_mean)), escapeHTML(pts(gap)))}
+    ${row('Margin', escapeHTML(marginText(f.margin)), escapeHTML(marginText(s.margin_mean)), escapeHTML(`${mgap >= 0 ? '+' : '−'}${count(Math.abs(mgap))} votes`))}</div>
+    <p class="note">The forecast is the model’s combined pre-election estimate; its margin sums the county expected votes. The result is unofficial.</p>`;
 }
 // The top bar keeps the published pre-results forecast. On this tab it is labelled as such, and with final returns the
 // result leads and the forecast becomes a smaller secondary label.
 function syncTopbar() {
   const bar = document.querySelector('.topstats'), final = st.active && isFinal(), s = st.live?.statewide;
   document.querySelector('#ts-pre').hidden = !st.active;
-  document.querySelector('#ts-pre').textContent = final ? 'Pre-results forecast' : 'Pre-results';
+  document.querySelector('#ts-pre').textContent = final ? 'Pre-election forecast' : 'Pre-results';
   const result = document.querySelector('#ts-final');
   result.hidden = !final;
   if (final) result.innerHTML = `Talarico <strong>${escapeHTML(share(s.tal_2p_mean))}</strong> <span class="ts-sep">·</span> margin <strong>${Number.isFinite(s.margin_mean) ? `${s.margin_mean >= 0 ? '+' : '−'}${count(Math.abs(s.margin_mean))}` : 'n/a'}</strong> <span class="ts-note">unofficial, canvass pending</span>`;
@@ -211,7 +238,7 @@ function drawTrajectory() {
   const rows = st.traj.filter(r => Number.isFinite(new Date(r.snapshot_utc).getTime()));
   const prior = st.live?.statewide?.p_talarico_prior;
   host.querySelector('svg')?.remove();
-  const W = Math.max(280, host.clientWidth || 360), H1 = 150, H2 = 170, gap = 34, m = { l:40, r:12, t:16, b:22 }, H = H1 + gap + H2 + m.b + 12;
+  const final = isFinal(), W = Math.max(280, host.clientWidth || 360), H1 = final ? 0 : 150, H2 = 170, gap = final ? 0 : 34, m = { l:40, r:12, t:16, b:22 }, H = H1 + gap + H2 + m.b + 12;
   if (rows.length < 1) { host.insertAdjacentHTML('afterbegin', `<p class="note">No snapshots yet.</p>`); return; }
   const t = rows.map(r => new Date(r.snapshot_utc).getTime());
   const x = scaleLinear().domain(t.length > 1 ? [t[0], t.at(-1)] : [t[0] - 6e5, t[0] + 6e5]).range([m.l, W - m.r]);
@@ -224,17 +251,17 @@ function drawTrajectory() {
   const xt = x.ticks(Math.max(2, Math.floor(W / 90)));
   const grid = (y, ticks, fmt) => ticks.map(v => `<line class="evt-grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="evt-axis" x="${m.l - 5}" y="${y(v) + 3}" text-anchor="end">${fmt(v)}</text>`).join('');
   const xAxis = yb => xt.map(v => `<text class="evt-axis" x="${x(v)}" y="${yb + 13}" text-anchor="middle">${escapeHTML(central(v))}</text>`).join('');
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Chance Talarico wins and his two-party share through the night">
-    <text class="evt-axis label" x="${m.l}" y="${m.t - 5}">Chance Talarico wins</text>
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${final ? 'Talarico two-party share as the count unfolded' : 'Chance Talarico wins and his two-party share through the night'}">
+    ${final ? '' : `<text class="evt-axis label" x="${m.l}" y="${m.t - 5}">Chance Talarico wins</text>
     ${grid(y1, [0, .25, .5, .75, 1], v => `${Math.round(100 * v)}%`)}
     ${Number.isFinite(prior) ? `<line class="eday-prior" x1="${m.l}" x2="${W - m.r}" y1="${y1(prior)}" y2="${y1(prior)}"/><text class="evt-axis" x="${W - m.r}" y="${y1(prior) - 4}" text-anchor="end">Pre-results forecast ${probPct(prior)}</text>` : ''}
     <path class="eday-line p" d="${path(r => r.p_talarico, y1)}"/>
-    ${xAxis(y1.range()[0])}
+    ${xAxis(y1.range()[0])}`}
     <text class="evt-axis label" x="${m.l}" y="${top2 - 5}">Talarico two-party share, with 80% range</text>
     ${grid(y2, y2.ticks(4), v => `${(100 * v).toFixed(0)}%`)}
     ${.5 >= y2.domain()[0] && .5 <= y2.domain()[1] ? `<line class="evt-mid" x1="${m.l}" x2="${W - m.r}" y1="${y2(.5)}" y2="${y2(.5)}"/>` : ''}
     <path class="eday-band" d="${band}"/><path class="eday-line s" d="${path(r => r.tal_2p_mean, y2)}"/>
-    <circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y1(rows.at(-1).p_talarico)}" r="3.5"/><circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y2(rows.at(-1).tal_2p_mean)}" r="3.5"/>
+    ${final ? '' : `<circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y1(rows.at(-1).p_talarico)}" r="3.5"/>`}<circle class="eday-dot" cx="${x(t.at(-1))}" cy="${y2(rows.at(-1).tal_2p_mean)}" r="3.5"/>
     ${xAxis(y2.range()[0])}
     <text class="evt-axis" x="${W - m.r}" y="${y2.range()[0] + 26}" text-anchor="end">Snapshot time, Central</text>
     <line class="eday-cross" x1="0" x2="0" y1="${m.t}" y2="${y2.range()[0]}" visibility="hidden"/>
@@ -246,7 +273,7 @@ function drawTrajectory() {
     let k = 0; for (let i = 1; i < t.length; i++) if (Math.abs(x(t[i]) - px) < Math.abs(x(t[k]) - px)) k = i;
     const r = rows[k], cx = x(t[k]);
     cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.setAttribute('visibility', 'visible');
-    tip.innerHTML = `<strong>${escapeHTML(centralFull(r.snapshot_utc))}</strong>Chance Talarico wins: ${probPct(r.p_talarico)}<br>Two-party share: ${share(r.tal_2p_mean)} (${share(r.tal_2p_q10)} to ${share(r.tal_2p_q90)})<br>Margin: ${escapeHTML(marginText(r.margin_mean))}<br>Counted: ${count(r.votes_counted)} (${pct(r.pct_counted, 0)})<br>Counties complete: ${count(r.counties_complete)}`;
+    tip.innerHTML = `<strong>${escapeHTML(centralFull(r.snapshot_utc))}</strong>${final ? '' : `Chance Talarico wins: ${probPct(r.p_talarico)}<br>`}Two-party share: ${share(r.tal_2p_mean)} (${share(r.tal_2p_q10)} to ${share(r.tal_2p_q90)})<br>Margin: ${escapeHTML(marginText(r.margin_mean))}<br>Counted: ${count(r.votes_counted)} (${pct(r.pct_counted, 0)})<br>Counties complete: ${count(r.counties_complete)}`;
     tip.hidden = false;
     const sx = cx * box.width / W;
     tip.style.left = `${sx + 12 + tip.offsetWidth > box.width ? Math.max(4, sx - tip.offsetWidth - 12) : sx + 12}px`; tip.style.top = '8px';
@@ -295,7 +322,6 @@ function markTable() {
 function start() {
   if (!started) {
     started = true;
-    initMap();
     $('#eday-table').addEventListener('click', e => {
       const sort = e.target.closest('[data-sort]'), tr = e.target.closest('tr[data-id]');
       if (sort) { const key = sort.dataset.sort; if (st.sort === key) st.dir = -st.dir; else { st.sort = key; st.dir = columns.find(c => c.key === key).text ? 1 : -1; } drawTable(); }
@@ -315,9 +341,10 @@ window.addEventListener('palette-change', () => { if (!tab.hidden && st.live) { 
 window.addEventListener('view-tab', ({ detail }) => {
   const on = detail.view === 'eday';
   tab.hidden = !on; st.active = on;
+  if (!on) activateResults(false);
   syncTopbar();
   const url = new URL(location.href);
-  if (on) { url.searchParams.set('tab', 'eday'); start(); map?.resize(); }
+  if (on) { url.searchParams.set('tab', 'eday'); start(); map?.resize(); if (tab.classList.contains('eday-results')) activateResults(true); }
   else { clearInterval(timer); timer = null; if (url.searchParams.get('tab') === 'eday') url.searchParams.delete('tab'); }
   history.replaceState(null, '', url);
 });

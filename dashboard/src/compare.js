@@ -48,9 +48,9 @@ export const minOptions = [0, 50, 100, 250, 500, 1000];
 export const levelInfo = {
   precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv', extra:'precinct_extra_races.csv' },
   county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv', extra:'county_extra_races.csv' },
-  cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv' },
-  cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv' },
-  puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv' },
+  cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv', extra:'cd_extra_races.csv' },
+  cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv', extra:'cousub_extra_races.csv' },
+  puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv', extra:'puma_extra_races.csv' },
 };
 
 const params = new URLSearchParams(location.search);
@@ -123,7 +123,7 @@ export function loadStore(level) {
     stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => []), info.extra ? csv(info.extra).catch(() => []) : Promise.resolve([])]).then(([details, projections, history, extra]) => {
       const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row])), byExtra = new Map(extra.map(row => [row.region_id, row]));
       const n = details.length;
-      const store = { level, n, ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
+      const store = { level, n, cov26:new Float64Array(n).fill(NaN), extra:new Uint8Array(n), ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
         dem:{}, rep:{}, tal:new Float64Array(n), pax:new Float64Array(n), mean:new Float64Array(n), q05:new Float64Array(n), q95:new Float64Array(n), pTal:new Float64Array(n),
         demog:{ hisp_cvap_share:new Float64Array(n), white_cvap_share:new Float64Array(n), black_cvap_share:new Float64Array(n), ba_plus_share:new Float64Array(n), med_income:new Float64Array(n), population:new Float64Array(n), area_sqmi:new Float64Array(n) },
         cache:new Map(), tp:new Map(), share:new Map(), index:null };
@@ -140,6 +140,7 @@ export function loadStore(level) {
         const old = byHistory.get(row.region_id);
         if (old) for (const item of histRaces) { store.dem[item.key][i] = votes(old[`dem_${item.col}`]); store.rep[item.key][i] = votes(old[`rep_${item.col}`]); }
         const ext = byExtra.get(row.region_id);
+        if (ext) { store.cov26[i] = num(ext.cov26); store.extra[i] = 1; }
         if (ext) for (const item of extraRaces) { store.dem[item.key][i] = votes(ext[`dem_${item.key}`]); store.rep[item.key][i] = votes(ext[`rep_${item.key}`]); }
         store.tal[i] = votes(row.talarico_mean); store.pax[i] = votes(row.paxton_mean);
         store.mean[i] = num(p.mean); store.q05[i] = num(p.q05); store.q95[i] = num(p.q95); store.pTal[i] = num(p.p_talarico);
@@ -194,7 +195,6 @@ export function evaluate(store, from, to, f = state) {
   const n = store.n, tA = tpOf(store, from), tB = tpOf(store, to), sA = shareOf(store, from), sB = shareOf(store, to);
   const shift = new Float64Array(n).fill(NaN), ratio = new Float64Array(n).fill(NaN), net = new Float64Array(n).fill(NaN), status = new Uint8Array(n);
   const counts = { shown:0, below:0, missing:0, filtered:0, total:n };
-  const stateA = statewide(store, from), stateB = statewide(store, to);
   let bothA = 0, bothB = 0;
   for (let i = 0; i < n; i++) {
     // The county filter needs a county for every place (not districts or PUMAs); the profile filter exists only for precincts.
@@ -207,11 +207,15 @@ export function evaluate(store, from, to, f = state) {
     ratio[i] = tB[i] / tA[i];
     net[i] = (to === 'f26' ? store.tal[i] - store.pax[i] : store.dem[to][i] - store.rep[to][i]) - (from === 'f26' ? store.tal[i] - store.pax[i] : store.dem[from][i] - store.rep[from][i]);
   }
-  // The statewide ratio compares only rows that have votes in both races, so the totals line up.
-  let aligned = 0, alignedB = 0;
-  for (let i = 0; i < n; i++) if (tA[i] > 0 && tB[i] > 0 && Number.isFinite(sA[i]) && Number.isFinite(sB[i])) { aligned += tA[i]; alignedB += tB[i]; }
+  // Statewide shares and the ratio compare only rows that have votes in both races, so partial coverage (2026 precinct returns) cannot skew them.
+  let aligned = 0, alignedB = 0, demA = 0, demB = 0;
+  for (let i = 0; i < n; i++) if (tA[i] > 0 && tB[i] > 0 && Number.isFinite(sA[i]) && Number.isFinite(sB[i])) {
+    aligned += tA[i]; alignedB += tB[i];
+    demA += from === 'f26' ? store.tal[i] : store.dem[from][i]; demB += to === 'f26' ? store.tal[i] : store.dem[to][i];
+  }
+  const alignedShareA = aligned > 0 ? demA / aligned : NaN, alignedShareB = alignedB > 0 ? demB / alignedB : NaN;
   const result = { from, to, filters:{ ...f }, shift, ratio, net, status, counts, shareA:sA, shareB:sB, tpA:tA, tpB:tB,
-    stateShareA:stateA.share, stateShareB:stateB.share, stateShift:stateB.share - stateA.share, stateRatio:aligned > 0 ? alignedB / aligned : NaN };
+    stateShareA:alignedShareA, stateShareB:alignedShareB, stateShift:alignedShareB - alignedShareA, stateRatio:aligned > 0 ? alignedB / aligned : NaN };
   if (store.cache.size > 24) store.cache.delete(store.cache.keys().next().value);
   store.cache.set(key, result);
   return result;
@@ -267,49 +271,59 @@ export function weightedDeciles(x, y, weights, idx, bins = 10) {
 // The fill looks each place up by region_id in values computed from the stores, so any pair of races can be shaded, whether or not the tiles carry its columns.
 const lookups = new WeakMap();
 const roundTo = v => Math.round(v * 1e6) / 1e6;
-export function mapExpressions(level, metric = state.metric) {
-  const store = storeIfLoaded(level);
-  if (!store) return null;
-  const { from, to, min } = state;
-  const ev = evaluate(store, from, to);
-  const key = `${from}|${to}|${filterKey(state)}|${metric}`;
+// `pair` is {from, to, min, county, profile, metric}; the Forecast tab passes its own state, other tabs pass theirs, so neither overwrites the other.
+export function valueExpressions(store, key, getArray, status, filtered, min) {
   let cache = lookups.get(store);
   if (!cache) lookups.set(store, cache = new Map());
   if (!cache.has(key)) {
-    const values = {}, codes = {}, array = metricArray(ev, metric);
+    const values = {}, codes = {}, array = getArray();
     for (let i = 0; i < store.n; i++) {
-      if (ev.status[i] === STATUS.ok && Number.isFinite(array[i])) values[store.ids[i]] = roundTo(array[i]); else codes[store.ids[i]] = ev.status[i] === STATUS.ok ? STATUS.missing : ev.status[i];
+      if (status[i] === STATUS.ok && Number.isFinite(array[i])) values[store.ids[i]] = roundTo(array[i]); else codes[store.ids[i]] = status[i] === STATUS.ok ? STATUS.missing : status[i];
     }
-    if (cache.size > 8) cache.delete(cache.keys().next().value);
+    if (cache.size > 12) cache.delete(cache.keys().next().value);
     cache.set(key, { values, codes });
   }
   const { values, codes } = cache.get(key);
   const id = ['to-string', ['get', 'region_id']], code = ['coalesce', ['get', id, ['literal', codes]], 0];
   return {
     nodata:['all', ['==', code, 0], ['!', ['has', id, ['literal', values]]]],
-    filtered:ev.counts.filtered ? ['==', code, STATUS.filtered] : null,
+    filtered:filtered ? ['==', code, STATUS.filtered] : null,
     missing:['==', code, STATUS.missing],
     below:min > 0 ? ['==', code, STATUS.below] : null,
-    value:['get', id, ['literal', values]], ev,
+    value:['get', id, ['literal', values]],
   };
 }
+export function mapExpressions(level, metric = state.metric, pair = state) {
+  const store = storeIfLoaded(level);
+  if (!store) return null;
+  const { from, to, min } = pair;
+  const ev = evaluate(store, from, to, pair);
+  return { ...valueExpressions(store, `${from}|${to}|${filterKey(pair)}|${metric}`, () => metricArray(ev, metric), ev.status, ev.counts.filtered, min), ev };
+}
+// 2026 results are blank where precinct returns are missing. The note says so for the places that have no 2026 votes.
+export const is2026Result = key => key === 'sen26' || key === 'gov26';
+export function noData2026Note(level, d, pair = state) {
+  if (!(is2026Result(pair.from) || is2026Result(pair.to)) || d.status !== STATUS.missing) return '';
+  if (level === 'precinct') return '2026 precinct returns not available here; see the county view.';
+  return Number.isFinite(d.cov26) ? `2026 precinct returns incomplete for this area (${(100 * d.cov26).toFixed(1)}% covered).` : '';
+}
 // The same values for a hovered feature, read from the store by its region_id; status is never ok for places that are not shaded.
-export function describeProps(props, level = state.level) {
-  const { from, to } = state;
+export function describeProps(props, level = state.level, pair = state) {
+  const { from, to } = pair;
   const store = storeIfLoaded(level);
   const at = store ? indexOf(store, String(props.region_id)) : undefined;
-  if (at === undefined) return { status:STATUS.missing, value:NaN, shareA:NaN, shareB:NaN, shift:NaN, tpA:0, tpB:0, ratio:NaN, net:NaN };
-  const ev = evaluate(store, from, to);
+  if (at === undefined) return { status:STATUS.missing, value:NaN, shareA:NaN, shareB:NaN, shift:NaN, tpA:0, tpB:0, ratio:NaN, net:NaN, cov26:NaN };
+  const ev = evaluate(store, from, to, pair);
   const tpA = ev.tpA[at], tpB = ev.tpB[at], shareA = ev.shareA[at], shareB = ev.shareB[at];
   const net = (to === 'f26' ? store.tal[at] - store.pax[at] : store.dem[to][at] - store.rep[to][at]) - (from === 'f26' ? store.tal[at] - store.pax[at] : store.dem[from][at] - store.rep[from][at]);
   const status = ev.status[at];
   const arrays = ev.arrays ||= {};
-  const value = status === STATUS.ok ? (arrays[state.metric] ||= metricArray(ev, state.metric))[at] : NaN;
-  return { status, value, shareA, shareB, shift:shareB - shareA, tpA, tpB, ratio:tpB / tpA, net };
+  const value = status === STATUS.ok ? (arrays[pair.metric] ||= metricArray(ev, pair.metric))[at] : NaN;
+  return { status, value, shareA, shareB, shift:shareB - shareA, tpA, tpB, ratio:tpB / tpA, net, cov26:store.cov26[at] };
 }
 // Sorted metric values of the shaded places at one level, for the map's range fit and class breaks.
-export function metricValues(store, metric = state.metric) {
+export function metricValues(store, metric = state.metric, pair = state) {
   const values = [];
-  for (const v of metricArray(evaluate(store, state.from, state.to), metric)) if (Number.isFinite(v)) values.push(v);
+  for (const v of metricArray(evaluate(store, pair.from, pair.to, pair), metric)) if (Number.isFinite(v)) values.push(v);
   return values.sort((a, b) => a - b);
 }
