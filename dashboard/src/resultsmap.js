@@ -10,10 +10,11 @@ const $ = selector => document.querySelector(selector);
 const params = new URLSearchParams(location.search);
 const levelOrder = ['precinct', 'county', 'cd', 'cousub', 'puma'];
 const levelNames = { precinct:'Precincts', county:'Counties', cd:'Congressional districts', cousub:'Subdivisions', puma:'PUMAs' };
-const rs = { level:'county', measure:'fc_shift', from:'sen24', to:'sen26', min:0, county:'', range:'state' };
+// bw is empty until the user sets it, so the default follows the level (thinner borders for dense precincts).
+const rs = { level:'county', measure:'res_share', from:'sen24', to:'sen26', min:0, county:'', range:'state', bw:'', fo:'87', bo:'30', ln:'1', hw:'1', fb:'1' };
 const defaults = { ...rs };
-const urlKeys = { level:'rlv', measure:'rm', from:'rf', to:'rt', min:'rmin', county:'rc', range:'rr' };
-let available = [], map = null, started = false, styleReady = false, decorated = false, active = false;
+const urlKeys = { level:'rlv', measure:'rm', from:'rf', to:'rt', min:'rmin', county:'rc', range:'rr', bw:'rbw', fo:'rfo', bo:'rbo', ln:'rln', hw:'rhw', fb:'rfb' };
+let available = [], present = [], map = null, started = false, styleReady = false, decorated = false, active = false;
 let cur = null, token = 0, hover = null, selected = null, surnames = null;
 const added = new Set();
 const sortState = { key:'votes', dir:-1 };
@@ -33,11 +34,14 @@ const demographics = [
   ['black_cvap_share', 'Black share of citizen voting-age population', 'pctshare'], ['ba_plus_share', "Adults with a bachelor's degree or more", 'pctshare'],
   ['med_income', 'Median household income', 'income'], ['population', 'Population', 'votes'],
 ];
+const earlyColumns = [['pct_registered', '% of registered'], ['pct_of_2022', '% of 2022'], ['pct_of_expected', '% of expected']];
+const earlyFile = level => ['precinct', 'county', 'puma'].includes(level) && present.includes(`early_vote_map_${level}.csv`) ? `early_vote_map_${level}.csv` : null;
 function measureList(level) {
   const list = [
     { key:'res_share', group:'Result', label:'Talarico two-party share', scale:'share', fmt:'share', election:true },
     { key:'res_margin', group:'Result', label:'Margin (Talarico minus Paxton votes)', scale:'diff', fmt:'diff', election:true },
     { key:'res_votes', group:'Result', label:'Two-party votes cast', scale:'seq', fmt:'votes', election:true },
+    ...(earlyFile(level) ? earlyColumns.map(([col, text]) => ({ key:`ev_${col}`, group:'Result', label:`Early ballots (final day): ${text}`, scale:'seq', fmt:'pctshare', early:col })) : []),
     ...cmpMetrics.filter(m => m.key !== 'rratio').map(m => ({ key:`cmp_${m.key}`, group:'Shift vs another race', label:m.label, pair:'chosen', metric:m.key, election:true })),
     { key:'fc_shift', group:'Shift vs forecast', label:'Result minus pre-election forecast (Talarico share)', pair:'forecast', metric:'shift', election:true },
     { key:'fc_net', group:'Shift vs forecast', label:'Result minus forecast, net Democratic votes', pair:'forecast', metric:'net', election:true },
@@ -55,6 +59,31 @@ const defOf = () => measureList(rs.level).find(d => d.key === rs.measure) || mea
 const effCounty = () => rs.level === 'precinct' ? rs.county : '';
 const pairOf = def => ({ from:def.pair === 'forecast' ? 'f26' : rs.from, to:def.pair === 'forecast' ? 'sen26' : rs.to, min:rs.min, county:effCounty(), profile:'', metric:def.metric });
 
+// Cumulative early-vote files hold one row per area per day; the map uses each area's row on the latest date.
+const earlyCache = new Map();
+async function earlyArray(store, column) {
+  const file = earlyFile(store.level);
+  if (!earlyCache.has(file)) earlyCache.set(file, csv(file).then(rows => {
+    let last = '';
+    for (const r of rows) if (r.date > last) last = r.date;
+    return new Map(rows.filter(r => r.date === last).map(r => [r.region_id, r]));
+  }));
+  const byId = await earlyCache.get(file);
+  return Float64Array.from(store.ids, id => num(byId.get(id)?.[column]));
+}
+const uses26 = (def, pair) => pair ? is2026Result(pair.from) || is2026Result(pair.to) : !!def.election;
+// County values for the precinct fallback: the same measure and pair from the county store, for measures that do not depend on a place's size.
+async function countyFallback(def, pair) {
+  if (rs.level !== 'precinct' || rs.fb !== '1' || !uses26(def, pair)) return null;
+  const scale = def.pair ? metricScale[def.metric] : def.scale;
+  if (!['share', 'shift', 'logratio'].includes(scale)) return null;
+  const store = await ensureStore('county'), values = {};
+  let array, ok = null;
+  if (def.pair) { const ev = evaluate(store, pair.from, pair.to, { ...pair, min:0, county:'' }); array = metricArray(ev, def.metric); ok = ev.status; }
+  else array = shareOf(store, 'sen26');
+  for (let i = 0; i < store.n; i++) if ((!ok || ok[i] === STATUS.ok) && Number.isFinite(array[i])) values[store.ids[i]] = Math.round(array[i] * 1e6) / 1e6;
+  return { values, store };
+}
 async function surnameArray(store, column) {
   surnames ||= csv(levelInfo.precinct.extra).then(rows => new Map(rows.map(r => [r.region_id, r])));
   const byId = await surnames;
@@ -66,7 +95,7 @@ async function compute() {
   if (def.pair) {
     const pair = pairOf(def), ev = evaluate(store, pair.from, pair.to, pair);
     return { def, store, pair, ev, array:metricArray(ev, def.metric), status:ev.status, counts:ev.counts, scale:metricScale[def.metric], fmt:metricFmt[def.metric], min:rs.min,
-      expr:mapExpressions(rs.level, def.metric, pair) };
+      expr:mapExpressions(rs.level, def.metric, pair), fallback:await countyFallback(def, pair) };
   }
   const n = store.n, status = new Uint8Array(n), counts = { shown:0, below:0, missing:0, filtered:0, total:n };
   let array, tp = null;
@@ -75,6 +104,7 @@ async function compute() {
     const dem = store.dem.sen26, rep = store.rep.sen26, sh = shareOf(store, 'sen26');
     array = Float64Array.from({ length:n }, (_, i) => def.key === 'res_share' ? sh[i] : def.key === 'res_margin' ? dem[i] - rep[i] : tp[i]);
   } else if (def.surname) array = await surnameArray(store, def.surname);
+  else if (def.early) array = await earlyArray(store, def.early);
   else array = Float64Array.from(store.demog[def.demog]);
   for (let i = 0; i < n; i++) {
     if (county && store.county[i] !== county) { status[i] = STATUS.filtered; counts.filtered++; }
@@ -84,7 +114,7 @@ async function compute() {
   }
   const min = def.election ? rs.min : 0;
   const expr = valueExpressions(store, `v|${def.key}|${rs.level}|${min}|${county}`, () => array.map((v, i) => status[i] === STATUS.ok ? v : NaN), status, counts.filtered, min);
-  return { def, store, pair:null, ev:null, array, status, counts, scale:def.scale, fmt:def.fmt, min, expr };
+  return { def, store, pair:null, ev:null, array, status, counts, scale:def.scale, fmt:def.fmt, min, expr, fallback:await countyFallback(def, null) };
 }
 
 // ---- Color scale ----
@@ -117,9 +147,18 @@ function buildScale(c, viewIds) {
 }
 function colorExpression(c, scale) {
   const g = compareGreyColors(), e = c.expr;
-  const fill = ['interpolate', ['linear'], e.value, ...scale.stops.flatMap((v, i) => [v, scale.colors[i]])];
-  return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), fill];
+  const ramp = value => ['interpolate', ['linear'], value, ...scale.stops.flatMap((v, i) => [v, scale.colors[i]])];
+  const fb = fallbackTest(c);
+  return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), ...(fb ? [fb, ramp(['get', countyId, ['literal', c.fallback.values]])] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), ramp(e.value)];
 }
+// A precinct with no value of its own takes its county's value (the county id is the first three characters of the precinct id).
+const countyId = ['slice', ['to-string', ['get', 'region_id']], 0, 3];
+const fallbackTest = c => c.fallback ? ['all', c.expr.missing, ['has', countyId, ['literal', c.fallback.values]]] : null;
+const fillOpacity = c => {
+  const o = +rs.fo / 100, fb = c && fallbackTest(c);
+  return fb ? ['case', fb, .6 * o, o] : o;
+};
+const borderWidth = () => rs.bw !== '' ? +rs.bw : rs.level === 'precinct' ? .2 : .7;
 
 // ---- Layers ----
 const ids = level => ({ fill:`rs-fill-${level}`, line:`rs-line-${level}`, hi:`rs-hi-${level}`, src:`rs-${level}` });
@@ -149,6 +188,14 @@ function setHighlight() {
   map.setFilter(ids(rs.level).hi, ['in', ['to-string', ['get', 'region_id']], ['literal', [selected, hover].filter(Boolean)]]);
 }
 
+function applyDisplay(c) {
+  const name = ids(rs.level), b = mapBasics();
+  map.setPaintProperty(name.fill, 'fill-opacity', fillOpacity(c));
+  map.setPaintProperty(name.line, 'line-color', `rgba(${b.theme === 'dark' ? '240,247,247' : '40,60,65'},${rs.ln === '1' ? +rs.bo / 100 : 0})`);
+  map.setPaintProperty(name.line, 'line-width', borderWidth());
+  if (map.getLayer('highways')) map.setLayoutProperty('highways', 'visibility', rs.hw === '1' ? 'visible' : 'none');
+}
+
 // ---- Painting ----
 function viewIds() {
   if (!map || !added.has(rs.level)) return [];
@@ -166,6 +213,7 @@ async function paint({ keepScale = false } = {}) {
     addLevel(rs.level);
     showLevel(rs.level);
     map.setPaintProperty(ids(rs.level).fill, 'fill-color', colorExpression(c, scale));
+    applyDisplay(c);
     setHighlight();
   }
   renderLegend(c, scale); renderNote(c); drawTable(c); syncControls(c); syncURL();
@@ -178,9 +226,11 @@ function renderLegend(c, scale) {
   const picks = scale.diverging ? [scale.lo, scale.center, scale.hi] : [scale.lo, (scale.lo + scale.hi) / 2, scale.hi];
   const chip = (color, text) => `<div class="legend-nodata"><span style="background:${color}"></span>${escapeHTML(text)}</div>`;
   const title = c.pair && c.def.pair === 'chosen' ? `${raceOf(c.pair.from).short} to ${raceOf(c.pair.to).short}: ${c.def.label}` : c.def.label;
-  const uses26 = c.pair ? is2026Result(c.pair.from) || is2026Result(c.pair.to) : !!c.def.election;
-  const gone = uses26 ? (rs.level === 'precinct' ? 'No 2026 precinct returns here' : 'Returns incomplete for this area') : 'No data';
+  const gone = uses26(c.def, c.pair) ? (rs.level === 'precinct' ? 'No 2026 precinct returns here' : 'Returns incomplete for this area') : 'No data';
   const lines = [];
+  let used = 0;
+  if (c.fallback) for (let i = 0; i < c.store.n; i++) if (c.status[i] === STATUS.missing && c.fallback.values[c.store.ids[i].slice(0, 3)] !== undefined) used++;
+  if (c.def.early) lines.push('Early ballots only, cumulative to the latest date; this is not total turnout.');
   if (c.ev) lines.push(`Statewide (places shown): ${raceOf(c.pair.from).short} ${share1(c.ev.stateShareA)}, ${raceOf(c.pair.to).short} ${share1(c.ev.stateShareB)}, shift ${signed(c.ev.stateShift)}.`);
   lines.push(`${count(c.counts.shown)} of ${count(c.counts.total - c.counts.filtered)} places shown.`);
   if (c.pair && c.def.pair === 'chosen' && crossOffice(c.pair.from, c.pair.to)) lines.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
@@ -190,7 +240,7 @@ function renderLegend(c, scale) {
     <div class="eday-ramp" style="background:linear-gradient(90deg,${grad})"></div>
     <div class="legend-edges">${picks.map((v, i) => `<span style="left:${i === 0 ? 0 : i === 2 ? 100 : 50}%;${i === 0 ? 'transform:none' : i === 2 ? 'transform:translateX(-100%)' : ''}">${escapeHTML(v === 0 && c.scale === 'shift' ? '0' : fmt(v))}</span>`).join('')}</div>
     ${scale.diverging ? `<div class="legend-ends"><span>${endNames[c.scale][0]}</span><span>${endNames[c.scale][1]}</span></div>` : ''}
-    ${c.counts.missing ? chip(g.missing, gone) : ''}${c.min > 0 && c.def.election ? chip(g.below, `Too few votes (under ${count(c.min)} two-party)`) : ''}${c.counts.filtered ? chip(g.filtered, 'Excluded by filters') : ''}
+    ${used ? `<div class="legend-nodata"><span style="background:linear-gradient(90deg,${grad});opacity:.6"></span>County result (no precinct returns)</div>` : ''}${c.counts.missing - used > 0 ? chip(g.missing, gone) : ''}${c.min > 0 && c.def.election ? chip(g.below, `Too few votes (under ${count(c.min)} two-party)`) : ''}${c.counts.filtered ? chip(g.filtered, 'Excluded by filters') : ''}
     ${lines.map(t => `<div class="eday-legend-note">${escapeHTML(t)}</div>`).join('')}`;
   $('#rs-legend .eday-legend-title').append(' ', swatchButton(swatchKind(c)));
 }
@@ -211,7 +261,7 @@ function renderNote(c) {
     if (rs.level === 'county') parts.push('County 2026 totals are exact and equal the recorded final results.');
     else if (rs.level === 'precinct') {
       const v = coverage();
-      parts.push(v ? `Precinct returns cover ${count(v.counties)} of ${count(v.of)} counties and about ${Math.round(100 * v.share)}% of the statewide two-party vote. The other counties report county totals only, so their precincts are blank here; use Counties to see them.` : 'Counties without precinct returns are blank at this level; use Counties to see them.');
+      parts.push(v ? `Precinct returns cover ${count(v.counties)} of ${count(v.of)} counties and about ${Math.round(100 * v.share)}% of the statewide two-party vote. The other counties report county totals only, so their precincts take the county result at reduced opacity${rs.fb === '1' ? '' : ' (fill is switched off, so they are blank)'}.` : 'Counties without precinct returns are blank at this level; use Counties to see them.');
       if (v?.unmatched) parts.push(`${count(v.unmatched)} of ${count(v.precincts)} precincts on the map have no row in the results file and are blank.`);
       parts.push('Precinct history in split precincts is allocated by each child precinct’s 2026 votes, so counts there are approximate; shares are exact.');
     } else parts.push('An area shows 2026 results only where precinct returns cover at least 98% of its 2026 vote; other areas are blank.');
@@ -266,7 +316,11 @@ function tooltipHTML(id) {
   const i = indexOf(c.store, id);
   if (i === undefined) return `<strong>${escapeHTML(id)}</strong>No data`;
   const tp = tpOf(c.store, 'sen26')[i], sh = shareOf(c.store, 'sen26')[i], lines = [];
-  if (tp > 0) lines.push(`2026 Senate: ${share1(sh)} Talarico of ${count(tp)} two-party votes`);
+  const cid = String(c.store.ids[i]).slice(0, 3), fbValue = c.fallback && c.status[i] === STATUS.missing ? c.fallback.values[cid] : undefined;
+  if (fbValue !== undefined) {
+    const at = indexOf(c.fallback.store, cid);
+    lines.push(`No precinct returns; showing the ${at === undefined ? cid : c.fallback.store.labels[at]} county result`, `${c.def.label} (county): ${fmtOf[c.fmt](fbValue)}`);
+  } else if (tp > 0) lines.push(`2026 Senate: ${share1(sh)} Talarico of ${count(tp)} two-party votes`);
   else if (rs.level === 'precinct') lines.push('Precinct returns not available here; see the county view.');
   else if (Number.isFinite(c.store.cov26[i])) lines.push(`2026 precinct returns incomplete for this area (${(100 * c.store.cov26[i]).toFixed(1)}% covered)`);
   else lines.push('No 2026 returns for this place');
@@ -276,7 +330,8 @@ function tooltipHTML(id) {
     if (Number.isFinite(sh) && Number.isFinite(from)) lines.push(`Shift: ${signed(sh - from)}`);
   } else if (c.def.election) lines.push(`Pre-election forecast: ${share1(shareOf(c.store, 'f26')[i])}`);
   const v = c.array[i];
-  if (!c.def.pair && Number.isFinite(v) && c.def.key !== 'res_share') lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}${c.def.surname ? ' (estimate)' : ''}`);
+  if (c.def.early && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
+  else if (!c.def.pair && Number.isFinite(v) && c.def.key !== 'res_share') lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}${c.def.surname ? ' (estimate)' : ''}`);
   else if (c.def.pair && c.status[i] === STATUS.ok) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
   if (c.status[i] === STATUS.below) lines.push(`Below the minimum of ${count(c.min)} two-party votes: not shaded.`);
   if (c.status[i] === STATUS.filtered) lines.push('Excluded by the current filters.');
@@ -302,6 +357,10 @@ function syncControls(c) {
   $('#rs-compare').hidden = c.def.pair !== 'chosen';
   $('#rs-from').value = rs.from; $('#rs-to').value = rs.to; $('#rs-min').value = String(rs.min);
   $('#rs-county-field').hidden = rs.level !== 'precinct'; $('#rs-county').value = rs.county;
+  $('#rs-fb-field').hidden = rs.level !== 'precinct'; $('#rs-fb').checked = rs.fb === '1';
+  $('#rs-fo').value = rs.fo; $('#rs-fo-out').textContent = `${rs.fo}%`; $('#rs-ln').checked = rs.ln === '1';
+  $('#rs-bw').value = borderWidth(); $('#rs-bw-out').textContent = borderWidth().toFixed(1); $('#rs-bw').disabled = $('#rs-bo').disabled = rs.ln !== '1';
+  $('#rs-bo').value = rs.bo; $('#rs-bo-out').textContent = `${rs.bo}%`; $('#rs-hw').checked = rs.hw === '1';
   const options = rangeOptions(c.scale);
   fillSelect($('#rs-range'), options.map(([v, t]) => new Option(t, v)), options.some(([v]) => v === rs.range) ? rs.range : 'state');
 }
@@ -320,6 +379,9 @@ function readURL() {
   const min = params.get(urlKeys.min); if (min != null && minOptions.includes(+min)) rs.min = +min;
   const county = params.get(urlKeys.county); if (county && /^\d{3}$/.test(county)) rs.county = county;
   const range = params.get(urlKeys.range); if (range && /^(state|view|p[\d.]+)$/.test(range)) rs.range = range;
+  const bw = params.get(urlKeys.bw); if (bw != null && Number.isFinite(+bw) && +bw >= 0 && +bw <= 5) rs.bw = bw;
+  for (const key of ['fo', 'bo']) { const v = params.get(urlKeys[key]); if (v != null && /^\d{1,3}$/.test(v) && +v <= 100) rs[key] = v; }
+  for (const key of ['ln', 'hw', 'fb']) { const v = params.get(urlKeys[key]); if (v === '0' || v === '1') rs[key] = v; }
 }
 function setHover(id) { if (hover === id) return; hover = id; setHighlight(); markTable(); }
 function setSelection(id) {
@@ -367,6 +429,10 @@ async function setupControls() {
   fillSelect($('#rs-min'), minOptions.map(v => new Option(v ? `${count(v)}` : 'None', String(v))), String(rs.min));
   const on = (selector, key, parse = v => v) => $(selector).addEventListener('change', e => { rs[key] = parse(e.target.value); paint(); });
   $('#rs-measure').addEventListener('change', e => { rs.measure = e.target.value; paint(); });
+  const check = (selector, key) => $(selector).addEventListener('change', e => { rs[key] = e.target.checked ? '1' : '0'; paint(); });
+  check('#rs-fb', 'fb'); check('#rs-ln', 'ln'); check('#rs-hw', 'hw');
+  for (const [selector, key] of [['#rs-fo', 'fo'], ['#rs-bw', 'bw'], ['#rs-bo', 'bo']]) $(selector).addEventListener('input', e => { rs[key] = String(e.target.value); if (cur) { applyDisplay(cur); syncControls(cur); syncURL(); } });
+  $('#rs-display-reset').addEventListener('click', () => { Object.assign(rs, { bw:'', fo:defaults.fo, bo:defaults.bo, ln:defaults.ln, hw:defaults.hw }); paint(); });
   on('#rs-from', 'from'); on('#rs-to', 'to'); on('#rs-min', 'min', Number); on('#rs-county', 'county'); on('#rs-range', 'range');
   $('#rs-table').addEventListener('click', e => {
     const sort = e.target.closest('[data-sort]'), tr = e.target.closest('tr[data-id]');
@@ -383,7 +449,7 @@ async function setupControls() {
 // ---- Public ----
 // Levels are offered when their extra file was published; without any, the tab keeps its county-only map.
 export async function resultsAvailable() {
-  const present = await fetch(`${base}data/optional.json`).then(r => r.ok ? r.json() : []).catch(() => []);
+  present = await fetch(`${base}data/optional.json`).then(r => r.ok ? r.json() : []).catch(() => []);
   available = levelOrder.filter(l => levelInfo[l].extra && present.includes(levelInfo[l].extra));
   return available.length > 0;
 }

@@ -315,7 +315,18 @@
               <label class="evt-field">Minimum two-party votes <select id="rs-min"></select></label>
               <label class="evt-field" id="rs-county-field" hidden>County <select id="rs-county"></select></label>
               <label class="evt-field">Color range <select id="rs-range"></select></label>
+              <label class="evt-field" id="rs-fb-field" hidden><input id="rs-fb" type="checkbox"> Fill precincts without returns with their county result</label>
             </div>
+            <details class="rs-display"><summary>Display</summary>
+              <div class="rs-display-body">
+                <label>Fill opacity <span class="range-row"><input id="rs-fo" type="range" min="0" max="100" step="5"><output id="rs-fo-out"></output></span></label>
+                <label class="check"><input id="rs-ln" type="checkbox"> Area borders</label>
+                <label>Border thickness <span class="range-row"><input id="rs-bw" type="range" min="0" max="5" step="0.1"><output id="rs-bw-out"></output></span></label>
+                <label>Border opacity <span class="range-row"><input id="rs-bo" type="range" min="0" max="100" step="5"><output id="rs-bo-out"></output></span></label>
+                <label class="check"><input id="rs-hw" type="checkbox"> Highways (Roads-only basemap)</label>
+                <button type="button" id="rs-display-reset" class="text-button">Reset display</button>
+              </div>
+            </details>
             <div class="evt-map-wrap rs-map-wrap">
               <div id="rs-map" role="application" aria-label="Interactive results map"></div>
               <div id="rs-tooltip" class="map-tooltip" hidden></div>
