@@ -1,4 +1,5 @@
 import { csv } from './data.js';
+import extraManifest from './extra-races.json';
 
 // Descriptive arithmetic on published columns only: shares, shifts, ratios and weighted summaries of past results and of the published 2026 projection.
 // Races from 2016 on come from the details files; earlier races (hist) come from the published history files, so any two can be compared.
@@ -25,10 +26,14 @@ export const races = [
   race('pres24', 2024, 'pres', '2024 President', '2024 Pres.'),
   race('sen24', 2024, 'sen', '2024 Senate', '2024 Sen.'),
   race('f26', 2026, 'sen', '2026 forecast', '2026 forecast', { forecast:true }),
+  // 2026 results and other statewide races from precinct_extra_races.csv / county_extra_races.csv (tx26_extra_races_export.R).
+  // Not reconciled against uniform_shift.csv: that check (shifts.js) covers only the hand-maintained races above.
+  ...extraManifest.map(e => race(e.key, e.year, e.office, e.label, e.short, { extra:true })),
 ].sort((a, b) => a.year - b.year);
 // Races read from the details files (reconciled against uniform_shift.csv) and from the history files.
-export const pastKeys = races.filter(item => !item.forecast && !item.hist).map(item => item.key);
+export const pastKeys = races.filter(item => !item.forecast && !item.hist && !item.extra).map(item => item.key);
 export const histRaces = races.filter(item => item.hist);
+export const extraRaces = races.filter(item => item.extra);
 export const raceOf = key => races.find(race => race.key === key);
 export const metrics = [
   { key:'shift', label:'Shift in Democratic share' },
@@ -41,8 +46,8 @@ export const profileNames = ['rural', 'suburbs', 'urban', 'hispanic'];
 export const profileLabels = { rural:'Rural', suburbs:'Suburbs', urban:'Diverse urban', hispanic:'Hispanic working-class' };
 export const minOptions = [0, 50, 100, 250, 500, 1000];
 export const levelInfo = {
-  precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv' },
-  county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv' },
+  precinct:{ label:'Precincts', noun:'precincts', details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv', extra:'precinct_extra_races.csv' },
+  county:{ label:'Counties', noun:'counties', details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv', extra:'county_extra_races.csv' },
   cd:{ label:'Congressional districts', noun:'districts', details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv' },
   cousub:{ label:'County subdivisions', noun:'subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv' },
   puma:{ label:'PUMAs', noun:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv' },
@@ -74,6 +79,18 @@ const urlKeys = { from:'cf', to:'cto', min:'cmin', county:'cc', profile:'cp', y2
   if (m?.startsWith('cmp_') && metrics.some(metric => `cmp_${metric.key}` === m)) state.metric = m.slice(4);
 }
 export const isCompareMeasure = key => typeof key === 'string' && key.startsWith('cmp_');
+// <option>s for a From/To race picker: the hand-maintained races flat, as before, plus the 2026 results and
+// other extra races (precinct_extra_races.csv / county_extra_races.csv) under their own optgroup.
+export function raceNodes(selected) {
+  const nodes = races.filter(item => !item.extra).map(item => new Option(item.label, item.key, false, item.key === selected));
+  if (extraRaces.length) {
+    const group = document.createElement('optgroup');
+    group.label = '2026 results and other statewide races';
+    group.append(...extraRaces.map(item => new Option(item.label, item.key, false, item.key === selected)));
+    nodes.push(group);
+  }
+  return nodes;
+}
 
 function syncURL() {
   const url = new URL(location.href);
@@ -103,8 +120,8 @@ const votes = v => { const x = num(v); return Number.isFinite(x) ? x : 0; };
 export function loadStore(level) {
   if (!stores.has(level)) {
     const info = levelInfo[level];
-    stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => [])]).then(([details, projections, history]) => {
-      const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row]));
+    stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => []), info.extra ? csv(info.extra).catch(() => []) : Promise.resolve([])]).then(([details, projections, history, extra]) => {
+      const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row])), byExtra = new Map(extra.map(row => [row.region_id, row]));
       const n = details.length;
       const store = { level, n, ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
         dem:{}, rep:{}, tal:new Float64Array(n), pax:new Float64Array(n), mean:new Float64Array(n), q05:new Float64Array(n), q95:new Float64Array(n), pTal:new Float64Array(n),
@@ -122,6 +139,8 @@ export function loadStore(level) {
         for (const key of pastKeys) { store.dem[key][i] = votes(row[`dem_${key}`]); store.rep[key][i] = votes(row[`rep_${key}`]); }
         const old = byHistory.get(row.region_id);
         if (old) for (const item of histRaces) { store.dem[item.key][i] = votes(old[`dem_${item.col}`]); store.rep[item.key][i] = votes(old[`rep_${item.col}`]); }
+        const ext = byExtra.get(row.region_id);
+        if (ext) for (const item of extraRaces) { store.dem[item.key][i] = votes(ext[`dem_${item.key}`]); store.rep[item.key][i] = votes(ext[`rep_${item.key}`]); }
         store.tal[i] = votes(row.talarico_mean); store.pax[i] = votes(row.paxton_mean);
         store.mean[i] = num(p.mean); store.q05[i] = num(p.q05); store.q95[i] = num(p.q95); store.pTal[i] = num(p.p_talarico);
         for (const key of Object.keys(store.demog)) store.demog[key][i] = num(row[key]);

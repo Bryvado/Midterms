@@ -10,7 +10,7 @@ import { csv, pct, probPct, signed, escapeHTML, table } from './data.js';
 import { initMap, setUnit, setMeasure, setReference, initialMeasure, currentUnit } from './map.js';
 import { initChart, renderChart, setScenario, setEarlyVote } from './chart.js';
 import { initScatter } from './scatter.js';
-import { races as cmpRaces, metrics as cmpMetrics, state as cmpState, setState as setCompare } from './compare.js';
+import { metrics as cmpMetrics, state as cmpState, setState as setCompare, raceNodes } from './compare.js';
 import './shifts.js';
 import { setBaselines, selectPlace, setShadeHandler, highlightShade } from './details.js';
 
@@ -69,7 +69,8 @@ setShadeHandler(meta => runMapUpdate('Shading map…', async signal => {
 const cmpOption = new Option('Compare elections', 'cmp_shift');
 measure.querySelector('option[value="p_talarico"]').after(cmpOption);
 const cmpGroup = $('#compare-group'), cmpFrom = $('#cmp-from'), cmpTo = $('#cmp-to'), cmpMetric = $('#cmp-metric');
-for (const select of [cmpFrom, cmpTo]) select.replaceChildren(...cmpRaces.map(race => new Option(race.label, race.key)));
+cmpFrom.replaceChildren(...raceNodes(cmpState.from));
+cmpTo.replaceChildren(...raceNodes(cmpState.to));
 cmpMetric.replaceChildren(...cmpMetrics.map(metric => new Option(metric.label, metric.key)));
 const comparing = () => measure.value.startsWith('cmp_');
 const useComparison = key => { cmpOption.value = key; measure.value = key; };
