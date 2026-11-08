@@ -14,7 +14,10 @@ dashboard/dist/
 dashboard/public/data/
 dashboard/.tile-cache/
 *_cache/
+civix_cache/
 renv/library/
 renv/staging/
 data/cache/
+data/raw/
 *.pmtiles
+*.rds
