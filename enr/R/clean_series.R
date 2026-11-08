@@ -24,9 +24,11 @@ row_key <- function(d) paste(d$county_num, d$office_id, d$cand_id, sep = "|")
 keys_aligned <- all(vapply(snaps, function(d) identical(row_key(d), row_key(snaps[[1]])), TRUE))
 fin <- snaps[[length(snaps)]]
 group <- paste(fin$county_num, fin$office_id, sep = "|")
-limit <- function(final) final * 1.01 + 50
+# 2,500 votes separates the night's double counts (smallest: Upshur, 8,087) from ordinary revisions (largest: Nueces, 1,351).
+THRESHOLD <- 2500
+limit <- function(final) final + THRESHOLD
 
-# A county x office is bad in a snapshot when any candidate's votes or early votes exceed the final value by more than 1% + 50.
+# A county x office is bad in a snapshot when any candidate's votes or early votes exceed the final value by more than THRESHOLD.
 # Its rows then take the masked columns from that county x office's last good snapshot.
 last_good <- fin[, masked_cols]; last_good[] <- NA
 clean <- vector("list", length(snaps)); flag_rows <- list()
@@ -72,7 +74,7 @@ gates <- c(
     identical(clean[[length(clean)]]$votes_early, snaps[[length(snaps)]]$votes_early),
   no_na_votes = all(vapply(clean, function(d) !anyNA(d$votes), TRUE)),
   same_snapshot_count = length(clean) == length(files),
-  required_senate_flagged = all(required %in% senate_flagged)
+  senate_flagged_exactly = setequal(senate_flagged, required)
 )
 
 if (all(gates)) {
@@ -86,6 +88,9 @@ report <- c(
   sprintf("Snapshots in %d, out %d (%s to %s)", length(files), length(clean), snaps[[1]]$snapshot_utc[1], fin$snapshot_utc[1]),
   sprintf("County FIPS corrected for %d counties: %s", nrow(fips_changed), paste(sprintf("%s %s->%s", fips_changed$county_name, fips_changed$county_fips, fips_of(fips_changed$county_name)), collapse = ", ")),
   sprintf("Flagged county x office x snapshot cells: %d, in %d windows across %d offices", nrow(flags), nrow(windows), length(unique(windows$office_name))),
+  if (!setequal(senate_flagged, required)) paste("Senate counties flagged:", paste(sort(senate_flagged), collapse = ", ")),
+  "All flagged windows (UTC):",
+  capture.output(print(as.data.frame(windows[, c("office_name", "county_name", "start_utc", "end_utc", "cleared_utc", "snapshots", "max_excess")]), row.names = FALSE)),
   "Senate windows (UTC):",
   capture.output(print(as.data.frame(windows[windows$office_name == senate, c("county_name", "start_utc", "end_utc", "cleared_utc", "snapshots", "max_excess")]), row.names = FALSE)),
   "Gates:", sprintf("  %-26s %s", names(gates), ifelse(gates, "pass", "FAIL")),
