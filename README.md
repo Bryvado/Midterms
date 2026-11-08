@@ -5,9 +5,9 @@ One file per committed version of `state/results.csv` on `enr-2026` (102 version
 Two corrections, made by `enr/R/clean_series.R`:
 
 - `county_fips` comes from `county_name` through `enr/county_fips.csv` (letters-only uppercase key). The recorder had derived it from the SOS county number, which put MADISON through MAVERICK before MCCULLOCH and gave nine counties the wrong FIPS.
-- Transient double counts are masked. A county x office is flagged in a snapshot when any candidate's `votes` or `votes_early` exceeds that candidate's final value by more than 1% + 50 votes. Its `votes`, `votes_early`, `race_votes_county` and `precincts_reporting` are replaced with the values from its last good snapshot. `flags.csv` lists every flagged county x office x snapshot; `windows.csv` groups them into runs, with `cleared_utc` the first good snapshot after each run.
+- Transient double counts are masked. A county x office is flagged in a snapshot when any candidate's `votes` or `votes_early` exceeds that candidate's final value by more than 2,500 votes. Its `votes`, `votes_early`, `race_votes_county` and `precincts_reporting` are replaced with the values from its last good snapshot. `flags.csv` lists every flagged county x office x snapshot; `windows.csv` groups them into runs, with `cleared_utc` the first good snapshot after each run.
 
-Gates: every county name matched, rows aligned across snapshots, final snapshot unchanged, no missing votes, 102 snapshots in and out, and STARR, UPSHUR, DALLAS, GUADALUPE and FORT BEND flagged for the Senate.
+Gates: every county name matched, rows aligned across snapshots, final snapshot unchanged, no missing votes, 102 snapshots in and out, and exactly STARR, UPSHUR, DALLAS, GUADALUPE and FORT BEND flagged for the Senate.
 
 Rebuilt with:
 
