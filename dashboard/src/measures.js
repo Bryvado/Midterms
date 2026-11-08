@@ -8,8 +8,8 @@ export const otherGroups = ['Race and ethnicity', 'Model inputs', 'Politics', 'E
 // The measures file has no column marking tract-level inputs; these two are the ones the published note says come from tracts.
 const tractMeasures = new Set(['pct_foreign_born', 'pct_noncitizen']);
 const files = {
-  precinct:{ details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv', drivers:'precinct' },
-  county:{ details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv', drivers:'county' },
+  precinct:{ details:'precinct_details.csv', projections:'regional_projections.csv', history:'history_precinct.csv', drivers:'precinct', extra:'precinct_extra_races.csv' },
+  county:{ details:'county_details.csv', projections:'county_projections.csv', history:'history_county.csv', drivers:'county', extra:'county_extra_races.csv' },
   cd:{ details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv', drivers:'congressional_district' },
   cousub:{ details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv', drivers:'county_subdivision' },
   puma:{ details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv', drivers:'puma' },
@@ -44,6 +44,8 @@ export async function modelEntries() {
     { key:'hisp_cvap_share', label:'Hispanic share of citizen adults (CVAP)', group:'Race and ethnicity', type:'share', unit:'share', source:'details' },
     { key:'white_cvap_share', label:'White share of citizen adults (CVAP)', group:'Race and ethnicity', type:'share', unit:'share', source:'details' },
     { key:'black_cvap_share', label:'Black share of citizen adults (CVAP)', group:'Race and ethnicity', type:'share', unit:'share', source:'details' },
+    { key:'hisp_surname_share', label:'Hispanic surname share (modeled estimate)', group:'Race and ethnicity', type:'share', unit:'share', source:'extra' },
+    { key:'black_surname_share', label:'Black surname share (modeled estimate)', group:'Race and ethnicity', type:'share', unit:'share', source:'extra' },
     { key:'ba_plus_share', label:"Bachelor's or higher (model input, older source)", group:'Model inputs', type:'share', unit:'share', source:'details' },
     { key:'med_income', label:'Median income (model input, older source)', group:'Model inputs', type:'median', unit:'dollars', source:'details' },
     { key:'registered_2024', label:'Registered voters, 2024', group:'Model inputs', type:'count', unit:'count', source:'details' },
@@ -135,10 +137,11 @@ const tables = new Map();
 export function levelTable(level) {
   const f = files[level];
   if (!f) return Promise.resolve(null);
-  if (!tables.has(level)) tables.set(level, Promise.all([csv(f.details), csv(f.projections), csv(f.history).catch(() => []), csv('drivers.csv').catch(() => [])]).then(([details, projections, history, drivers]) => {
+  if (!tables.has(level)) tables.set(level, Promise.all([csv(f.details), csv(f.projections), csv(f.history).catch(() => []), csv('drivers.csv').catch(() => []), f.extra ? csv(f.extra).catch(() => []) : Promise.resolve([])]).then(([details, projections, history, drivers, extra]) => {
     const n = details.length, ids = details.map(r => String(r.region_id)), index = new Map(ids.map((id, i) => [id, i]));
     const proj = new Map(projections.map(r => [String(r.region_id), r])), hist = new Map(history.map(r => [String(r.region_id), r]));
     const drv = new Map(drivers.filter(r => r.level === f.drivers).map(r => [String(r.region_id), r]));
+    const ext = new Map(extra.map(r => [String(r.region_id), r]));
     const labels = ids.map(id => proj.get(id)?.region_label || id);
     const cols = new Map();
     const column = (key, source) => {
@@ -148,7 +151,8 @@ export function levelTable(level) {
         for (let i = 0; i < n; i++) {
           const id = ids[i];
           out[i] = source === 'details' ? num(details[i][key]) : source === 'projections' ? num(proj.get(id)?.[key]) : source === 'history' ? num(hist.get(id)?.[key])
-            : source === 'drivers' ? num(drv.get(id)?.[key]) : source === 'density' ? (num(details[i].area_sqmi) > 0 ? num(details[i].population) / num(details[i].area_sqmi) : NaN) : NaN;
+            : source === 'drivers' ? num(drv.get(id)?.[key]) : source === 'extra' ? num(ext.get(id)?.[key])
+            : source === 'density' ? (num(details[i].area_sqmi) > 0 ? num(details[i].population) / num(details[i].area_sqmi) : NaN) : NaN;
         }
         cols.set(tag, out);
       }

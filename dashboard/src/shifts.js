@@ -1,6 +1,6 @@
 import { scaleLinear } from 'd3-scale';
 import { csv, pct, count, signed, escapeHTML } from './data.js';
-import { state, setState, races, raceOf, metrics, profileNames, profileLabels, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
+import { state, setState, raceNodes, raceOf, metrics, profileNames, profileLabels, minOptions, levelInfo, ensureStore, evaluate, metricArray, STATUS, weightedMean, weightedFit, pairLabel, crossOffice, crossesSources, sourceCaveat, pastKeys, statewide, tpOf, shareOf } from './compare.js';
 import { contours } from './contours.js';
 import { selectPlace } from './details.js';
 import { countyNames, shortLabel } from './labels.js';
@@ -73,7 +73,7 @@ function drawFocus(ctx, hit) {
   for (const [color, width] of [[c.panel, 4.5], [c.text, 2]]) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.arc(hit.sx[k], hit.sy[k], 8, 0, 6.2832); ctx.stroke(); }
 }
 
-function raceOptions(select, value) { select.replaceChildren(...races.map(race => new Option(race.label, race.key, false, race.key === value))); }
+function raceOptions(select, value) { select.replaceChildren(...raceNodes(value)); }
 function build() {
   for (const [id, key] of [['#sh-from', 'from'], ['#sh-to', 'to'], ['#sh-y2from', 'y2from'], ['#sh-y2to', 'y2to']]) raceOptions($(id), state[key]);
   $('#sh-level').replaceChildren(...Object.entries(levelInfo).map(([key, info]) => new Option(info.label, key, false, key === state.level)));
