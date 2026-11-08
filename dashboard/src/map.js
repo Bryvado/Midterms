@@ -3,7 +3,7 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
-import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -622,12 +622,12 @@ function compareTooltip(props) {
   const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : 'no votes in this race'}`;
   const lines = [part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
   if (d.status === CMP.filtered) lines.push('Excluded by the current filters.');
-  else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.');
+  else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.', noData2026Note(unit, d));
   else {
     lines.push(`Shift: ${signed(d.shift)}`, `Turnout ratio: ×${d.ratio.toFixed(2)}`, `Net Democratic vote change: ${d.net >= 0 ? '+' : '−'}${count(Math.abs(d.net))}`);
     if (d.status === CMP.below) lines.push(`Below the minimum of ${cmpState.min.toLocaleString('en-US')} two-party votes: not shaded.`);
   }
-  return lines.map(escapeHTML).join('<br>');
+  return lines.filter(Boolean).map(escapeHTML).join('<br>');
 }
 
 function valueText(props) {
