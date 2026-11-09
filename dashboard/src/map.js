@@ -3,7 +3,8 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
-import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, mapPair, FALLBACK_OPACITY, reads2026, precinctCounty, inCounties, noReturnList, countyPair, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
+import { shortLabel } from './labels.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, metricLine, mapPair, FALLBACK_OPACITY, reads2026, precinctCounty, inCounties, noReturnList, countyPair, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -656,13 +657,13 @@ function initDisplayControls() {
 function compareTooltip(props, level = unit) {
   const flat = level !== unit, d = describeProps(props, level, flat ? countyPair(mapPair()) : mapPair()), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
   const via = d.status === CMP.countyFallback;
-  const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : via && Number.isFinite(share) ? `${pct(share)} county two-party share` : 'no votes in this race'}`;
+  const part = (race, share, tp) => `${race.label}: ${flat || via ? (Number.isFinite(share) ? `${pct(share)} Democratic county two-party share${tp > 0 ? `, ${count(tp)} votes` : ''}` : 'no votes in this race') : tp > 0 ? `${pct(share)} Democratic of ${count(tp)} two-party votes` : 'no votes in this race'}`;
   const lines = [...(flat ? ['County result (no precinct returns)'] : []), part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
   if (d.status === CMP.filtered) lines.push('Excluded by the current filters.');
-  else if (via) lines.push(Number.isFinite(d.value) ? `Shift: ${signed(d.shift)}` : 'This measure needs the unit’s own vote counts: not shaded.', noData2026Note(unit, d, mapPair()));
+  else if (via) lines.push(Number.isFinite(d.value) ? metricLine(d, cmpState.metric) : 'This measure needs the unit’s own vote counts: not shaded.', noData2026Note(unit, d, mapPair()));
   else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.', noData2026Note(unit, d));
   else {
-    lines.push(`Shift: ${signed(d.shift)}`, `Turnout ratio: ×${d.ratio.toFixed(2)}`, `Net Democratic vote change: ${d.net >= 0 ? '+' : '−'}${count(Math.abs(d.net))}`);
+    lines.push(metricLine(d, cmpState.metric));
     if (d.status === CMP.below) lines.push(`Below the minimum of ${cmpState.min.toLocaleString('en-US')} two-party votes: not shaded.`);
   }
   return lines.filter(Boolean).map(escapeHTML).join('<br>');
@@ -682,7 +683,7 @@ function valueText(props) {
 }
 
 function showTooltip(event, props, level = unit) {
-  const label = props.region_label || props.region_id || 'Selected place';
+  const label = shortLabel(level, props.region_label || props.region_id || 'Selected place', undefined, { keepCounty:true });
   const showing = document.querySelector('#measure').selectedOptions[0].textContent;
   if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props, level)}<br><span class="note">Click for details</span>`;
   else tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;

@@ -110,7 +110,7 @@ export async function selectPlace(unit, props) {
   const request = ++selected;
   listShowing = false;
   openPanel('place');
-  content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit]?.kicker || unit)}</div><h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">Loading details…</p>`;
+  content.innerHTML = `<div class="place-kicker">${escapeHTML(levelInfo[unit]?.kicker || unit)}</div><h2>${escapeHTML(shortLabel(unit, props.region_label || props.region_id, undefined, { keepCounty:true }))}</h2><p class="note">Loading details…</p>`;
   try {
     const rows = await csv(levelInfo[unit].file);
     if (request !== selected) return;
@@ -120,6 +120,6 @@ export async function selectPlace(unit, props) {
     if (request !== selected) return;
     renderPlace(unit, props, data, counties, driver === undefined ? '<section class="drivers"><h3>From 2024 to the forecast</h3><p class="note">The driver file could not be loaded.</p></section>' : driversHTML(unit, driver));
   } catch (e) {
-    if (request === selected) content.innerHTML = `<h2>${escapeHTML(props.region_label || props.region_id)}</h2><p class="note">${escapeHTML(e.message)}</p>`;
+    if (request === selected) content.innerHTML = `<h2>${escapeHTML(shortLabel(unit, props.region_label || props.region_id, undefined, { keepCounty:true }))}</h2><p class="note">${escapeHTML(e.message)}</p>`;
   }
 }
