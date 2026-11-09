@@ -20,6 +20,7 @@ const SHIFT_MAX = .06;
 const rehearsal = params.get('src') === 'rehearsal';
 const COUNTIES = 254;
 const st = { live:null, traj:[], observed:null, loadedAt:null, error:null, sort:'expected_total', dir:-1, hover:null, sel:null, active:false };
+let tipId = null, tipSize = { w:0, h:0 };
 let map = null, mapReady = false, timer = null, started = false, resultsOK = null, forecast = null;
 
 const fetchJSON = name => fetch(`${base}data/${rehearsal ? 'rehearsal' : 'live'}/${name}?t=${Date.now()}`, { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject(new Error(`${name}: ${r.status}`)));
@@ -163,6 +164,7 @@ function addLayers() {
   b.labels(map);
   mapReady = true;
   paintMap();
+  paintHighlight();
 }
 function paintMap() {
   if (!map || !mapReady || !map.getLayer('eday-fill')) return;
@@ -174,8 +176,12 @@ function paintMap() {
   const key = ['to-string', ['get', 'region_id']];
   map.setPaintProperty('eday-fill', 'fill-color', ['coalesce', ['get', key, ['literal', colors]], '#cfd5d5']);
   map.setPaintProperty('eday-fill', 'fill-opacity', ['coalesce', ['get', key, ['literal', opacity]], .12]);
-  const ids = [st.sel, st.hover].filter(Boolean);
-  map.setFilter('eday-hi', ['in', key, ['literal', ids]]);
+  tipId = null;
+}
+// Hover and selection only move the outline layer's filter; the fill is never repainted for them.
+function paintHighlight() {
+  if (!map || !mapReady || !map.getLayer('eday-hi')) return;
+  map.setFilter('eday-hi', ['in', ['to-string', ['get', 'region_id']], ['literal', [st.sel, st.hover].filter(Boolean)]]);
 }
 function renderLegend() {
   const half = Math.round(100 * partisanClamp(SHIFT_MAX)), mid = Math.round(100 * partisanCenter());
@@ -212,23 +218,36 @@ function initMap() {
   let fitted = false;
   new ResizeObserver(() => { if (!wrap.clientWidth || !wrap.clientHeight) return; map.resize(); if (!fitted) { fitted = true; map.fitBounds(b.bounds, { padding:24, duration:0 }); } }).observe(wrap);
   const tip = $('#eday-tooltip');
+  const place = point => {
+    const box = map.getContainer().getBoundingClientRect();
+    tip.style.left = `${point.x + 14 + tipSize.w > box.width ? Math.max(4, point.x - tipSize.w - 14) : point.x + 14}px`;
+    tip.style.top = `${Math.max(6, Math.min(box.height - tipSize.h - 6, point.y - tipSize.h / 2))}px`;
+  };
+  // One feature query per frame; the tooltip text is rebuilt only when the hovered county changes.
+  let point = null, frame = 0;
   map.on('mousemove', e => {
-    const f = mapReady && map.queryRenderedFeatures(e.point, { layers:['eday-fill'] })[0];
-    map.getCanvas().style.cursor = f ? 'pointer' : '';
-    const c = f && byId().get(String(f.properties.region_id));
-    if (!c) { tip.hidden = true; setHover(null); return; }
-    tip.innerHTML = tooltipHTML(c); tip.hidden = false;
-    const w = tip.offsetWidth, h = tip.offsetHeight, box = map.getContainer().getBoundingClientRect();
-    tip.style.left = `${e.point.x + 14 + w > box.width ? Math.max(4, e.point.x - w - 14) : e.point.x + 14}px`;
-    tip.style.top = `${Math.max(6, Math.min(box.height - h - 6, e.point.y - h / 2))}px`;
-    setHover(c.fips3);
+    point = e.point;
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const f = mapReady && map.queryRenderedFeatures(point, { layers:['eday-fill'] })[0];
+      map.getCanvas().style.cursor = f ? 'pointer' : '';
+      const c = f && byId().get(String(f.properties.region_id));
+      if (!c) { tip.hidden = true; tipId = null; setHover(null); return; }
+      if (c.fips3 !== tipId) {
+        tip.innerHTML = tooltipHTML(c); tip.hidden = false; tipId = c.fips3;
+        tipSize = { w:tip.offsetWidth, h:tip.offsetHeight };
+      }
+      place(point);
+      setHover(c.fips3);
+    });
   });
-  map.on('mouseout', () => { tip.hidden = true; setHover(null); });
+  map.on('mouseout', () => { cancelAnimationFrame(frame); frame = 0; tip.hidden = true; tipId = null; setHover(null); });
   map.on('click', e => { const f = mapReady && map.queryRenderedFeatures(e.point, { layers:['eday-fill'] })[0]; setSelection(f ? String(f.properties.region_id) : null); });
 }
-function setHover(id) { if (st.hover === id) return; st.hover = id; paintMap(); markTable(); }
+function setHover(id) { if (st.hover === id) return; st.hover = id; paintHighlight(); markTable(); }
 function setSelection(id) {
-  st.sel = st.sel === id ? null : id; paintMap(); markTable();
+  st.sel = st.sel === id ? null : id; paintHighlight(); markTable();
   if (st.sel) tab.querySelector(`#eday-table tr[data-id="${st.sel}"]`)?.scrollIntoView({ block:'nearest' });
 }
 
