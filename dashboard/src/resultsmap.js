@@ -3,7 +3,7 @@ import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 import { mapBasics, compareGreyColors } from './map.js';
 import { featureStates, stateWidth, rowMarker } from './highlight.js';
 import { stops as palStops, partisanCenter, partisanClamp, swatchButton } from './palette.js';
-import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY } from './compare.js';
+import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY, precinctCounty, inCounties, countyPair } from './compare.js';
 
 // The Results tab map. It has its own state (level, measure, pair, filters), kept apart from the Forecast tab's compare state,
 // and shades places from the published 2026 results and history files through compare.js. Nothing is estimated here.
@@ -80,15 +80,39 @@ async function surnameArray(store, column) {
   const byId = await surnames;
   return Float64Array.from(store.ids, id => num(byId.get(id)?.[column]));
 }
+// At precincts, a 2026 measure draws counties with no precinct returns as one flat county polygon (the county's own value for share
+// and shift measures, gray for counts), and hides their precinct fill, borders and outlines.
+function flatCounties(def, pair, store) {
+  if (rs.level !== 'precinct' || !uses26(def, pair) || !store.noReturns.size) return null;
+  const county = storeIfLoaded('county'), list = [...store.noReturns].sort();
+  let expr = null;
+  if (def.pair && (def.metric === 'shift' || def.metric === 'rshift')) expr = mapExpressions('county', def.metric, countyPair(pair));
+  else if (def.key === 'res_share') {
+    const share = shareOf(county, 'sen26'), tp = tpOf(county, 'sen26'), status = new Uint8Array(county.n);
+    let filtered = 0;
+    for (let i = 0; i < county.n; i++) {
+      if (rs.county && county.ids[i] !== rs.county) { status[i] = STATUS.filtered; filtered++; }
+      else status[i] = tp[i] > 0 && Number.isFinite(share[i]) ? STATUS.ok : STATUS.missing;
+    }
+    expr = valueExpressions(county, `v|nr|res_share|${rs.county}`, () => share, status, filtered, 0);
+  }
+  return { list, set:new Set(list), expr, county };
+}
 // Values, status and display settings for the active measure at the active level.
 async function compute() {
+  const c = await computeValues();
+  c.nr = flatCounties(c.def, c.pair, c.store);
+  if (c.nr) c.nr.units = c.store.county.reduce((n, id, i) => n + (c.nr.set.has(id) && c.status[i] !== STATUS.filtered ? 1 : 0), 0);
+  return c;
+}
+async function computeValues() {
   const def = defOf(), store = await ensureStore(rs.level), county = effCounty();
   if (def.pair) {
     const pair = { ...pairOf(def), fallback:fbOn() }, ev = evaluate(store, pair.from, pair.to, pair);
     return { def, store, pair, ev, array:metricArray(ev, def.metric), status:ev.status, counts:ev.counts, scale:metricScale[def.metric], fmt:metricFmt[def.metric], min:rs.min,
       expr:mapExpressions(rs.level, def.metric, pair) };
   }
-  const n = store.n, status = new Uint8Array(n), counts = { shown:0, below:0, missing:0, filtered:0, fallback:0, total:n };
+  const n = store.n, status = new Uint8Array(n), counts = { shown:0, below:0, missing:0, filtered:0, fallback:0, hidden:0, total:n };
   let array, tp = null;
   if (def.election) {
     tp = tpOf(store, 'sen26');
@@ -110,7 +134,7 @@ async function compute() {
     for (let i = 0; i < n; i++) {
       if (status[i] !== STATUS.missing || tp[i] > 0) continue;
       const at = store.county[i] ? indexOf(fb, store.county[i]) : undefined;
-      if (at !== undefined && ct[at] > 0 && Number.isFinite(cs[at])) { array[i] = cs[at]; status[i] = STATUS.countyFallback; counts.missing--; counts.fallback++; }
+      if (at !== undefined && ct[at] > 0 && Number.isFinite(cs[at])) { array[i] = cs[at]; status[i] = STATUS.countyFallback; counts.missing--; if (store.noReturns.has(store.county[i])) counts.hidden++; else counts.fallback++; }
     }
   }
   const min = def.election ? rs.min : 0;
@@ -152,9 +176,11 @@ function colorExpression(c, scale) {
   return ['case', e.nodata, g.nodata, ...(e.filtered ? [e.filtered, g.filtered] : []), e.missing, g.missing, ...(e.below ? [e.below, g.below] : []), ramp(e.value)];
 }
 // Units that borrow their county's share draw fainter.
+const hiddenTest = c => inCounties(precinctCounty, c.nr.list);
 const fillOpacity = c => {
   const o = +rs.fo / 100, fb = c?.expr.fallback;
-  return fb ? ['case', fb, FALLBACK_OPACITY * o, o] : o;
+  const faded = fb ? ['case', fb, FALLBACK_OPACITY * o, o] : o;
+  return c?.nr ? ['case', hiddenTest(c), 0, faded] : faded;
 };
 const borderWidth = () => rs.bw !== '' ? +rs.bw : rs.level === 'precinct' ? .2 : .7;
 
@@ -166,7 +192,7 @@ function addLevel(level) {
   let first = layers.length;
   while (first > 0 && layers[first - 1].type === 'symbol') first--;
   const below = layers[first]?.id;
-  map.addSource(name.src, { type:'vector', url:b.tileURL(b.tiles[level]), promoteId:'region_id' });
+  if (!map.getSource(name.src)) map.addSource(name.src, { type:'vector', url:b.tileURL(b.tiles[level]), promoteId:'region_id' });
   map.addLayer({ id:name.fill, type:'fill', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'fill-color':compareGreyColors().nodata, 'fill-opacity':.85, 'fill-outline-color':'rgba(0,0,0,0)' } }, below);
   map.addLayer({ id:name.line, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':level === 'precinct' ? .25 : .5 } }, below);
   map.addLayer({ id:name.hi, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('on', 2.4) } }, below);
@@ -181,17 +207,45 @@ function addLevel(level) {
 function showLevel(level) {
   for (const l of added) for (const part of ['fill', 'line', 'hi']) map.setLayoutProperty(ids(l)[part], 'visibility', l === level ? 'visible' : 'none');
 }
-const hi = featureStates('on'), rowsMark = rowMarker();
+const hi = featureStates('on'), nrHi = featureStates('nr'), rowsMark = rowMarker();
+let flatAdded = false;
+// Flat county layers sit just under the precinct fill; created once per style, filtered once to the counties without precinct returns.
+function paintFlat(c) {
+  if (!map || !styleReady) return;
+  const on = !!c?.nr && added.has('precinct');
+  if (on && !flatAdded) {
+    const b = mapBasics(), filter = inCounties(['to-string', ['get', 'region_id']], c.nr.list), src = ids('county').src, before = ids('precinct').fill;
+    if (!map.getSource(src)) map.addSource(src, { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
+    map.addLayer({ id:'rs-nr-fill', type:'fill', source:src, 'source-layer':'regions', filter, layout:{ visibility:'none' }, paint:{ 'fill-color':compareGreyColors().missing, 'fill-opacity':.85, 'fill-outline-color':'rgba(0,0,0,0)' } }, before);
+    map.addLayer({ id:'rs-nr-line', type:'line', source:src, 'source-layer':'regions', filter, layout:{ visibility:'none' }, paint:{ 'line-color':'rgba(40,55,60,.3)', 'line-width':.5 } }, before);
+    map.addLayer({ id:'rs-nr-hi', type:'line', source:src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('nr', 2.4) } }, before);
+    flatAdded = true;
+  }
+  if (!flatAdded) return;
+  for (const id of ['rs-nr-fill', 'rs-nr-line', 'rs-nr-hi']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  if (!on) return;
+  const scale = c.drawn, g = compareGreyColors(), b = mapBasics();
+  map.setPaintProperty('rs-nr-fill', 'fill-color', c.nr.expr ? colorExpression({ ...c, expr:c.nr.expr }, scale) : g.missing);
+  map.setPaintProperty('rs-nr-fill', 'fill-opacity', +rs.fo / 100);
+  map.setPaintProperty('rs-nr-line', 'line-color', `rgba(${b.theme === 'dark' ? '240,247,247' : '40,60,65'},${rs.ln === '1' ? +rs.bo / 100 : 0})`);
+  map.setPaintProperty('rs-nr-line', 'line-width', borderWidth());
+}
+// A precinct inside a county with no precinct returns resolves to its county, so no precinct outline is drawn there.
+const resolveFlat = id => cur?.nr && rs.level === 'precinct' ? (id.length === 3 ? id : cur.nr.set.has(id.slice(0, 3)) ? id.slice(0, 3) : null) : null;
 function setHighlight() {
   if (!map) return;
-  for (const l of added) hi.set(map, ids(l).src, l === rs.level ? [selected, hover] : []);
+  const picked = [selected, hover].filter(Boolean), flat = new Set(), own = [];
+  for (const id of picked) { const county = resolveFlat(id); if (county) flat.add(county); else own.push(id); }
+  for (const l of added) hi.set(map, ids(l).src, l === rs.level ? own : []);
+  nrHi.set(map, ids('county').src, [...flat]);
 }
 
 function applyDisplay(c) {
   const name = ids(rs.level), b = mapBasics();
   map.setPaintProperty(name.fill, 'fill-opacity', fillOpacity(c));
   map.setPaintProperty(name.line, 'line-color', `rgba(${b.theme === 'dark' ? '240,247,247' : '40,60,65'},${rs.ln === '1' ? +rs.bo / 100 : 0})`);
-  map.setPaintProperty(name.line, 'line-width', borderWidth());
+  map.setPaintProperty(name.line, 'line-width', c?.nr ? ['case', hiddenTest(c), 0, borderWidth()] : borderWidth());
+  paintFlat(c);
   if (map.getLayer('highways')) map.setLayoutProperty('highways', 'visibility', rs.hw === '1' ? 'visible' : 'none');
 }
 
@@ -227,10 +281,11 @@ function renderLegend(c, scale) {
   const title = c.pair && c.def.pair === 'chosen' ? `${raceOf(c.pair.from).short} to ${raceOf(c.pair.to).short}: ${c.def.label}` : c.def.label;
   const gone = uses26(c.def, c.pair) ? (rs.level === 'precinct' ? 'No 2026 precinct returns here' : 'Returns incomplete for this area') : 'No data';
   const lines = [];
-  const used = c.expr.fallback ? c.counts.fallback : 0;
+  const used = c.expr.fallback ? c.counts.fallback : 0, flat = c.nr;
   if (c.def.early) lines.push('Early ballots only, cumulative to the latest date; this is not total turnout.');
   if (c.ev) lines.push(`Statewide (places shown): ${raceOf(c.pair.from).short} ${share1(c.ev.stateShareA)}, ${raceOf(c.pair.to).short} ${share1(c.ev.stateShareB)}, shift ${signed(c.ev.stateShift)}.`);
-  lines.push(`${count(c.counts.shown + used)} of ${count(c.counts.total - c.counts.filtered)} places shown${used ? `, ${count(used)} with the county result` : ''}.`);
+  lines.push(`${count(c.counts.shown + used)} of ${count(c.counts.total - c.counts.filtered - (flat ? flat.units : 0))} places shown${used ? `, ${count(used)} with the county result` : ''}.`);
+  if (flat) lines.push(`${count(flat.list.length)} counties have no precinct returns and draw as one county polygon${c.nr.expr ? '' : ', gray for this measure'}.`);
   if (c.pair && c.def.pair === 'chosen' && crossOffice(c.pair.from, c.pair.to)) lines.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
   if (c.pair && c.def.pair === 'chosen' && crossesSources(c.pair.from, c.pair.to)) lines.push(sourceCaveat);
   if (c.def.surname) lines.push('Modeled estimate from surname rosters, not a count of voters.');
@@ -238,7 +293,7 @@ function renderLegend(c, scale) {
     <div class="eday-ramp" style="background:linear-gradient(90deg,${grad})"></div>
     <div class="legend-edges">${picks.map((v, i) => `<span style="left:${i === 0 ? 0 : i === 2 ? 100 : 50}%;${i === 0 ? 'transform:none' : i === 2 ? 'transform:translateX(-100%)' : ''}">${escapeHTML(v === 0 && c.scale === 'shift' ? '0' : fmt(v))}</span>`).join('')}</div>
     ${scale.diverging ? `<div class="legend-ends"><span>${endNames[c.scale][0]}</span><span>${endNames[c.scale][1]}</span></div>` : ''}
-    ${used ? `<div class="legend-nodata"><span style="background:linear-gradient(90deg,${grad});opacity:${FALLBACK_OPACITY}"></span>County result (no precinct returns)</div>` : ''}${c.counts.missing - used > 0 ? chip(g.missing, gone) : ''}${c.min > 0 && c.def.election ? chip(g.below, `Too few votes (under ${count(c.min)} two-party)`) : ''}${c.counts.filtered ? chip(g.filtered, 'Excluded by filters') : ''}
+    ${used ? `<div class="legend-nodata"><span style="background:linear-gradient(90deg,${grad});opacity:${FALLBACK_OPACITY}"></span>County result for precincts without returns</div>` : ''}${c.counts.missing - used > 0 ? chip(g.missing, gone) : ''}${flat ? `<div class="legend-nodata"><span style="background:${c.nr.expr ? `linear-gradient(90deg,${grad})` : g.missing}"></span>County result, no precinct returns</div>` : ''}${c.min > 0 && c.def.election ? chip(g.below, `Too few votes (under ${count(c.min)} two-party)`) : ''}${c.counts.filtered ? chip(g.filtered, 'Excluded by filters') : ''}
     ${lines.map(t => `<div class="eday-legend-note">${escapeHTML(t)}</div>`).join('')}`;
   $('#rs-legend .eday-legend-title').append(' ', swatchButton(swatchKind(c)));
 }
@@ -259,7 +314,7 @@ function renderNote(c) {
     if (rs.level === 'county') parts.push('County 2026 totals are exact and equal the recorded final results.');
     else if (rs.level === 'precinct') {
       const v = coverage();
-      parts.push(v ? `Precinct returns cover ${count(v.counties)} of ${count(v.of)} counties and about ${Math.round(100 * v.share)}% of the statewide two-party vote. The other counties report county totals only, so their precincts take the county result at reduced opacity${rs.fb === '1' ? '' : ' (fill is switched off, so they are blank)'}.` : 'Counties without precinct returns are blank at this level; use Counties to see them.');
+      parts.push(v ? `Precinct returns cover ${count(v.counties)} of ${count(v.of)} counties and about ${Math.round(100 * v.share)}% of the statewide two-party vote. The other counties report county totals only, so each is drawn as one county polygon with no precinct lines.` : 'Counties without precinct returns are blank at this level; use Counties to see them.');
       if (v?.unmatched) parts.push(`${count(v.unmatched)} of ${count(v.precincts)} precincts on the map have no row in the results file and are blank.`);
       parts.push('Precinct history in split precincts is allocated by each child precinct’s 2026 votes, so counts there are approximate; shares are exact.');
     } else parts.push(`An area shows 2026 results only where precinct returns cover at least 98% of its 2026 vote; ${fbOn() ? 'other subdivisions take their county result at reduced opacity' : 'other areas are blank'}.`);
@@ -271,16 +326,16 @@ function renderNote(c) {
 // ---- Table ----
 const tableCols = c => [
   { key:'name', label:rs.level === 'county' ? 'County' : levelNames[rs.level], text:true },
-  { key:'votes', label:'2026 two-party votes' },
-  { key:'s26', label:'2026 Talarico share' },
-  ...(c.pair ? [{ key:'sc', label:c.def.pair === 'forecast' ? 'Pre-election forecast' : `${raceOf(c.pair.from).short} share` }] : []),
+  { key:'votes', label:`${raceOf(raceKey(c)).short} two-party votes` },
+  { key:'s26', label:`${raceOf(raceKey(c)).short} Talarico share` },
+  ...(c.pair ? [{ key:'sc', label:c.def.pair === 'forecast' ? 'Pre-election forecast' : `${raceOf(raceKey(c) === c.pair.to ? c.pair.from : c.pair.to).short} share` }] : []),
   { key:'value', label:c.def.label },
 ];
 function rowsOf(c) {
-  const { store } = c, tp = tpOf(store, 'sen26'), sh = shareOf(store, 'sen26'), cmp = c.pair ? shareOf(store, c.pair.from) : null;
+  const { store } = c, key = raceKey(c), tp = tpOf(store, key), sh = shareOf(store, key), other = c.pair ? (key === c.pair.to ? c.pair.from : c.pair.to) : null, cmp = other ? shareOf(store, other) : null;
   const out = [];
   for (let i = 0; i < store.n; i++) {
-    if (c.status[i] === STATUS.filtered) continue;
+    if (c.status[i] === STATUS.filtered || c.nr?.set.has(store.county[i])) continue;
     out.push({ i, id:store.ids[i], name:store.labels[i], votes:tp[i], s26:sh[i], sc:cmp ? cmp[i] : NaN, value:c.status[i] === STATUS.ok ? c.array[i] : NaN });
   }
   return out;
@@ -306,24 +361,39 @@ function drawTable(c) {
 function markTable() { rowsMark.mark([selected, hover]); }
 
 // ---- Tooltip ----
+function flatTooltipHTML(id) {
+  const c = cur, cs = c.nr.county, i = indexOf(cs, id);
+  if (i === undefined) return `<strong>${escapeHTML(id)}</strong>No data`;
+  const key = c.pair ? (is2026Result(c.pair.to) ? c.pair.to : c.pair.from) : 'sen26', tp = tpOf(cs, key)[i], sh = shareOf(cs, key)[i];
+  const lines = ['County result (no precinct returns)', `${raceOf(key).label}: ${share1(sh)} Talarico of ${count(tp)} two-party votes`];
+  if (c.pair) {
+    const other = key === c.pair.to ? c.pair.from : c.pair.to, os = shareOf(cs, other)[i];
+    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)}` : `${raceOf(other).label}: ${share1(os)}`);
+    const ev = evaluate(cs, c.pair.from, c.pair.to, countyPair(c.pair)), v = metricArray(ev, c.def.metric)[i];
+    if (Number.isFinite(v)) lines.push(`${c.def.label} (county): ${fmtOf[c.fmt](v)}`);
+  } else if (c.def.key === 'res_margin') lines.push(`Margin (county): ${votesText(cs.dem.sen26[i] - cs.rep.sen26[i])}`);
+  return `<strong>${escapeHTML(cs.labels[i])}</strong>${lines.map(escapeHTML).join('<br>')}`;
+}
+// The 2026 race a comparison reads (the To race when both are 2026); the Result measures read the Senate race.
+const raceKey = c => c.pair ? (is2026Result(c.pair.to) ? c.pair.to : is2026Result(c.pair.from) ? c.pair.from : 'sen26') : 'sen26';
 function tooltipHTML(id) {
   const c = cur;
   if (!c) return '';
   const i = indexOf(c.store, id);
   if (i === undefined) return `<strong>${escapeHTML(id)}</strong>No data`;
-  const tp = tpOf(c.store, 'sen26')[i], sh = shareOf(c.store, 'sen26')[i], lines = [];
+  const key = raceKey(c), tp = tpOf(c.store, key)[i], sh = shareOf(c.store, key)[i], lines = [];
   if (c.status[i] === STATUS.countyFallback) {
     const cs = storeIfLoaded('county'), cid = String(c.store.county[i]), at = indexOf(cs, cid);
     lines.push('2026 precinct returns not available; showing the county result');
-    if (at !== undefined) lines.push(`${cs.labels[at]} 2026: ${share1(shareOf(cs, 'sen26')[at])} Talarico of ${count(tpOf(cs, 'sen26')[at])} two-party votes`);
-  } else if (tp > 0) lines.push(`2026 Senate: ${share1(sh)} Talarico of ${count(tp)} two-party votes`);
+    if (at !== undefined) lines.push(`${cs.labels[at]} ${raceOf(key).label}: ${share1(shareOf(cs, key)[at])} Talarico of ${count(tpOf(cs, key)[at])} two-party votes`);
+  } else if (tp > 0) lines.push(`${raceOf(key).label}: ${share1(sh)} Talarico of ${count(tp)} two-party votes`);
   else if (rs.level === 'precinct') lines.push('2026 precinct returns not available.');
   else if (Number.isFinite(c.store.cov26[i])) lines.push(`2026 precinct returns incomplete for this area (${(100 * c.store.cov26[i]).toFixed(1)}% covered)`);
   else lines.push('No 2026 returns for this place');
   if (c.pair) {
-    const from = shareOf(c.store, c.pair.from)[i], ftp = tpOf(c.store, c.pair.from)[i];
-    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(from)}` : `${raceOf(c.pair.from).label}: ${ftp > 0 ? `${share1(from)} of ${count(ftp)} two-party votes` : 'no votes in this race'}`);
-    if (Number.isFinite(sh) && Number.isFinite(from)) lines.push(`Shift: ${signed(sh - from)}`);
+    const other = key === c.pair.to ? c.pair.from : c.pair.to, os = shareOf(c.store, other)[i], otp = tpOf(c.store, other)[i];
+    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)}` : `${raceOf(other).label}: ${otp > 0 ? `${share1(os)} of ${count(otp)} two-party votes` : 'no votes in this race'}`);
+    if (Number.isFinite(sh) && Number.isFinite(os)) lines.push(`Shift: ${signed(key === c.pair.to ? sh - os : os - sh)}`);
   } else if (c.def.election) lines.push(`Pre-election forecast: ${share1(shareOf(c.store, 'f26')[i])}`);
   const v = c.array[i];
   if (c.def.early && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
@@ -385,12 +455,18 @@ function setSelection(id) {
   if (selected) document.querySelector(`#rs-table tr[data-id="${CSS.escape(selected)}"]`)?.scrollIntoView({ block:'nearest' });
 }
 
+// The flat county polygon wins over the (hidden) precincts beneath it.
+function hit(point) {
+  if (!styleReady || !added.has(rs.level)) return null;
+  const flat = cur?.nr && flatAdded ? map.queryRenderedFeatures(point, { layers:['rs-nr-fill'] })[0] : null;
+  return flat || map.queryRenderedFeatures(point, { layers:[ids(rs.level).fill] })[0] || null;
+}
 function initMap() {
   const b = mapBasics();
   map = new maplibregl.Map({ container:'rs-map', style:b.style, bounds:b.bounds, fitBoundsOptions:{ padding:24 }, attributionControl:false, cooperativeGestures:true });
   map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
-  map.on('style.load', () => { styleReady = true; decorated = false; added.clear(); hi.reset(); paint(); });
+  map.on('style.load', () => { styleReady = true; decorated = false; flatAdded = false; added.clear(); hi.reset(); nrHi.reset(); paint(); });
   window.addEventListener('basemap-change', () => { if (!map) return; styleReady = false; map.setStyle(mapBasics().style); });
   const wrap = $('.rs-map-wrap');
   let fitted = false;
@@ -408,12 +484,12 @@ function initMap() {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      const f = styleReady && added.has(rs.level) && map.queryRenderedFeatures(point, { layers:[ids(rs.level).fill] })[0];
+      const f = hit(point);
       map.getCanvas().style.cursor = f ? 'pointer' : '';
       if (!f) { tip.hidden = true; tipId = null; setHover(null); return; }
       const id = String(f.properties.region_id);
       if (id !== tipId) {
-        tip.innerHTML = tooltipHTML(id); tip.hidden = false; tipId = id;
+        tip.innerHTML = id.length === 3 && rs.level === 'precinct' ? flatTooltipHTML(id) : tooltipHTML(id); tip.hidden = false; tipId = id;
         tipSize = { w:tip.offsetWidth, h:tip.offsetHeight };
       }
       place(point);
@@ -421,7 +497,7 @@ function initMap() {
     });
   });
   map.on('mouseout', () => { cancelAnimationFrame(frame); frame = 0; tip.hidden = true; tipId = null; setHover(null); });
-  map.on('click', e => { const f = styleReady && added.has(rs.level) && map.queryRenderedFeatures(e.point, { layers:[ids(rs.level).fill] })[0]; setSelection(f ? String(f.properties.region_id) : null); });
+  map.on('click', e => { const f = hit(e.point); setSelection(f ? String(f.properties.region_id) : null); });
   let timer = null;
   map.on('moveend', () => { if (rs.range !== 'view') return; clearTimeout(timer); timer = setTimeout(() => paint(), 150); });
 }
