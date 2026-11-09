@@ -3,7 +3,7 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
-import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, mapPair, FALLBACK_OPACITY, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -118,7 +118,13 @@ const compact = (v, kind) => `${kind === 'money' ? '$' : ''}${Intl.NumberFormat(
 // Only the active unit's fill draws; county and district outlines are available as line overlays.
 const levelVisible = level => level === unit;
 const fillOpacity = () => +settings.op / 100;
+// Places that borrow their county's 2026 share draw fainter, so they read as lower confidence.
 function fillOpacityFor(level) {
+  const base = baseOpacityFor(level);
+  const fb = isCompareMeasure(measure) ? mapExpressions(level, measure.slice(4), mapPair())?.fallback : null;
+  return fb ? ['case', fb, ['*', base, FALLBACK_OPACITY], base] : base;
+}
+function baseOpacityFor(level) {
   if (!fadeOn()) return fillOpacity();
   let limit;
   try { const sc = scale(measure, level); limit = Math.max(Math.abs(sc.lo), Math.abs(sc.hi)); } catch { limit = NaN; }
@@ -269,7 +275,7 @@ async function loadStateValues(key, level) {
   const id = svKey(key, level);
   if (stateValues.has(id)) return stateValues.get(id);
   if (isCompareMeasure(key)) {
-    const values = metricValues(await ensureStore(level), key.slice(4));
+    const values = metricValues(await ensureStore(level), key.slice(4), mapPair());
     if (!values.length) throw new Error('No places have votes in both races under the current filters.');
     stateValues.set(id, values);
     return values;
@@ -291,8 +297,8 @@ function viewValues() {
     for (const f of map.queryRenderedFeatures({ layers:[layerName(unit)] })) {
       if (seen.has(f.properties.region_id)) continue;
       seen.add(f.properties.region_id);
-      const d = describeProps(f.properties, unit);
-      if (d.status === CMP.ok && Number.isFinite(d.value)) values.push(d.value);
+      const d = describeProps(f.properties, unit, mapPair());
+      if ((d.status === CMP.ok || d.status === CMP.countyFallback) && Number.isFinite(d.value)) values.push(d.value);
     }
     return values.sort((a,b) => a-b);
   }
@@ -403,7 +409,7 @@ const compareGreys = () => theme === 'dark'
   : { nodata:'#afb8b8', missing:'#b3bcbc', below:'#d9dfdf', filtered:'#eef1f1' };
 export const compareGreyColors = compareGreys;
 function compareColorExpression(key, level) {
-  const g = compareGreys(), e = mapExpressions(level, key.slice(4));
+  const g = compareGreys(), e = mapExpressions(level, key.slice(4), mapPair());
   if (!e) return g.nodata;
   const s = scale(key, level), tx = s.tx || (v => v);
   const paint = s.kind === 'cont'
@@ -435,12 +441,12 @@ function legendTitle() {
 
 // Grey entries for places that are not shaded, and the guard notes for the active pair.
 function compareLegendExtras() {
-  const g = compareGreys(), store = storeIfLoaded(unit), ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to) : null;
+  const g = compareGreys(), store = storeIfLoaded(unit), ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to, mapPair()) : null;
   const chip = (color, text) => `<div class="legend-nodata"><span style="background:${color}"></span>${escapeHTML(text)}</div>`;
   const noun = levels[unit].plural;
-  let html = chip(g.missing, 'No votes in this race') + (cmpState.min > 0 ? chip(g.below, `Too few votes (under ${cmpState.min.toLocaleString('en-US')} two-party)`) : '') + (ev?.counts.filtered ? chip(g.filtered, 'Excluded by filters') : '');
+  let html = (ev?.counts.fallback && mapExpressions(unit, cmpState.metric, mapPair())?.fallback ? `<div class="legend-nodata"><span style="background:${g.missing};opacity:${FALLBACK_OPACITY}"></span>County result (no precinct returns)</div>` : '') + chip(g.missing, 'No votes in this race') + (cmpState.min > 0 ? chip(g.below, `Too few votes (under ${cmpState.min.toLocaleString('en-US')} two-party)`) : '') + (ev?.counts.filtered ? chip(g.filtered, 'Excluded by filters') : '');
   const notes = [];
-  if (ev) notes.push(`${ev.counts.shown.toLocaleString('en-US')} ${noun} shown · ${ev.counts.below.toLocaleString('en-US')} below minimum · ${ev.counts.missing.toLocaleString('en-US')} missing a race`);
+  if (ev) notes.push(`${ev.counts.shown.toLocaleString('en-US')} ${noun} shown${ev.counts.fallback ? ` · ${ev.counts.fallback.toLocaleString('en-US')} with the county result` : ''} · ${ev.counts.below.toLocaleString('en-US')} below minimum · ${ev.counts.missing.toLocaleString('en-US')} missing a race`);
   if (crossOffice()) notes.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
   if (crossesSources()) notes.push(sourceCaveat);
   return html + notes.map(text => `<div class="legend-note">${escapeHTML(text)}</div>`).join('');
@@ -618,10 +624,12 @@ function initDisplayControls() {
 }
 
 function compareTooltip(props) {
-  const d = describeProps(props, unit), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
-  const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : 'no votes in this race'}`;
+  const d = describeProps(props, unit, mapPair()), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
+  const via = d.status === CMP.countyFallback;
+  const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : via && Number.isFinite(share) ? `${pct(share)} county two-party share` : 'no votes in this race'}`;
   const lines = [part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
   if (d.status === CMP.filtered) lines.push('Excluded by the current filters.');
+  else if (via) lines.push(Number.isFinite(d.value) ? `Shift: ${signed(d.shift)}` : 'This measure needs the unit’s own vote counts: not shaded.', noData2026Note(unit, d, mapPair()));
   else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.', noData2026Note(unit, d));
   else {
     lines.push(`Shift: ${signed(d.shift)}`, `Turnout ratio: ×${d.ratio.toFixed(2)}`, `Net Democratic vote change: ${d.net >= 0 ? '+' : '−'}${count(Math.abs(d.net))}`);

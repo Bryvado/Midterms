@@ -152,7 +152,14 @@ export function loadStore(level) {
   return stores.get(level);
 }
 const loadedStores = new Map();
-export async function ensureStore(level) { const store = await loadStore(level); loadedStores.set(level, store); return store; }
+// Subdivisions and precincts can borrow their county's 2026 share, so their county store is loaded with them.
+export const fallbackLevels = new Set(['precinct', 'cousub']);
+export async function ensureStore(level) {
+  const store = await loadStore(level);
+  if (fallbackLevels.has(level)) loadedStores.set('county', await loadStore('county'));
+  loadedStores.set(level, store);
+  return store;
+}
 export const storeIfLoaded = level => loadedStores.get(level) || null;
 
 // Two-party votes and share for one race. For 2026 the share is the projection's mean field and the votes are the expected Talarico plus Paxton votes.
@@ -186,21 +193,38 @@ export function indexOf(store, id) {
   return store.index.get(id);
 }
 export const countyFilterApplies = level => level === 'precinct' || level === 'county' || level === 'cousub';
-export const STATUS = { ok:0, missing:1, below:2, filtered:3 };
-const filterKey = f => `${f.min}|${f.county}|${f.profile}`;
+// countyFallback: a unit with no 2026 returns of its own that shows its county's published two-party share.
+export const STATUS = { ok:0, missing:1, below:2, filtered:3, countyFallback:4 };
+export const FALLBACK_OPACITY = .55;
+export const is2026Result = key => key === 'sen26' || key === 'gov26';
+const filterKey = f => `${f.min}|${f.county}|${f.profile}|${f.fallback ? 1 : 0}`;
+// A pair for the maps: the Forecast tab's state, or another tab's, with the county fallback switched on.
+export const mapPair = (p = state) => ({ ...p, fallback:true });
 // Everything derived for one pair at one level under the current filters. Recomputed only when the pair, minimum or filters change.
 export function evaluate(store, from, to, f = state) {
   const key = `${from}|${to}|${filterKey(f)}`;
   if (store.cache.has(key)) return store.cache.get(key);
-  const n = store.n, tA = tpOf(store, from), tB = tpOf(store, to), sA = shareOf(store, from), sB = shareOf(store, to);
+  const n = store.n, tA = tpOf(store, from), tB = tpOf(store, to);
+  let sA = shareOf(store, from), sB = shareOf(store, to);
+  // County fallback: where a unit's own 2026 returns are blank, its county's published two-party share stands in for the share only.
+  const county = f.fallback && fallbackLevels.has(store.level) ? storeIfLoaded('county') : null;
+  const viaA = new Uint8Array(n), viaB = new Uint8Array(n);
+  if (county && is2026Result(from)) sA = withCounty(store, county, from, sA, tA, viaA);
+  if (county && is2026Result(to)) sB = withCounty(store, county, to, sB, tB, viaB);
   const shift = new Float64Array(n).fill(NaN), ratio = new Float64Array(n).fill(NaN), net = new Float64Array(n).fill(NaN), status = new Uint8Array(n);
-  const counts = { shown:0, below:0, missing:0, filtered:0, total:n };
-  let bothA = 0, bothB = 0;
+  const counts = { shown:0, below:0, missing:0, filtered:0, fallback:0, total:n };
   for (let i = 0; i < n; i++) {
     // The county filter needs a county for every place (not districts or PUMAs); the profile filter exists only for precincts.
     if ((f.county && countyFilterApplies(store.level) && store.county[i] !== f.county) || (f.profile && store.level === 'precinct' && store.profile[i] !== profileNames.indexOf(f.profile))) { status[i] = STATUS.filtered; counts.filtered++; continue; }
-    if (!(tA[i] > 0) || !(tB[i] > 0) || !Number.isFinite(sA[i]) || !Number.isFinite(sB[i])) { status[i] = STATUS.missing; counts.missing++; continue; }
-    bothA += tA[i]; bothB += tB[i];
+    const realA = tA[i] > 0 && Number.isFinite(sA[i]), realB = tB[i] > 0 && Number.isFinite(sB[i]);
+    if ((viaA[i] || viaB[i]) && (realA || viaA[i]) && (realB || viaB[i]) && (realA || realB)) {
+      // Only the share-based metrics have a value here; a county share cannot become a unit's vote count.
+      if ((realA && tA[i] < f.min) || (realB && tB[i] < f.min)) { status[i] = STATUS.below; counts.below++; continue; }
+      status[i] = STATUS.countyFallback; counts.fallback++;
+      shift[i] = sB[i] - sA[i];
+      continue;
+    }
+    if (!realA || !realB) { status[i] = STATUS.missing; counts.missing++; continue; }
     if (tA[i] < f.min || tB[i] < f.min) { status[i] = STATUS.below; counts.below++; continue; }
     status[i] = STATUS.ok; counts.shown++;
     shift[i] = sB[i] - sA[i];
@@ -209,22 +233,32 @@ export function evaluate(store, from, to, f = state) {
   }
   // Statewide shares and the ratio compare only rows that have votes in both races, so partial coverage (2026 precinct returns) cannot skew them.
   let aligned = 0, alignedB = 0, demA = 0, demB = 0;
-  for (let i = 0; i < n; i++) if (tA[i] > 0 && tB[i] > 0 && Number.isFinite(sA[i]) && Number.isFinite(sB[i])) {
+  for (let i = 0; i < n; i++) if (tA[i] > 0 && tB[i] > 0 && Number.isFinite(sA[i]) && Number.isFinite(sB[i]) && !viaA[i] && !viaB[i]) {
     aligned += tA[i]; alignedB += tB[i];
     demA += from === 'f26' ? store.tal[i] : store.dem[from][i]; demB += to === 'f26' ? store.tal[i] : store.dem[to][i];
   }
   const alignedShareA = aligned > 0 ? demA / aligned : NaN, alignedShareB = alignedB > 0 ? demB / alignedB : NaN;
-  const result = { from, to, filters:{ ...f }, shift, ratio, net, status, counts, shareA:sA, shareB:sB, tpA:tA, tpB:tB,
+  const result = { from, to, filters:{ ...f }, shift, ratio, net, status, counts, shareA:sA, shareB:sB, tpA:tA, tpB:tB, viaA, viaB,
     stateShareA:alignedShareA, stateShareB:alignedShareB, stateShift:alignedShareB - alignedShareA, stateRatio:aligned > 0 ? alignedB / aligned : NaN };
   if (store.cache.size > 24) store.cache.delete(store.cache.keys().next().value);
   store.cache.set(key, result);
   return result;
 }
+// Shares with the county's published two-party share in place of a blank 2026 unit; `via` flags the units that borrow.
+function withCounty(store, county, key, own, tp, via) {
+  const out = Float64Array.from(own), cs = shareOf(county, key), ct = tpOf(county, key);
+  for (let i = 0; i < store.n; i++) {
+    if (tp[i] > 0) continue;
+    const at = store.county[i] ? indexOf(county, store.county[i]) : undefined;
+    if (at !== undefined && ct[at] > 0 && Number.isFinite(cs[at])) { out[i] = cs[at]; via[i] = 1; }
+  }
+  return out;
+}
 // Metric values for one metric from an evaluation: relative variants subtract the statewide figure (a ratio is relative in log terms).
 export function metricArray(ev, metric) {
   const n = ev.shift.length, out = new Float64Array(n).fill(NaN);
   for (let i = 0; i < n; i++) {
-    if (ev.status[i] !== STATUS.ok) continue;
+    if (ev.status[i] !== STATUS.ok && !(ev.status[i] === STATUS.countyFallback && (metric === 'shift' || metric === 'rshift'))) continue;
     out[i] = metric === 'shift' ? ev.shift[i] : metric === 'rshift' ? ev.shift[i] - ev.stateShift : metric === 'ratio' ? Math.log(ev.ratio[i]) : metric === 'rratio' ? Math.log(ev.ratio[i]) - Math.log(ev.stateRatio) : ev.net[i];
   }
   return out;
@@ -278,7 +312,9 @@ export function valueExpressions(store, key, getArray, status, filtered, min) {
   if (!cache.has(key)) {
     const values = {}, codes = {}, array = getArray();
     for (let i = 0; i < store.n; i++) {
-      if (status[i] === STATUS.ok && Number.isFinite(array[i])) values[store.ids[i]] = roundTo(array[i]); else codes[store.ids[i]] = status[i] === STATUS.ok ? STATUS.missing : status[i];
+      if (status[i] === STATUS.ok && Number.isFinite(array[i])) values[store.ids[i]] = roundTo(array[i]);
+      else if (status[i] === STATUS.countyFallback && Number.isFinite(array[i])) { values[store.ids[i]] = roundTo(array[i]); codes[store.ids[i]] = STATUS.countyFallback; }
+      else codes[store.ids[i]] = status[i] === STATUS.ok || status[i] === STATUS.countyFallback ? STATUS.missing : status[i];
     }
     if (cache.size > 12) cache.delete(cache.keys().next().value);
     cache.set(key, { values, codes });
@@ -291,6 +327,7 @@ export function valueExpressions(store, key, getArray, status, filtered, min) {
     missing:['==', code, STATUS.missing],
     below:min > 0 ? ['==', code, STATUS.below] : null,
     value:['get', id, ['literal', values]],
+    fallback:Object.values(codes).includes(STATUS.countyFallback) ? ['==', code, STATUS.countyFallback] : null,
   };
 }
 export function mapExpressions(level, metric = state.metric, pair = state) {
@@ -300,11 +337,12 @@ export function mapExpressions(level, metric = state.metric, pair = state) {
   const ev = evaluate(store, from, to, pair);
   return { ...valueExpressions(store, `${from}|${to}|${filterKey(pair)}|${metric}`, () => metricArray(ev, metric), ev.status, ev.counts.filtered, min), ev };
 }
-// 2026 results are blank where precinct returns are missing. The note says so for the places that have no 2026 votes.
-export const is2026Result = key => key === 'sen26' || key === 'gov26';
+// 2026 results are blank where precinct returns are missing. The note says so, and where the county's share stands in, that it does.
 export function noData2026Note(level, d, pair = state) {
-  if (!(is2026Result(pair.from) || is2026Result(pair.to)) || d.status !== STATUS.missing) return '';
-  if (level === 'precinct') return '2026 precinct returns not available here; see the county view.';
+  if (!(is2026Result(pair.from) || is2026Result(pair.to))) return '';
+  if (d.status === STATUS.countyFallback) return '2026 precinct returns not available; showing the county result';
+  if (d.status !== STATUS.missing) return '';
+  if (level === 'precinct') return '2026 precinct returns not available.';
   return Number.isFinite(d.cov26) ? `2026 precinct returns incomplete for this area (${(100 * d.cov26).toFixed(1)}% covered).` : '';
 }
 // The same values for a hovered feature, read from the store by its region_id; status is never ok for places that are not shaded.
@@ -318,7 +356,7 @@ export function describeProps(props, level = state.level, pair = state) {
   const net = (to === 'f26' ? store.tal[at] - store.pax[at] : store.dem[to][at] - store.rep[to][at]) - (from === 'f26' ? store.tal[at] - store.pax[at] : store.dem[from][at] - store.rep[from][at]);
   const status = ev.status[at];
   const arrays = ev.arrays ||= {};
-  const value = status === STATUS.ok ? (arrays[pair.metric] ||= metricArray(ev, pair.metric))[at] : NaN;
+  const value = status === STATUS.ok || status === STATUS.countyFallback ? (arrays[pair.metric] ||= metricArray(ev, pair.metric))[at] : NaN;
   return { status, value, shareA, shareB, shift:shareB - shareA, tpA, tpB, ratio:tpB / tpA, net, cov26:store.cov26[at] };
 }
 // Sorted metric values of the shaded places at one level, for the map's range fit and class breaks.
