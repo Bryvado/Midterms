@@ -16,6 +16,7 @@ const defaults = { ...rs };
 const urlKeys = { level:'rlv', measure:'rm', from:'rf', to:'rt', min:'rmin', county:'rc', range:'rr', bw:'rbw', fo:'rfo', bo:'rbo', ln:'rln', hw:'rhw', fb:'rfb' };
 let available = [], present = [], map = null, started = false, styleReady = false, decorated = false, active = false;
 let cur = null, token = 0, hover = null, selected = null, surnames = null;
+let tipId = null, tipSize = { w:0, h:0 }, frame = 0;
 const added = new Set();
 const sortState = { key:'votes', dir:-1 };
 const TABLE_CAP = 500;
@@ -206,7 +207,7 @@ async function paint({ keepScale = false } = {}) {
   let c;
   try { c = await compute(); } catch (error) { console.error(error); $('#rs-note').textContent = `The results map could not load: ${error.message}`; return; }
   if (mine !== token) return;
-  cur = c;
+  cur = c; tipId = null;
   const scale = buildScale(c, rs.range === 'view' ? viewIds() : null);
   cur.drawn = scale;
   if (map && styleReady) {
@@ -400,18 +401,31 @@ function initMap() {
   let fitted = false;
   new ResizeObserver(() => { if (!wrap.clientWidth || !wrap.clientHeight) return; map.resize(); if (!fitted) { fitted = true; map.fitBounds(b.bounds, { padding:24, duration:0 }); } }).observe(wrap);
   const tip = $('#rs-tooltip');
+  const place = point => {
+    const box = map.getContainer().getBoundingClientRect();
+    tip.style.left = `${point.x + 14 + tipSize.w > box.width ? Math.max(4, point.x - tipSize.w - 14) : point.x + 14}px`;
+    tip.style.top = `${Math.max(6, Math.min(box.height - tipSize.h - 6, point.y - tipSize.h / 2))}px`;
+  };
+  // One feature query per frame; the tooltip text is rebuilt only when the hovered place changes. Hover touches only the outline filter.
+  let point = null;
   map.on('mousemove', e => {
-    const f = styleReady && added.has(rs.level) && map.queryRenderedFeatures(e.point, { layers:[ids(rs.level).fill] })[0];
-    map.getCanvas().style.cursor = f ? 'pointer' : '';
-    if (!f) { tip.hidden = true; setHover(null); return; }
-    const id = String(f.properties.region_id);
-    tip.innerHTML = tooltipHTML(id); tip.hidden = false;
-    const w = tip.offsetWidth, h = tip.offsetHeight, box = map.getContainer().getBoundingClientRect();
-    tip.style.left = `${e.point.x + 14 + w > box.width ? Math.max(4, e.point.x - w - 14) : e.point.x + 14}px`;
-    tip.style.top = `${Math.max(6, Math.min(box.height - h - 6, e.point.y - h / 2))}px`;
-    setHover(id);
+    point = e.point;
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const f = styleReady && added.has(rs.level) && map.queryRenderedFeatures(point, { layers:[ids(rs.level).fill] })[0];
+      map.getCanvas().style.cursor = f ? 'pointer' : '';
+      if (!f) { tip.hidden = true; tipId = null; setHover(null); return; }
+      const id = String(f.properties.region_id);
+      if (id !== tipId) {
+        tip.innerHTML = tooltipHTML(id); tip.hidden = false; tipId = id;
+        tipSize = { w:tip.offsetWidth, h:tip.offsetHeight };
+      }
+      place(point);
+      setHover(id);
+    });
   });
-  map.on('mouseout', () => { tip.hidden = true; setHover(null); });
+  map.on('mouseout', () => { cancelAnimationFrame(frame); frame = 0; tip.hidden = true; tipId = null; setHover(null); });
   map.on('click', e => { const f = styleReady && added.has(rs.level) && map.queryRenderedFeatures(e.point, { layers:[ids(rs.level).fill] })[0]; setSelection(f ? String(f.properties.region_id) : null); });
   let timer = null;
   map.on('moveend', () => { if (rs.range !== 'view') return; clearTimeout(timer); timer = setTimeout(() => paint(), 150); });
