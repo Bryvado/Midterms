@@ -165,7 +165,7 @@ export async function renderList(host, mapUnit, pick) {
   const head = displayed.map(c => `<th scope="col" class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (state.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}" title="Sort by ${escapeHTML(label(c))}">${escapeHTML(label(c))}</button></th>`).join('');
   const cell = (row, c) => {
     const raw = row[c.key];
-    const title = c.text ? row.region_label : c.bounded && valid(raw) && (+raw > 1 || +raw < 0) ? `Source estimate ${pct(raw)}; capped for display only` : '';
+    const title = c.text ? row.display : c.bounded && valid(raw) && (+raw > 1 || +raw < 0) ? `Source estimate ${pct(raw)}; capped for display only` : '';
     return `<td class="${c.text ? 'name' : ''}"${title ? ` title="${escapeHTML(title)}"` : ''}>${escapeHTML(c.text ? raw : c.show(raw))}</td>`;
   };
   const body = visible.map(row => `<tr data-id="${escapeHTML(row.region_id)}" tabindex="0" aria-label="Open ${escapeHTML(row.display)} details">${displayed.map(c => cell(row, c)).join('')}</tr>`).join('');

@@ -5,6 +5,7 @@ import { mapBasics } from './map.js';
 import { loadDemographics, modelEntries, earlyVoteEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
 import { createXYPlot, colorLegend } from './xyplot.js';
 import { stops as palStops, ramp as palRamp, swatchButton, refresh as refreshSwatch, isPartisan } from './palette.js';
+import { shortLabel } from './labels.js';
 import { featureStates, stateWidth, rowMarker } from './highlight.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
@@ -95,7 +96,7 @@ display = Object.fromEntries(Object.entries(displayDefaults).map(([level, d]) =>
 const saveDisplay = () => { try { localStorage.setItem('evt-display-v1', JSON.stringify(display)); } catch {} };
 const lineColor = d => `rgba(${mapBasics().theme === 'dark' ? '240,247,247' : '40,60,65'},${d.ln ? d.ol / 100 : 0})`;
 let data = null, county = null, daily = new Map(), baselines = new Map(), map = null, mapReady = false, timer = null, started = false;
-const labelOf = (level, id, d = level === st.level ? data : county) => d?.forecast.get(id)?.label || (level === 'county' ? `County ${id}` : id);
+const labelOf = (level, id, d = level === st.level ? data : county) => shortLabel(level, d?.forecast.get(id)?.label || (level === 'county' ? `County ${id}` : id), undefined, { keepCounty:true });
 const rowAt = (d, id) => d?.byDate.get(st.date)?.get(id) || null;
 
 // The state's pace on each date: early ballots over expected ballots across the counties that publish early ballots.
@@ -501,12 +502,6 @@ function drawBars() {
 // The favored candidate and their win probability, for example "Talarico 99%".
 const favored = f => !f || !Number.isFinite(f.p) ? 'n/a' : f.p === .5 ? 'even' : f.p > .5 ? `Talarico ${probPct(f.p)}` : `Paxton ${probPct(1 - f.p)}`;
 let rankAll = false;
-// "County name, VTD 0001" for precincts; other levels keep their published label.
-function placeLabel(level, id) {
-  const label = labelOf(level, id);
-  const m = /^County (\d{3}), VTD (\S+)/.exec(label);
-  return m ? `${(county.forecast.get(m[1])?.label || `County ${m[1]}`).replace(/ County$/, '')}, VTD ${m[2]}` : label;
-}
 function drawRank() {
   const host = $('#evt-rank'), rows = data.byDate.get(st.date) || new Map(), list = [], take = rankAll ? 15 : 6;
   for (const [id, row] of rows) { const e = num(row.early_ballots), p = paceOf(row); if (tierOf(e) === 'high' && Number.isFinite(p) && p > 0) list.push({ id, p, e, ci:paceInterval(p, e) }); }
@@ -514,7 +509,7 @@ function drawRank() {
   const ahead = list.filter(a => a.p >= 1).slice(0, take), behind = list.filter(a => a.p < 1).slice(-take).reverse();
   if (!list.length) { host.innerHTML = '<p class="note">No areas have 250 or more early ballots on this date.</p>'; return; }
   const row = a => {
-    const f = data.forecast.get(a.id), name = placeLabel(st.level, a.id);
+    const f = data.forecast.get(a.id), name = labelOf(st.level, a.id);
     const tip = `${name}: pace ${times(a.p)} (90% interval ${times(a.ci[0])} to ${times(a.ci[1])}); ${showN(a.e)} early ballots; forecast ${favored(f)}`;
     return `<li class="evt-rank-row" data-id="${escapeHTML(a.id)}" title="${escapeHTML(tip)}"><i class="evt-lean ${lean(f?.p) || 'none'}" aria-label="${escapeHTML(leanLabel[lean(f?.p)] || 'no forecast')}"></i><span class="evt-rank-name">${escapeHTML(name)}</span><span class="evt-rank-pace">${times(a.p)}</span></li>`;
   };
@@ -647,7 +642,7 @@ function drawDemog() {
   const xm = demog.pickers.x.entry(), ym = demog.pickers.y.entry(), cm = demog.pickers.c.entry();
   if (demog.swatch) { demog.swatch.dataset.palKind = isPartisan(cm) ? 'partisan' : 'sequential'; refreshSwatch(demog.swatch); }
   const t = demog.table, marked = [st.sel, st.hover].filter(x => x?.level === st.level).map(x => t.index.get(x.id)).filter(i => i != null);
-  demog.plot.draw({ n:t.n, labels:t.ids.map(id => placeLabel(st.level, id)), x:demogValues(xm), y:demogValues(ym), c:demogValues(cm), w:evArray('expected'),
+  demog.plot.draw({ n:t.n, labels:t.ids.map(id => labelOf(st.level, id)), x:demogValues(xm), y:demogValues(ym), c:demogValues(cm), w:evArray('expected'),
     xm, ym, cm, xMoe:demogMoe(xm), yMoe:demogMoe(ym), cMoe:demogMoe(cm), mode:demog.mode, sizeByWeight:$('#evd-size').checked, noun:levelNames[st.level],
     yRef:ym?.unit === 'pace' ? 1 : null, height:320, marked, brushed:demog.brushed.map(id => t.index.get(id)).filter(i => i != null),
     onStats:s => {

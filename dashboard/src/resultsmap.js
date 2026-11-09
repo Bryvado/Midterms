@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 import { mapBasics, compareGreyColors } from './map.js';
+import { shortLabel } from './labels.js';
 import { featureStates, stateWidth, rowMarker } from './highlight.js';
 import { stops as palStops, partisanCenter, partisanClamp, swatchButton } from './palette.js';
 import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY, precinctCounty, inCounties, countyPair } from './compare.js';
@@ -336,7 +337,7 @@ function rowsOf(c) {
   const out = [];
   for (let i = 0; i < store.n; i++) {
     if (c.status[i] === STATUS.filtered || c.nr?.set.has(store.county[i])) continue;
-    out.push({ i, id:store.ids[i], name:store.labels[i], votes:tp[i], s26:sh[i], sc:cmp ? cmp[i] : NaN, value:c.status[i] === STATUS.ok ? c.array[i] : NaN });
+    out.push({ i, id:store.ids[i], name:shortLabel(store.level, store.labels[i], undefined, { keepCounty:true }), votes:tp[i], s26:sh[i], sc:cmp ? cmp[i] : NaN, value:c.status[i] === STATUS.ok ? c.array[i] : NaN });
   }
   return out;
 }
@@ -365,10 +366,10 @@ function flatTooltipHTML(id) {
   const c = cur, cs = c.nr.county, i = indexOf(cs, id);
   if (i === undefined) return `<strong>${escapeHTML(id)}</strong>No data`;
   const key = c.pair ? (is2026Result(c.pair.to) ? c.pair.to : c.pair.from) : 'sen26', tp = tpOf(cs, key)[i], sh = shareOf(cs, key)[i];
-  const lines = ['County result (no precinct returns)', `${raceOf(key).label}: ${share1(sh)} Talarico of ${count(tp)} two-party votes`];
+  const lines = ['County result (no precinct returns)', `${raceOf(key).label}: ${share1(sh)} Democratic of ${count(tp)} two-party votes`];
   if (c.pair) {
     const other = key === c.pair.to ? c.pair.from : c.pair.to, os = shareOf(cs, other)[i];
-    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)}` : `${raceOf(other).label}: ${share1(os)}`);
+    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)} Democratic` : `${raceOf(other).label}: ${share1(os)} Democratic`);
     const ev = evaluate(cs, c.pair.from, c.pair.to, countyPair(c.pair)), v = metricArray(ev, c.def.metric)[i];
     if (Number.isFinite(v)) lines.push(`${c.def.label} (county): ${fmtOf[c.fmt](v)}`);
   } else if (c.def.key === 'res_margin') lines.push(`Margin (county): ${votesText(cs.dem.sen26[i] - cs.rep.sen26[i])}`);
@@ -385,23 +386,22 @@ function tooltipHTML(id) {
   if (c.status[i] === STATUS.countyFallback) {
     const cs = storeIfLoaded('county'), cid = String(c.store.county[i]), at = indexOf(cs, cid);
     lines.push('2026 precinct returns not available; showing the county result');
-    if (at !== undefined) lines.push(`${cs.labels[at]} ${raceOf(key).label}: ${share1(shareOf(cs, key)[at])} Talarico of ${count(tpOf(cs, key)[at])} two-party votes`);
-  } else if (tp > 0) lines.push(`${raceOf(key).label}: ${share1(sh)} Talarico of ${count(tp)} two-party votes`);
+    if (at !== undefined) lines.push(`${cs.labels[at]} ${raceOf(key).label}: ${share1(shareOf(cs, key)[at])} Democratic of ${count(tpOf(cs, key)[at])} two-party votes`);
+  } else if (tp > 0) lines.push(`${raceOf(key).label}: ${share1(sh)} Democratic of ${count(tp)} two-party votes`);
   else if (rs.level === 'precinct') lines.push('2026 precinct returns not available.');
   else if (Number.isFinite(c.store.cov26[i])) lines.push(`2026 precinct returns incomplete for this area (${(100 * c.store.cov26[i]).toFixed(1)}% covered)`);
   else lines.push('No 2026 returns for this place');
   if (c.pair) {
     const other = key === c.pair.to ? c.pair.from : c.pair.to, os = shareOf(c.store, other)[i], otp = tpOf(c.store, other)[i];
-    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)}` : `${raceOf(other).label}: ${otp > 0 ? `${share1(os)} of ${count(otp)} two-party votes` : 'no votes in this race'}`);
-    if (Number.isFinite(sh) && Number.isFinite(os)) lines.push(`Shift: ${signed(key === c.pair.to ? sh - os : os - sh)}`);
-  } else if (c.def.election) lines.push(`Pre-election forecast: ${share1(shareOf(c.store, 'f26')[i])}`);
+    lines.push(c.def.pair === 'forecast' ? `Pre-election forecast: ${share1(os)} Democratic` : `${raceOf(other).label}: ${otp > 0 ? `${share1(os)} Democratic of ${count(otp)} two-party votes` : 'no votes in this race'}`);
+  } else if (c.def.election) lines.push(`Pre-election forecast: ${share1(shareOf(c.store, 'f26')[i])} Democratic`);
   const v = c.array[i];
   if (c.def.early && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
   else if (!c.def.pair && Number.isFinite(v) && c.def.key !== 'res_share') lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}${c.def.surname ? ' (estimate)' : ''}`);
   else if (c.def.pair && (c.status[i] === STATUS.ok || c.status[i] === STATUS.countyFallback) && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
   if (c.status[i] === STATUS.below) lines.push(`Below the minimum of ${count(c.min)} two-party votes: not shaded.`);
   if (c.status[i] === STATUS.filtered) lines.push('Excluded by the current filters.');
-  return `<strong>${escapeHTML(c.store.labels[i])}</strong>${lines.map(escapeHTML).join('<br>')}`;
+  return `<strong>${escapeHTML(shortLabel(rs.level, c.store.labels[i], undefined, { keepCounty:true }))}</strong>${lines.map(escapeHTML).join('<br>')}`;
 }
 
 // ---- Controls and URL ----

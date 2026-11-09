@@ -1,4 +1,4 @@
-import { csv } from './data.js';
+import { csv, signed, count } from './data.js';
 import extraManifest from './extra-races.json';
 
 // Descriptive arithmetic on published columns only: shares, shifts, ratios and weighted summaries of past results and of the published 2026 projection.
@@ -271,6 +271,13 @@ export function metricArray(ev, metric) {
     out[i] = metric === 'shift' ? ev.shift[i] : metric === 'rshift' ? ev.shift[i] - ev.stateShift : metric === 'ratio' ? Math.log(ev.ratio[i]) : metric === 'rratio' ? Math.log(ev.ratio[i]) - Math.log(ev.stateRatio) : ev.net[i];
   }
   return out;
+}
+// One tooltip line for the selected comparison metric, worded as in the measure picker, so no number appears twice.
+export function metricLine(d, metric) {
+  const label = metrics.find(m => m.key === metric)?.label;
+  const text = metric === 'shift' ? signed(d.shift) : metric === 'rshift' ? signed(d.value) : metric === 'ratio' ? `×${d.ratio.toFixed(2)}` : metric === 'rratio' ? `×${Math.exp(d.value).toFixed(2)}`
+    : `${d.net >= 0 ? '+' : '−'}${count(Math.abs(d.net))}`;
+  return label && !text.includes('NaN') && !text.includes('n/a') ? `${label}: ${text}` : '';
 }
 export const pairLabel = (from = state.from, to = state.to) => `${raceOf(from).label} to ${raceOf(to).label}`;
 export const crossOffice = (from = state.from, to = state.to) => raceOf(from).office !== raceOf(to).office;

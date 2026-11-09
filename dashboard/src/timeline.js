@@ -41,9 +41,7 @@ const gapText = g => `${g >= 0 ? '+' : minus}${Math.abs(100 * g).toFixed(1)}`;
 const avgTip = 'Average Democratic two-party share across every contested statewide race that year (governor, senate, president, row offices and courts).';
 const clip = (text, max) => text.length > max ? `${text.slice(0, max - 1)}…` : text;
 const placeNameOf = (level, store, i, names) => {
-  const label = store.labels[i];
-  if (level === 'precinct') { const m = /VTD (\S+)/.exec(label); return m ? `Pct ${m[1]}` : label; }
-  return shortLabel(level, label, names, { keepCounty:true });
+  return shortLabel(level, store.labels[i], names, { keepCounty:true });
 };
 
 // Two series types for this place, solid for the active office (dem / (dem + rep) in every year it has, then the 2026 projection with its 90% bar)
