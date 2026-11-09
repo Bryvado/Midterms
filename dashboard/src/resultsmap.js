@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 import { mapBasics, compareGreyColors } from './map.js';
+import { featureStates, stateWidth, rowMarker } from './highlight.js';
 import { stops as palStops, partisanCenter, partisanClamp, swatchButton } from './palette.js';
 import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result } from './compare.js';
 
@@ -172,7 +173,7 @@ function addLevel(level) {
   map.addSource(name.src, { type:'vector', url:b.tileURL(b.tiles[level]), promoteId:'region_id' });
   map.addLayer({ id:name.fill, type:'fill', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'fill-color':compareGreyColors().nodata, 'fill-opacity':.85, 'fill-outline-color':'rgba(0,0,0,0)' } }, below);
   map.addLayer({ id:name.line, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':level === 'precinct' ? .25 : .5 } }, below);
-  map.addLayer({ id:name.hi, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, filter:['in', ['to-string', ['get', 'region_id']], ['literal', []]], paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.4 } }, below);
+  map.addLayer({ id:name.hi, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('on', 2.4) } }, below);
   if (!decorated) {
     decorated = true;
     b.highways(below, map);
@@ -184,9 +185,10 @@ function addLevel(level) {
 function showLevel(level) {
   for (const l of added) for (const part of ['fill', 'line', 'hi']) map.setLayoutProperty(ids(l)[part], 'visibility', l === level ? 'visible' : 'none');
 }
+const hi = featureStates('on'), rowsMark = rowMarker();
 function setHighlight() {
-  if (!map || !added.has(rs.level)) return;
-  map.setFilter(ids(rs.level).hi, ['in', ['to-string', ['get', 'region_id']], ['literal', [selected, hover].filter(Boolean)]]);
+  if (!map) return;
+  for (const l of added) hi.set(map, ids(l).src, l === rs.level ? [selected, hover] : []);
 }
 
 function applyDisplay(c) {
@@ -303,12 +305,10 @@ function drawTable(c) {
   $('#rs-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${cols.map(k => `<th class="${k.text ? 'name' : ''}" aria-sort="${k.key === sortState.key ? (sortState.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${k.key}">${escapeHTML(k.label)}</button></th>`).join('')}</tr></thead>
     <tbody>${shown.map(r => `<tr data-id="${escapeHTML(r.id)}" tabindex="0">${cols.map(k => `<td class="${k.text ? 'name' : ''}">${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="note">${rows.length > TABLE_CAP ? `Showing the first ${count(TABLE_CAP)} of ${count(rows.length)} places in this order. ` : ''}Shares are Talarico’s share of the two-party vote. A dash means the place has no data for that column.</p>`;
+  rowsMark.index($('#rs-table'));
   markTable();
 }
-function markTable() {
-  const set = new Set([selected, hover].filter(Boolean));
-  for (const tr of document.querySelectorAll('#rs-table tbody tr')) tr.classList.toggle('active', set.has(tr.dataset.id));
-}
+function markTable() { rowsMark.mark([selected, hover]); }
 
 // ---- Tooltip ----
 function tooltipHTML(id) {
@@ -395,7 +395,7 @@ function initMap() {
   map = new maplibregl.Map({ container:'rs-map', style:b.style, bounds:b.bounds, fitBoundsOptions:{ padding:24 }, attributionControl:false, cooperativeGestures:true });
   map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
-  map.on('style.load', () => { styleReady = true; decorated = false; added.clear(); paint(); });
+  map.on('style.load', () => { styleReady = true; decorated = false; added.clear(); hi.reset(); paint(); });
   window.addEventListener('basemap-change', () => { if (!map) return; styleReady = false; map.setStyle(mapBasics().style); });
   const wrap = $('.rs-map-wrap');
   let fitted = false;

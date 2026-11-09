@@ -5,6 +5,7 @@ import { mapBasics } from './map.js';
 import { loadDemographics, modelEntries, earlyVoteEntries, levelTable, finiteCount, MIN_UNITS, createPicker, methodNote } from './measures.js';
 import { createXYPlot, colorLegend } from './xyplot.js';
 import { stops as palStops, ramp as palRamp, swatchButton, refresh as refreshSwatch, isPartisan } from './palette.js';
+import { featureStates, stateWidth, rowMarker } from './highlight.js';
 
 // Early vote tab. Regions come from the published early_vote_map files (one row per area per day, cumulative);
 // statewide totals and the daily chart come from the official early_vote_daily file. Blank cells are suppressed
@@ -150,6 +151,7 @@ function hatchImage() {
   return ctx.getImageData(0, 0, size, size);
 }
 function addLayers() {
+  hiState.reset(); tableState_.reset();
   const b = mapBasics(), layers = map.getStyle().layers;
   let start = layers.length;
   while (start > 0 && layers[start - 1].type === 'symbol') start--;
@@ -161,11 +163,11 @@ function addLayers() {
     map.addLayer({ id:`evt-fill-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'fill-color':SUPPRESSED(), 'fill-opacity':display[level].op / 100 } }, before);
     map.addLayer({ id:`evt-hatch-${level}`, type:'fill', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'fill-pattern':'evt-hatch', 'fill-opacity':.55 } }, before);
     map.addLayer({ id:`evt-line-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'line-color':lineColor(display[level]), 'line-width':display[level].bw } }, before);
-    map.addLayer({ id:`evt-hi-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, filter:idFilter([]), paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.6 } }, before);
+    map.addLayer({ id:`evt-hi-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:vis }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('on', 2.6) } }, before);
   }
   // The county table can highlight a county at any geography.
   for (const level of Object.keys(files)) map.addLayer({ id:`evt-brush-${level}`, type:'line', source:level, 'source-layer':'regions', layout:{ visibility:level === st.level ? 'visible' : 'none' }, filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':1.8 } }, before);
-  map.addLayer({ id:'evt-hi-countytable', type:'line', source:'county', 'source-layer':'regions', filter:idFilter([]), paint:{ 'line-color':'#c98a00', 'line-width':2.4, 'line-dasharray':[2, 1] } }, before);
+  map.addLayer({ id:'evt-hi-countytable', type:'line', source:'county', 'source-layer':'regions', paint:{ 'line-color':'#c98a00', 'line-width':stateWidth('tbl', 2.4), 'line-dasharray':[2, 1] } }, before);
   b.labels(map);
   mapReady = true;
   paintMap();
@@ -196,13 +198,13 @@ function paintMap() {
   paintHighlight();
   drawLegend(d);
 }
+const hiState = featureStates('on'), tableState_ = featureStates('tbl'), rowsMark = rowMarker();
 function paintHighlight() {
   if (!mapReady) return;
   for (const level of Object.keys(files)) { map.setLayoutProperty(`evt-brush-${level}`, 'visibility', level === st.level ? 'visible' : 'none'); map.setFilter(`evt-brush-${level}`, idFilter(level === st.level ? demog.brushed : [])); }
   const ids = [st.hover, st.sel].filter(x => x && x.level === st.level).map(x => x.id);
-  map.setFilter(`evt-hi-${st.level}`, idFilter(ids));
-  const counties = [st.hover, st.sel].filter(x => x && x.level === 'county' && st.level !== 'county').map(x => x.id);
-  map.setFilter('evt-hi-countytable', idFilter(counties));
+  for (const level of Object.keys(files)) hiState.set(map, level, level === st.level ? ids : []);
+  tableState_.set(map, 'county', [st.hover, st.sel].filter(x => x && x.level === 'county' && st.level !== 'county').map(x => x.id));
 }
 function drawLegend(d) {
   const fmt = v => d.m.kind === 'count' ? count(v) : pct(v);
@@ -557,12 +559,10 @@ function drawTable() {
   $('#evt-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${columns.map(c => `<th class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (tableState.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${escapeHTML(c.label)}</button></th>`).join('')}</tr></thead>
     <tbody>${rows.map(r => `<tr data-id="${escapeHTML(r.id)}" tabindex="0">${columns.map(c => `<td class="${c.text ? 'name' : ''}">${show(r, c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="note">Pace is the county's share of expected ballots cast relative to the state's. D share intervals are 90% intervals from the number of early voters with a primary history. Cells under 5 voters are suppressed. Forecast columns are the model's, not early-vote results.</p>`;
+  rowsMark.index($('#evt-table'));
   markTable();
 }
-function markTable() {
-  const ids = new Set([st.sel, st.hover].filter(x => x?.level === 'county').map(x => x.id));
-  for (const tr of document.querySelectorAll('#evt-table tbody tr')) tr.classList.toggle('active', ids.has(tr.dataset.id));
-}
+function markTable() { rowsMark.mark([st.sel, st.hover].filter(x => x?.level === 'county').map(x => x.id)); }
 
 // ---- Detail card ----
 function drawCard() {
