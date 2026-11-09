@@ -79,14 +79,16 @@ const urlKeys = { from:'cf', to:'cto', min:'cmin', county:'cc', profile:'cp', y2
   if (m?.startsWith('cmp_') && metrics.some(metric => `cmp_${metric.key}` === m)) state.metric = m.slice(4);
 }
 export const isCompareMeasure = key => typeof key === 'string' && key.startsWith('cmp_');
-// <option>s for a From/To race picker: the hand-maintained races flat, as before, plus the 2026 results and
-// other extra races (precinct_extra_races.csv / county_extra_races.csv) under their own optgroup.
+// <option>s for a From/To race picker: the hand-maintained races flat, then the 2026 results and the 2018-2024 statewide
+// races from the extra files, each under its own optgroup.
 export function raceNodes(selected) {
-  const nodes = races.filter(item => !item.extra).map(item => new Option(item.label, item.key, false, item.key === selected));
-  if (extraRaces.length) {
+  const option = item => new Option(item.label, item.key, false, item.key === selected);
+  const nodes = races.filter(item => !item.extra).map(option);
+  for (const [label, list] of [['2026 results', extraRaces.filter(item => item.year === 2026)], ['Other statewide races, 2018–2024', extraRaces.filter(item => item.year !== 2026)]]) {
+    if (!list.length) continue;
     const group = document.createElement('optgroup');
-    group.label = '2026 results and other statewide races';
-    group.append(...extraRaces.map(item => new Option(item.label, item.key, false, item.key === selected)));
+    group.label = label;
+    group.append(...list.map(option));
     nodes.push(group);
   }
   return nodes;
@@ -123,11 +125,12 @@ export function loadStore(level) {
     stores.set(level, Promise.all([csv(info.details), csv(info.projections), csv(info.history).catch(() => []), info.extra ? csv(info.extra).catch(() => []) : Promise.resolve([])]).then(([details, projections, history, extra]) => {
       const byId = new Map(projections.map(row => [row.region_id, row])), byHistory = new Map(history.map(row => [row.region_id, row])), byExtra = new Map(extra.map(row => [row.region_id, row]));
       const n = details.length;
-      const store = { level, n, cov26:new Float64Array(n).fill(NaN), extra:new Uint8Array(n), ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
+      const store = { level, n, cov26:new Float64Array(n).fill(NaN), extra:new Uint8Array(n), noReturns:new Set(), ids:new Array(n), labels:new Array(n), county:new Array(n), profile:new Uint8Array(n).fill(255), imputed:new Uint8Array(n),
         dem:{}, rep:{}, tal:new Float64Array(n), pax:new Float64Array(n), mean:new Float64Array(n), q05:new Float64Array(n), q95:new Float64Array(n), pTal:new Float64Array(n),
         demog:{ hisp_cvap_share:new Float64Array(n), white_cvap_share:new Float64Array(n), black_cvap_share:new Float64Array(n), ba_plus_share:new Float64Array(n), med_income:new Float64Array(n), population:new Float64Array(n), area_sqmi:new Float64Array(n) },
         cache:new Map(), tp:new Map(), share:new Map(), index:null };
       for (const item of races) if (!item.forecast) { store.dem[item.key] = new Float64Array(n); store.rep[item.key] = new Float64Array(n); }
+      const returned = new Set();
       for (let i = 0; i < n; i++) {
         const row = details[i], p = byId.get(row.region_id) || {};
         store.ids[i] = row.region_id;
@@ -141,11 +144,14 @@ export function loadStore(level) {
         if (old) for (const item of histRaces) { store.dem[item.key][i] = votes(old[`dem_${item.col}`]); store.rep[item.key][i] = votes(old[`rep_${item.col}`]); }
         const ext = byExtra.get(row.region_id);
         if (ext) { store.cov26[i] = num(ext.cov26); store.extra[i] = 1; }
+        if (ext && ((ext.dem_sen26 != null && ext.dem_sen26 !== '') || (ext.rep_sen26 != null && ext.rep_sen26 !== ''))) returned.add(store.county[i]);
         if (ext) for (const item of extraRaces) { store.dem[item.key][i] = votes(ext[`dem_${item.key}`]); store.rep[item.key][i] = votes(ext[`rep_${item.key}`]); }
         store.tal[i] = votes(row.talarico_mean); store.pax[i] = votes(row.paxton_mean);
         store.mean[i] = num(p.mean); store.q05[i] = num(p.q05); store.q95[i] = num(p.q95); store.pTal[i] = num(p.p_talarico);
         for (const key of Object.keys(store.demog)) store.demog[key][i] = num(row[key]);
       }
+      // A county has precinct returns when at least one of its precincts has a 2026 Senate figure; the rest are drawn as one county polygon.
+      if (level === 'precinct' && extra.columns?.includes('dem_sen26')) for (const c of store.county) if (c && !returned.has(c)) store.noReturns.add(c);
       return store;
     }).catch(error => { stores.delete(level); throw error; }));
   }
@@ -196,7 +202,9 @@ export const countyFilterApplies = level => level === 'precinct' || level === 'c
 // countyFallback: a unit with no 2026 returns of its own that shows its county's published two-party share.
 export const STATUS = { ok:0, missing:1, below:2, filtered:3, countyFallback:4 };
 export const FALLBACK_OPACITY = .55;
-export const is2026Result = key => key === 'sen26' || key === 'gov26';
+// Every 2026 result in the extra files (not the forecast, which is also a 2026 race).
+export const is2026Result = key => { const r = raceOf(key); return !!r?.extra && r.year === 2026; };
+export const reads2026 = pair => is2026Result(pair.from) || is2026Result(pair.to);
 const filterKey = f => `${f.min}|${f.county}|${f.profile}|${f.fallback ? 1 : 0}`;
 // A pair for the maps: the Forecast tab's state, or another tab's, with the county fallback switched on.
 export const mapPair = (p = state) => ({ ...p, fallback:true });
@@ -212,7 +220,7 @@ export function evaluate(store, from, to, f = state) {
   if (county && is2026Result(from)) sA = withCounty(store, county, from, sA, tA, viaA);
   if (county && is2026Result(to)) sB = withCounty(store, county, to, sB, tB, viaB);
   const shift = new Float64Array(n).fill(NaN), ratio = new Float64Array(n).fill(NaN), net = new Float64Array(n).fill(NaN), status = new Uint8Array(n);
-  const counts = { shown:0, below:0, missing:0, filtered:0, fallback:0, total:n };
+  const counts = { shown:0, below:0, missing:0, filtered:0, fallback:0, hidden:0, total:n };
   for (let i = 0; i < n; i++) {
     // The county filter needs a county for every place (not districts or PUMAs); the profile filter exists only for precincts.
     if ((f.county && countyFilterApplies(store.level) && store.county[i] !== f.county) || (f.profile && store.level === 'precinct' && store.profile[i] !== profileNames.indexOf(f.profile))) { status[i] = STATUS.filtered; counts.filtered++; continue; }
@@ -220,7 +228,8 @@ export function evaluate(store, from, to, f = state) {
     if ((viaA[i] || viaB[i]) && (realA || viaA[i]) && (realB || viaB[i]) && (realA || realB)) {
       // Only the share-based metrics have a value here; a county share cannot become a unit's vote count.
       if ((realA && tA[i] < f.min) || (realB && tB[i] < f.min)) { status[i] = STATUS.below; counts.below++; continue; }
-      status[i] = STATUS.countyFallback; counts.fallback++;
+      status[i] = STATUS.countyFallback;
+      if (store.noReturns.has(store.county[i])) counts.hidden++; else counts.fallback++;
       shift[i] = sB[i] - sA[i];
       continue;
     }
@@ -337,6 +346,12 @@ export function mapExpressions(level, metric = state.metric, pair = state) {
   const ev = evaluate(store, from, to, pair);
   return { ...valueExpressions(store, `${from}|${to}|${filterKey(pair)}|${metric}`, () => metricArray(ev, metric), ev.status, ev.counts.filtered, min), ev };
 }
+// Precinct features in counties with no precinct returns are hidden and the county is drawn flat instead (expressions, so nothing re-filters per interaction).
+export const precinctCounty = ['slice', ['to-string', ['get', 'region_id']], 0, 3];
+export const inCounties = (idExpr, list) => ['in', idExpr, ['literal', list]];
+export const noReturnList = () => { const s = storeIfLoaded('precinct'); return s ? [...s.noReturns].sort() : []; };
+// The pair used for the flat county polygons: the county's own value with no minimum.
+export const countyPair = p => ({ ...p, min:0, fallback:false });
 // 2026 results are blank where precinct returns are missing. The note says so, and where the county's share stands in, that it does.
 export function noData2026Note(level, d, pair = state) {
   if (!(is2026Result(pair.from) || is2026Result(pair.to))) return '';

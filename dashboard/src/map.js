@@ -3,7 +3,7 @@ import { classify, classificationMethods } from './classification.js';
 import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
-import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, mapPair, FALLBACK_OPACITY, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, mapPair, FALLBACK_OPACITY, reads2026, precinctCounty, inCounties, noReturnList, countyPair, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -122,7 +122,29 @@ const fillOpacity = () => +settings.op / 100;
 function fillOpacityFor(level) {
   const base = baseOpacityFor(level);
   const fb = isCompareMeasure(measure) ? mapExpressions(level, measure.slice(4), mapPair())?.fallback : null;
-  return fb ? ['case', fb, ['*', base, FALLBACK_OPACITY], base] : base;
+  const faded = fb ? ['case', fb, ['*', base, FALLBACK_OPACITY], base] : base;
+  return level === 'precinct' && nrActive() ? ['case', hiddenPrecinct(), 0, faded] : faded;
+}
+// At precincts, a 2026 measure draws counties with no precinct returns as one flat county polygon under the precinct layers:
+// their precinct fills and borders are hidden by expression, so no layer filter changes on interaction.
+const nrActive = () => unit === 'precinct' && isCompareMeasure(measure) && reads2026(cmpState) && !!storeIfLoaded('precinct')?.noReturns.size;
+const hiddenPrecinct = () => inCounties(precinctCounty, noReturnList());
+const shareMetric = () => cmpState.metric === 'shift' || cmpState.metric === 'rshift';
+function paintNoReturn() {
+  if (!map?.getLayer(layerName('precinct'))) return;
+  const on = nrActive();
+  if (on && !map.getLayer('nr-fill')) {
+    const filter = inCounties(['to-string', ['get', 'region_id']], noReturnList());
+    map.addLayer({ id:'nr-fill', type:'fill', source:'county', 'source-layer':'regions', filter, layout:{ visibility:'none' }, paint:{ 'fill-color':compareGreys().missing, 'fill-opacity':1, 'fill-outline-color':'rgba(0,0,0,0)' } }, layerName('precinct'));
+    map.addLayer({ id:'nr-line', type:'line', source:'county', 'source-layer':'regions', filter, layout:{ visibility:'none' }, paint:{ 'line-color':outline(), 'line-width':+settings.bw } }, layerName('precinct'));
+  }
+  if (!map.getLayer('nr-fill')) return;
+  for (const id of ['nr-fill', 'nr-line']) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  if (!on) return;
+  map.setPaintProperty('nr-fill', 'fill-color', shareMetric() ? compareColorExpression(measure, 'precinct', 'county') : compareGreys().missing);
+  map.setPaintProperty('nr-fill', 'fill-opacity', baseOpacityFor('precinct'));
+  map.setPaintProperty('nr-line', 'line-color', outline());
+  map.setPaintProperty('nr-line', 'line-width', +settings.bw);
 }
 function baseOpacityFor(level) {
   if (!fadeOn()) return fillOpacity();
@@ -408,8 +430,8 @@ const compareGreys = () => theme === 'dark'
   ? { nodata:'#4c5159', missing:'#737b84', below:'#4d5862', filtered:'#2c353d' }
   : { nodata:'#afb8b8', missing:'#b3bcbc', below:'#d9dfdf', filtered:'#eef1f1' };
 export const compareGreyColors = compareGreys;
-function compareColorExpression(key, level) {
-  const g = compareGreys(), e = mapExpressions(level, key.slice(4), mapPair());
+function compareColorExpression(key, level, valueLevel = level) {
+  const g = compareGreys(), e = mapExpressions(valueLevel, key.slice(4), valueLevel === level ? mapPair() : countyPair(mapPair()));
   if (!e) return g.nodata;
   const s = scale(key, level), tx = s.tx || (v => v);
   const paint = s.kind === 'cont'
@@ -444,8 +466,14 @@ function compareLegendExtras() {
   const g = compareGreys(), store = storeIfLoaded(unit), ev = store ? cmpEvaluate(store, cmpState.from, cmpState.to, mapPair()) : null;
   const chip = (color, text) => `<div class="legend-nodata"><span style="background:${color}"></span>${escapeHTML(text)}</div>`;
   const noun = levels[unit].plural;
-  let html = (ev?.counts.fallback && mapExpressions(unit, cmpState.metric, mapPair())?.fallback ? `<div class="legend-nodata"><span style="background:${g.missing};opacity:${FALLBACK_OPACITY}"></span>County result (no precinct returns)</div>` : '') + chip(g.missing, 'No votes in this race') + (cmpState.min > 0 ? chip(g.below, `Too few votes (under ${cmpState.min.toLocaleString('en-US')} two-party)`) : '') + (ev?.counts.filtered ? chip(g.filtered, 'Excluded by filters') : '');
+  let html = (ev?.counts.fallback && mapExpressions(unit, cmpState.metric, mapPair())?.fallback ? `<div class="legend-nodata"><span style="background:${g.missing};opacity:${FALLBACK_OPACITY}"></span>County result for precincts without returns</div>` : '') + chip(g.missing, 'No votes in this race') + (cmpState.min > 0 ? chip(g.below, `Too few votes (under ${cmpState.min.toLocaleString('en-US')} two-party)`) : '') + (ev?.counts.filtered ? chip(g.filtered, 'Excluded by filters') : '');
+  if (nrActive()) {
+    let swatch = g.missing;
+    if (shareMetric()) { try { swatch = `linear-gradient(90deg,${scale(measure, unit).colors.join(',')})`; } catch { /* the scale is not ready yet */ } }
+    html += `<div class="legend-nodata"><span style="background:${swatch}"></span>County result, no precinct returns</div>`;
+  }
   const notes = [];
+  if (nrActive()) notes.push(`${noReturnList().length} counties have no precinct returns and draw as one county polygon${shareMetric() ? '' : ', gray for this measure'}.`);
   if (ev) notes.push(`${ev.counts.shown.toLocaleString('en-US')} ${noun} shown${ev.counts.fallback ? ` · ${ev.counts.fallback.toLocaleString('en-US')} with the county result` : ''} · ${ev.counts.below.toLocaleString('en-US')} below minimum · ${ev.counts.missing.toLocaleString('en-US')} missing a race`);
   if (crossOffice()) notes.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
   if (crossesSources()) notes.push(sourceCaveat);
@@ -556,9 +584,10 @@ function paint() {
     map.setPaintProperty(layerName(level), 'fill-color', colorExpression(measure, level));
     map.setPaintProperty(layerName(level), 'fill-opacity', fillOpacityFor(level));
     map.setPaintProperty(`border-${level}`, 'line-color', outline());
-    map.setPaintProperty(`border-${level}`, 'line-width', +settings.bw);
+    map.setPaintProperty(`border-${level}`, 'line-width', level === 'precinct' && nrActive() ? ['case', hiddenPrecinct(), 0, +settings.bw] : +settings.bw);
     map.setLayoutProperty(`border-${level}`, 'visibility', levelVisible(level) ? 'visible' : 'none');
   }
+  paintNoReturn();
   for (const level of Object.keys(overlayStyle)) map.setLayoutProperty(`overlay-${level}`, 'visibility', settings[level === 'county' ? 'oc' : 'od'] === '1' ? 'visible' : 'none');
 }
 
@@ -586,6 +615,7 @@ function refitView() {
   drawLegend();
   map.setPaintProperty(layerName(unit), 'fill-color', colorExpression(measure, unit));
   map.setPaintProperty(layerName(unit), 'fill-opacity', fillOpacityFor(unit));
+  paintNoReturn();
 }
 function scheduleFit() { if (map) map.once('idle', refitView); }
 
@@ -623,11 +653,11 @@ function initDisplayControls() {
   on('#display-reset', 'click', (_, signal) => { Object.assign(settings, defaults); for (const key of [...scaleState.keys()]) if (key.startsWith(`${unit}__`)) scaleState.delete(key); viewRange = null; return applyDisplay(signal); });
 }
 
-function compareTooltip(props) {
-  const d = describeProps(props, unit, mapPair()), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
+function compareTooltip(props, level = unit) {
+  const flat = level !== unit, d = describeProps(props, level, flat ? countyPair(mapPair()) : mapPair()), a = raceOf(cmpState.from), b = raceOf(cmpState.to);
   const via = d.status === CMP.countyFallback;
   const part = (race, share, tp) => `${race.label}: ${tp > 0 ? `${pct(share)} of ${count(tp)} two-party votes` : via && Number.isFinite(share) ? `${pct(share)} county two-party share` : 'no votes in this race'}`;
-  const lines = [part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
+  const lines = [...(flat ? ['County result (no precinct returns)'] : []), part(a, d.shareA, d.tpA), part(b, d.shareB, d.tpB)];
   if (d.status === CMP.filtered) lines.push('Excluded by the current filters.');
   else if (via) lines.push(Number.isFinite(d.value) ? `Shift: ${signed(d.shift)}` : 'This measure needs the unit’s own vote counts: not shaded.', noData2026Note(unit, d, mapPair()));
   else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.', noData2026Note(unit, d));
@@ -651,10 +681,10 @@ function valueText(props) {
   return kind === 'count' || isCount(measure) ? count(v) : isShift(measure) ? signed(v) : measure === 'p_talarico' ? probPct(v) : pct(v);
 }
 
-function showTooltip(event, props) {
+function showTooltip(event, props, level = unit) {
   const label = props.region_label || props.region_id || 'Selected place';
   const showing = document.querySelector('#measure').selectedOptions[0].textContent;
-  if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props)}<br><span class="note">Click for details</span>`;
+  if (isCompareMeasure(measure)) tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${compareTooltip(props, level)}<br><span class="note">Click for details</span>`;
   else tooltip.innerHTML = `<strong>${escapeHTML(label)}</strong>${escapeHTML(showing)}: ${escapeHTML(valueText(props))}<br>${measure === 'mean' ? '' : `Projected share: ${escapeHTML(pct(props.mean))}<br>`}90% interval: ${escapeHTML(pct(props.q05))}–${escapeHTML(pct(props.q95))}<br><span class="note">Click for details</span>`;
   const rect = pane.getBoundingClientRect();
   let x = event.originalEvent.clientX - rect.left + 13;
@@ -846,6 +876,7 @@ export function initMap(select) {
     }
     addHighways(labels);
     addLinkLayers(labels);
+    paintNoReturn();
     for (const id of earlyLabels) map.moveLayer(id, labels);
     message.hidden = true;
     scheduleFit();
@@ -854,20 +885,22 @@ export function initMap(select) {
   map.on('mousemove', e => {
     if (drawing) { drawPreview(e.lngLat); return; }
     if (!map.getLayer(layerName(unit))) return;
-    const features = map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] });
-    const feature = features[0];
+    const flat = nrActive() && map.getLayer('nr-fill') ? map.queryRenderedFeatures(e.point, { layers:['nr-fill'] })[0] : null;
+    const feature = flat || map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] })[0];
     map.getCanvas().style.cursor = feature ? 'pointer' : '';
-    if (feature) showTooltip(e, feature.properties);
+    if (feature) showTooltip(e, feature.properties, flat ? 'county' : unit);
     else tooltip.hidden = true;
   });
   map.on('mouseleave', () => { tooltip.hidden = true; });
   map.on('click', e => {
     if (drawing) { drawClick(e); return; }
     if (!map.getLayer(layerName(unit))) return;
-    const feature = map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] })[0];
+    const flat = nrActive() && map.getLayer('nr-fill') ? map.queryRenderedFeatures(e.point, { layers:['nr-fill'] })[0] : null;
+    const feature = flat || map.queryRenderedFeatures(e.point, { layers:[layerName(unit)] })[0];
     if (feature) {
-      tooltip.hidden = true; onSelect(unit, feature.properties);
-      window.dispatchEvent(new CustomEvent('map-place-click', { detail:{ level:unit, id:String(feature.properties.region_id) } }));
+      const level = flat ? 'county' : unit;
+      tooltip.hidden = true; onSelect(level, feature.properties);
+      window.dispatchEvent(new CustomEvent('map-place-click', { detail:{ level, id:String(feature.properties.region_id) } }));
     }
   });
   map.on('dblclick', e => { if (drawing) { e.preventDefault(); finishDraw(); } });
