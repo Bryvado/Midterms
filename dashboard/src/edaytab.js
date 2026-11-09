@@ -5,6 +5,7 @@ import { mapBasics } from './map.js';
 import { showView } from './evtab.js';
 import { resultsAvailable, activate as activateResults } from './resultsmap.js';
 import { ensureStore } from './compare.js';
+import { featureStates, stateWidth, rowMarker } from './highlight.js';
 import { ramp as palRamp, partisanT, partisanClamp, partisanCenter, gradient, swatchButton } from './palette.js';
 
 // Election night tab. Everything shown comes from data/live: live.json (the estimator's current statewide and county
@@ -154,11 +155,12 @@ function addLayers() {
   let first = layers.length;
   while (first > 0 && layers[first - 1].type === 'symbol') first--;
   const below = layers[first]?.id;
+  hi.reset();
   if (!map.getSource('eday-county')) map.addSource('eday-county', { type:'vector', url:b.tileURL(b.tiles.county), promoteId:'region_id' });
   map.addLayer({ id:'eday-fill', type:'fill', source:'eday-county', 'source-layer':'regions', paint:{ 'fill-color':'#cfd5d5', 'fill-opacity':.15 } }, below);
   map.addLayer({ id:'eday-line', type:'line', source:'eday-county', 'source-layer':'regions', paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':.5 } }, below);
   b.highways(below, map);
-  map.addLayer({ id:'eday-hi', type:'line', source:'eday-county', 'source-layer':'regions', filter:['in', ['to-string', ['get', 'region_id']], ['literal', []]], paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':2.4 } }, below);
+  map.addLayer({ id:'eday-hi', type:'line', source:'eday-county', 'source-layer':'regions', paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('on', 2.4) } }, below);
   // Some styles (OpenFreeMap Dark) put a water-label layer before their roads; lift it above the fills too.
   if (below) for (const layer of layers.slice(0, first)) if (layer.type === 'symbol') map.moveLayer(layer.id, below);
   b.labels(map);
@@ -179,9 +181,10 @@ function paintMap() {
   tipId = null;
 }
 // Hover and selection only move the outline layer's filter; the fill is never repainted for them.
+const hi = featureStates('on'), rowsMark = rowMarker();
 function paintHighlight() {
-  if (!map || !mapReady || !map.getLayer('eday-hi')) return;
-  map.setFilter('eday-hi', ['in', ['to-string', ['get', 'region_id']], ['literal', [st.sel, st.hover].filter(Boolean)]]);
+  if (!map || !mapReady) return;
+  hi.set(map, 'eday-county', [st.sel, st.hover]);
 }
 function renderLegend() {
   const half = Math.round(100 * partisanClamp(SHIFT_MAX)), mid = Math.round(100 * partisanCenter());
@@ -213,7 +216,7 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
   map.on('style.load', addLayers);
   // The tab's map follows the basemap chosen in Map controls.
-  window.addEventListener('basemap-change', () => { if (!map) return; mapReady = false; map.setStyle(mapBasics().style); });
+  window.addEventListener('basemap-change', () => { if (!map) return; mapReady = false; hi.reset(); map.setStyle(mapBasics().style); });
   const wrap = tab.querySelector('.evt-map-wrap');
   let fitted = false;
   new ResizeObserver(() => { if (!wrap.clientWidth || !wrap.clientHeight) return; map.resize(); if (!fitted) { fitted = true; map.fitBounds(b.bounds, { padding:24, duration:0 }); } }).observe(wrap);
@@ -330,12 +333,10 @@ function drawTable() {
   $('#eday-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${cols.map(c => `<th class="${c.text ? 'name' : ''}" aria-sort="${c.key === col.key ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${escapeHTML(c.label)}</button></th>`).join('')}</tr></thead>
     <tbody>${rows.map(c => `<tr data-id="${escapeHTML(c.fips3)}" tabindex="0">${cols.map(k => `<td class="${k.text ? 'name' : ''}">${k.show(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="note">${final ? "Shares are Talarico's share of the two-party vote. Election Day + late is every vote not cast early, including ballots counted after Election Day. The result is the county's counted share; shift vs forecast is the result minus the pre-results forecast." : "Shares are Talarico's share of the two-party vote. Early and Election Day shares are the counted votes so far; the estimate is the updated county share. A dash means no votes of that kind are counted yet."}</p>`;
+  rowsMark.index($('#eday-table'));
   markTable();
 }
-function markTable() {
-  const ids = new Set([st.sel, st.hover].filter(Boolean));
-  for (const tr of tab.querySelectorAll('#eday-table tbody tr')) tr.classList.toggle('active', ids.has(tr.dataset.id));
-}
+function markTable() { rowsMark.mark([st.sel, st.hover]); }
 
 // ---- Tab ----
 function start() {
