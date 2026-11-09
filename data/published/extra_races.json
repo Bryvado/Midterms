@@ -14,6 +14,97 @@
     "short": "2026 Governor (results)"
   },
   {
+    "key": "ag_commissioner26",
+    "year": 2026,
+    "office": "ag_commissioner",
+    "label": "2026 Agriculture Commissioner (results)",
+    "short": "2026 Agriculture Commissioner (results)"
+  },
+  {
+    "key": "attorney_general26",
+    "year": 2026,
+    "office": "attorney_general",
+    "label": "2026 Attorney General (results)",
+    "short": "2026 Attorney General (results)"
+  },
+  {
+    "key": "cca_326",
+    "year": 2026,
+    "office": "cca_3",
+    "label": "2026 Criminal Appeals Place 3 (results)",
+    "short": "2026 Criminal Appeals Place 3 (results)"
+  },
+  {
+    "key": "cca_426",
+    "year": 2026,
+    "office": "cca_4",
+    "label": "2026 Criminal Appeals Place 4 (results)",
+    "short": "2026 Criminal Appeals Place 4 (results)"
+  },
+  {
+    "key": "cca_926",
+    "year": 2026,
+    "office": "cca_9",
+    "label": "2026 Criminal Appeals Place 9 (results)",
+    "short": "2026 Criminal Appeals Place 9 (results)"
+  },
+  {
+    "key": "comptroller26",
+    "year": 2026,
+    "office": "comptroller",
+    "label": "2026 Comptroller (results)",
+    "short": "2026 Comptroller (results)"
+  },
+  {
+    "key": "supreme_court_226",
+    "year": 2026,
+    "office": "supreme_court_2",
+    "label": "2026 Supreme Court Place 2 (results)",
+    "short": "2026 Supreme Court Place 2 (results)"
+  },
+  {
+    "key": "supreme_court_726",
+    "year": 2026,
+    "office": "supreme_court_7",
+    "label": "2026 Supreme Court Place 7 (results)",
+    "short": "2026 Supreme Court Place 7 (results)"
+  },
+  {
+    "key": "supreme_court_826",
+    "year": 2026,
+    "office": "supreme_court_8",
+    "label": "2026 Supreme Court Place 8 (results)",
+    "short": "2026 Supreme Court Place 8 (results)"
+  },
+  {
+    "key": "supreme_court_chief26",
+    "year": 2026,
+    "office": "supreme_court_chief",
+    "label": "2026 Supreme Court Chief Justice (results)",
+    "short": "2026 Supreme Court Chief Justice (results)"
+  },
+  {
+    "key": "lt_governor26",
+    "year": 2026,
+    "office": "lt_governor",
+    "label": "2026 Lt. Governor (results)",
+    "short": "2026 Lt. Governor (results)"
+  },
+  {
+    "key": "land_commissioner26",
+    "year": 2026,
+    "office": "land_commissioner",
+    "label": "2026 Land Commissioner (results)",
+    "short": "2026 Land Commissioner (results)"
+  },
+  {
+    "key": "railroad_126",
+    "year": 2026,
+    "office": "railroad_1",
+    "label": "2026 Railroad Commissioner 1 (results)",
+    "short": "2026 Railroad Commissioner 1 (results)"
+  },
+  {
     "key": "2018_ag_commissioner",
     "year": 2018,
     "office": "ag_commissioner",
