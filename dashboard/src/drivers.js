@@ -2,7 +2,7 @@ import { csv, pct, count, escapeHTML } from './data.js';
 import { partyColor } from './map.js';
 
 // drivers.csv names levels differently from the map; ids are compared as the strings both files carry.
-const driverLevel = { precinct:'precinct', county:'county', cd:'congressional_district', cousub:'county_subdivision', puma:'puma' };
+const driverLevel = { precinct:'precinct', county:'county', cd:'congressional_district', cousub:'county_subdivision', puma:'puma', sh:'state_house', ss:'state_senate' };
 const stepNames = [['baseline_adj', 'Baseline adjustment'], ['statewide_shift', 'Statewide shift'], ['reversion', 'Reversion'], ['other', 'Other']];
 const finite = v => v !== '' && v != null && v !== 'NA' && Number.isFinite(+v);
 let index;

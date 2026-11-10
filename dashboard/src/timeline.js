@@ -2,7 +2,7 @@ import { races as compareRaces, state, setState, ensureStore, indexOf } from './
 import { pct, count, signed, escapeHTML, csv } from './data.js';
 import { countyNames, shortLabel } from './labels.js';
 
-const historyFiles = { precinct:'history_precinct.csv', county:'history_county.csv', cd:'history_congressional_district.csv', cousub:'history_county_subdivision.csv', puma:'history_puma.csv' };
+const historyFiles = { precinct:'history_precinct.csv', county:'history_county.csv', cd:'history_congressional_district.csv', cousub:'history_county_subdivision.csv', puma:'history_puma.csv', sh:'history_state_house.csv', ss:'history_state_senate.csv' };
 const offices = [['sen', 'Senate', 'us_senate'], ['pres', 'President', 'president'], ['gov', 'Governor', 'governor']];
 const compareOffice = { us_senate:'sen', president:'pres', governor:'gov' };
 let office = 'sen';

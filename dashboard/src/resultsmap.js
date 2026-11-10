@@ -4,14 +4,14 @@ import { mapBasics, compareGreyColors } from './map.js';
 import { shortLabel } from './labels.js';
 import { featureStates, stateWidth, rowMarker } from './highlight.js';
 import { stops as palStops, partisanCenter, partisanClamp, swatchButton } from './palette.js';
-import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY, precinctCounty, inCounties, countyPair } from './compare.js';
+import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY, precinctCounty, inCounties, countyPair, isPartial, partialNote, partialLegend } from './compare.js';
 
 // The Results tab map. It has its own state (level, measure, pair, filters), kept apart from the Forecast tab's compare state,
 // and shades places from the published 2026 results and history files through compare.js. Nothing is estimated here.
 const $ = selector => document.querySelector(selector);
 const params = new URLSearchParams(location.search);
-const levelOrder = ['precinct', 'county', 'cd', 'cousub', 'puma'];
-const levelNames = { precinct:'Precincts', county:'Counties', cd:'Congressional districts', cousub:'Subdivisions', puma:'PUMAs' };
+const levelOrder = ['precinct', 'county', 'cd', 'cousub', 'puma', 'sh', 'ss'];
+const levelNames = { precinct:'Precincts', county:'Counties', cd:'Congressional districts', cousub:'Subdivisions', puma:'PUMAs', sh:'State House', ss:'State Senate' };
 // bw is empty until the user sets it, so the default follows the level (thinner borders for dense precincts).
 const rs = { level:'county', measure:'res_share', from:'sen24', to:'sen26', min:0, county:'', range:'state', bw:'', fo:'87', bo:'30', ln:'1', hw:'1', fb:'1' };
 const defaults = { ...rs };
@@ -139,7 +139,9 @@ async function computeValues() {
     }
   }
   const min = def.election ? rs.min : 0;
-  const expr = valueExpressions(store, `v|${def.key}|${rs.level}|${min}|${county}|${fb ? 1 : 0}`, () => array.map((v, i) => status[i] === STATUS.ok || status[i] === STATUS.countyFallback ? v : NaN), status, counts.filtered, min);
+  const partial = def.election ? Uint8Array.from(status, (v, i) => v === STATUS.ok && isPartial(store, i) ? 1 : 0) : null;
+  counts.partial = partial ? partial.reduce((a, b) => a + b, 0) : 0;
+  const expr = valueExpressions(store, `v|${def.key}|${rs.level}|${min}|${county}|${fb ? 1 : 0}`, () => array.map((v, i) => status[i] === STATUS.ok || status[i] === STATUS.countyFallback ? v : NaN), status, counts.filtered, min, partial);
   return { def, store, pair:null, ev:null, array, status, counts, scale:def.scale, fmt:def.fmt, min, expr };
 }
 
@@ -289,6 +291,7 @@ function renderLegend(c, scale) {
   if (flat) lines.push(`${count(flat.list.length)} counties have no precinct returns and draw as one county polygon${c.nr.expr ? '' : ', gray for this measure'}.`);
   if (c.pair && c.def.pair === 'chosen' && crossOffice(c.pair.from, c.pair.to)) lines.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
   if (c.pair && c.def.pair === 'chosen' && crossesSources(c.pair.from, c.pair.to)) lines.push(sourceCaveat);
+  if (c.counts.partial) lines.push(partialLegend);
   if (c.def.surname) lines.push('Modeled estimate from surname rosters, not a count of voters.');
   $('#rs-legend').innerHTML = `<div class="eday-legend-title">${escapeHTML(title)}</div>
     <div class="eday-ramp" style="background:linear-gradient(90deg,${grad})"></div>
@@ -318,7 +321,7 @@ function renderNote(c) {
       parts.push(v ? `Precinct returns cover ${count(v.counties)} of ${count(v.of)} counties and about ${Math.round(100 * v.share)}% of the statewide two-party vote. The other counties report county totals only, so each is drawn as one county polygon with no precinct lines.` : 'Counties without precinct returns are blank at this level; use Counties to see them.');
       if (v?.unmatched) parts.push(`${count(v.unmatched)} of ${count(v.precincts)} precincts on the map have no row in the results file and are blank.`);
       parts.push('Precinct history in split precincts is allocated by each child precinct’s 2026 votes, so counts there are approximate; shares are exact.');
-    } else parts.push(`An area shows 2026 results only where precinct returns cover at least 98% of its 2026 vote; ${fbOn() ? 'other subdivisions take their county result at reduced opacity' : 'other areas are blank'}.`);
+    } else parts.push(`${partialLegend} Precincts without 2026 returns are filled from their county's totals.${rs.level === 'sh' || rs.level === 'ss' ? ' State House and State Senate districts are exact sums of precincts.' : ''}`);
   }
   parts.push('Results are unofficial; the canvass is pending.');
   $('#rs-note').textContent = parts.join(' ');
@@ -389,7 +392,6 @@ function tooltipHTML(id) {
     if (at !== undefined) lines.push(`${cs.labels[at]} ${raceOf(key).label}: ${share1(shareOf(cs, key)[at])} Democratic of ${count(tpOf(cs, key)[at])} two-party votes`);
   } else if (tp > 0) lines.push(`${raceOf(key).label}: ${share1(sh)} Democratic of ${count(tp)} two-party votes`);
   else if (rs.level === 'precinct') lines.push('2026 precinct returns not available.');
-  else if (Number.isFinite(c.store.cov26[i])) lines.push(`2026 precinct returns incomplete for this area (${(100 * c.store.cov26[i]).toFixed(1)}% covered)`);
   else lines.push('No 2026 returns for this place');
   if (c.pair) {
     const other = key === c.pair.to ? c.pair.from : c.pair.to, os = shareOf(c.store, other)[i], otp = tpOf(c.store, other)[i];
@@ -399,6 +401,7 @@ function tooltipHTML(id) {
   if (c.def.early && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
   else if (!c.def.pair && Number.isFinite(v) && c.def.key !== 'res_share') lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}${c.def.surname ? ' (estimate)' : ''}`);
   else if (c.def.pair && (c.status[i] === STATUS.ok || c.status[i] === STATUS.countyFallback) && Number.isFinite(v)) lines.push(`${c.def.label}: ${fmtOf[c.fmt](v)}`);
+  if (c.status[i] === STATUS.ok && uses26(c.def, c.pair) && isPartial(c.store, i)) lines.push(partialNote(c.store.cov26[i]));
   if (c.status[i] === STATUS.below) lines.push(`Below the minimum of ${count(c.min)} two-party votes: not shaded.`);
   if (c.status[i] === STATUS.filtered) lines.push('Excluded by the current filters.');
   return `<strong>${escapeHTML(shortLabel(rs.level, c.store.labels[i], undefined, { keepCounty:true }))}</strong>${lines.map(escapeHTML).join('<br>')}`;

@@ -8,6 +8,8 @@ const levels = {
   cd:{ label:'Congressional districts', details:'cd_details.csv', projections:'cd_projections.csv' },
   cousub:{ label:'County subdivisions', details:'cousub_details.csv', projections:'cousub_projections.csv' },
   puma:{ label:'PUMAs', details:'puma_details.csv', projections:'puma_projections.csv' },
+  sh:{ label:'State House districts', details:'sh_details.csv', projections:'sh_projections.csv' },
+  ss:{ label:'State Senate districts', details:'ss_details.csv', projections:'ss_projections.csv' },
 };
 const valid = v => v !== '' && v != null && Number.isFinite(+v);
 const cap = v => valid(v) ? `${pct(Math.min(1, Math.max(0, +v)))}${+v > 1 || +v < 0 ? ' (capped)' : ''}` : 'n/a';
@@ -177,7 +179,7 @@ export async function renderList(host, mapUnit, pick) {
       <button type="button" class="list-direction" aria-label="Reverse sort by ${escapeHTML(label(col))}" title="${escapeHTML(label(col))}: ${col.text ? (state.dir > 0 ? 'A to Z' : 'Z to A') : (state.dir > 0 ? 'Lowest first' : 'Highest first')}">${col.text ? (state.dir > 0 ? 'A–Z' : 'Z–A') : (state.dir > 0 ? '↑' : '↓')}</button>
       <div class="list-options"><label class="list-view"><input type="checkbox" class="list-inview"${state.inView ? ' checked' : ''}> In map view</label><button type="button" class="list-filters" aria-haspopup="dialog">Filters${state.filters.length ? ` (${state.filters.length})` : ''}</button><button type="button" class="list-full" aria-pressed="${state.full}">Full table</button></div>
     </div>
-    ${level === 'cd' ? '<p class="note list-disclaimer">U.S. Senate forecast within each district.</p>' : ''}
+    ${['cd', 'sh', 'ss'].includes(level) ? '<p class="note list-disclaimer">U.S. Senate forecast within each district.</p>' : ''}
     ${boundsUnavailable ? '<p class="note">Map bounds unavailable; showing all matching places.</p>' : ''}
     <div class="list-scroll"><table class="place-list${state.full ? ' full' : ' compact'}"><thead><tr>${head}</tr></thead><tbody>${body || `<tr class="list-empty"><td colspan="${displayed.length}">No places match. Adjust the search, filters, or map view.</td></tr>`}</tbody></table></div>
     <div class="list-footer"><p class="note list-count" role="status">${shown.length ? `${count(start + 1)}–${count(start + visible.length)} of` : ''} ${count(shown.length)} ${escapeHTML(levels[level].label.toLowerCase())}</p>

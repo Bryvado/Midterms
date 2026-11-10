@@ -15,7 +15,7 @@ const $ = selector => panel.querySelector(selector);
 const dark = () => document.documentElement.dataset.layout === 'dark';
 const ink = () => dark() ? { text:'#e5edf2', muted:'#acbfcb', grid:'#364a5b', zero:'#8aa1b2', panel:'#1b2937', fit:'#f4d27a' } : { text:'#1b282d', muted:'#64767b', grid:'#e3e9e8', zero:'#8e9ea3', panel:'#ffffff', fit:'#8a5a00' };
 const profileColors = () => dark() ? ['#e0b155', '#5fcbb0', '#b998dc', '#ff9a63'] : ['#b8892f', '#2f9a80', '#7b55a6', '#d9662a'];
-const singular = { precinct:'precinct', county:'county', cd:'district', cousub:'subdivision', puma:'PUMA' };
+const singular = { precinct:'precinct', county:'county', cd:'district', cousub:'subdivision', puma:'PUMA', sh:'district', ss:'district' };
 const points = v => `${v >= 0 ? '+' : '−'}${Math.abs(100 * v).toFixed(1)} pts`;
 let store = null, counties = new Map(), loading = null, checked = null, boxes = null, indexOf = null;
 // Linked brushing with the map: a lasso selection, the place last clicked on the map, chart zoom, and spatial restrictions.

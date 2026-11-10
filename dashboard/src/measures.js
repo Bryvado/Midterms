@@ -13,6 +13,8 @@ const files = {
   cd:{ details:'cd_details.csv', projections:'cd_projections.csv', history:'history_congressional_district.csv', drivers:'congressional_district' },
   cousub:{ details:'cousub_details.csv', projections:'cousub_projections.csv', history:'history_county_subdivision.csv', drivers:'county_subdivision' },
   puma:{ details:'puma_details.csv', projections:'puma_projections.csv', history:'history_puma.csv', drivers:'puma' },
+  sh:{ details:'sh_details.csv', projections:'sh_projections.csv', history:'history_state_house.csv', drivers:'state_house' },
+  ss:{ details:'ss_details.csv', projections:'ss_projections.csv', history:'history_state_senate.csv', drivers:'state_senate' },
 };
 
 let loaded;
