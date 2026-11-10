@@ -12,6 +12,8 @@ const levelInfo = {
   cd:{ file:'cd_details.csv', kicker:'Congressional district (2025 map)', note:'U.S. Senate forecast within each district — not a House forecast.' },
   cousub:{ file:'cousub_details.csv', kicker:'County subdivision' },
   puma:{ file:'puma_details.csv', kicker:'PUMA (2020 vintage)' },
+  sh:{ file:'sh_details.csv', kicker:'State House district (2023-2026 map)', note:'U.S. Senate forecast within each district, not a legislative forecast.' },
+  ss:{ file:'ss_details.csv', kicker:'State Senate district (2023-2026 map)', note:'U.S. Senate forecast within each district, not a legislative forecast.' },
 };
 const splitNote = 'Precincts that cross these lines are divided by 2020 census block population.';
 let bases = [];

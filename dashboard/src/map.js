@@ -4,7 +4,7 @@ import { darkMapColor } from './map-colors.js';
 import { setMapProgress, configureMapLoading, runMapUpdate, isMapBusy, failMapUpdate } from './map-loading.js';
 import { placeMeasures } from './metrics.js';
 import { shortLabel } from './labels.js';
-import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, metricLine, mapPair, FALLBACK_OPACITY, reads2026, precinctCounty, inCounties, noReturnList, countyPair, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
+import { state as cmpState, isCompareMeasure, metrics as cmpMetrics, ensureStore, storeIfLoaded, evaluate as cmpEvaluate, mapExpressions, describeProps, noData2026Note, metricValues, metricLine, partialLegend, mapPair, FALLBACK_OPACITY, reads2026, precinctCounty, inCounties, noReturnList, countyPair, stateVersion, setMetric as setCompareMetric, pairLabel, raceOf, crossOffice, crossesSources, sourceCaveat, STATUS as CMP } from './compare.js';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -60,8 +60,11 @@ const levels = {
   cd:{ tiles:'districts', details:'cd_details.csv', projections:'cd_projections.csv', plural:'congressional districts' },
   cousub:{ tiles:'cousubs', details:'cousub_details.csv', projections:'cousub_projections.csv', plural:'county subdivisions' },
   puma:{ tiles:'pumas', details:'puma_details.csv', projections:'puma_projections.csv', plural:'PUMAs' },
+  sh:{ tiles:'statehouse', details:'sh_details.csv', projections:'sh_projections.csv', plural:'State House districts' },
+  ss:{ tiles:'statesenate', details:'ss_details.csv', projections:'ss_projections.csv', plural:'State Senate districts' },
 };
 const levelKeys = Object.keys(levels);
+const levelNotes = { cd:'U.S. Senate forecast within each district, not a House forecast.', sh:'U.S. Senate forecast within each district, not a legislative forecast.', ss:'U.S. Senate forecast within each district, not a legislative forecast.' };
 const overlayStyle = {
   county:{ label:'County lines', light:'#d29b1f', dark:'#f0c674', width:1.2, dash:[2,1.5] },
   cd:{ label:'2025 congressional district lines', light:'#141414', dark:'#ffffff', width:1.8, dash:null },
@@ -78,7 +81,7 @@ for (const level of levelKeys) {
   levelSettings.set(level, clean);
 }
 if (!params.has('sc')) for (const [key, value] of Object.entries(savedDisplay.scales || {})) {
-  if (/^(county|precinct|cd|cousub|puma)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
+  if (/^(county|precinct|cd|cousub|puma|sh|ss)__\w+$/.test(key) && value && typeof value === 'object') scaleState.set(key, value);
 }
 const scaleKey = key => `${unit}__${key}`;
 for (const [key, value] of [...scaleState]) if (!key.includes('__')) { scaleState.set(scaleKey(key), value); scaleState.delete(key); }
@@ -476,6 +479,7 @@ function compareLegendExtras() {
   const notes = [];
   if (nrActive()) notes.push(`${noReturnList().length} counties have no precinct returns and draw as one county polygon${shareMetric() ? '' : ', gray for this measure'}.`);
   if (ev) notes.push(`${ev.counts.shown.toLocaleString('en-US')} ${noun} shown${ev.counts.fallback ? ` · ${ev.counts.fallback.toLocaleString('en-US')} with the county result` : ''} · ${ev.counts.below.toLocaleString('en-US')} below minimum · ${ev.counts.missing.toLocaleString('en-US')} missing a race`);
+  if (ev?.counts.partial) notes.push(partialLegend);
   if (crossOffice()) notes.push('Cross-office comparison: the shift includes candidate differences, not only changes in the electorate.');
   if (crossesSources()) notes.push(sourceCaveat);
   return html + notes.map(text => `<div class="legend-note">${escapeHTML(text)}</div>`).join('');
@@ -663,7 +667,7 @@ function compareTooltip(props, level = unit) {
   else if (via) lines.push(Number.isFinite(d.value) ? metricLine(d, cmpState.metric) : 'This measure needs the unit’s own vote counts: not shaded.', noData2026Note(unit, d, mapPair()));
   else if (d.status === CMP.missing) lines.push('No votes in this race: not shaded.', noData2026Note(unit, d));
   else {
-    lines.push(metricLine(d, cmpState.metric));
+    lines.push(metricLine(d, cmpState.metric), noData2026Note(unit, d, mapPair()));
     if (d.status === CMP.below) lines.push(`Below the minimum of ${cmpState.min.toLocaleString('en-US')} two-party votes: not shaded.`);
   }
   return lines.filter(Boolean).map(escapeHTML).join('<br>');
@@ -755,7 +759,7 @@ function syncUnit(next) {
     }
   }
   const note = document.querySelector('#level-note');
-  if (note) note.hidden = unit !== 'cd';
+  if (note) { note.hidden = !levelNotes[unit]; note.textContent = levelNotes[unit] || ''; }
   tooltip.hidden = true;
   window.dispatchEvent(new CustomEvent('unit-change', { detail:unit }));
 }
@@ -794,7 +798,7 @@ export function setTheme(next) {
 // Count actual tile requests in this transaction; metadata stages have no denominator.
 const requestedTiles = new Set(), pendingTiles = new Set();
 let dataReady = false;
-const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions',puma:'PUMAs'})[unit];
+const geographyName = () => ({county:'counties',precinct:'precincts',cd:'districts',cousub:'subdivisions',puma:'PUMAs',sh:'State House districts',ss:'State Senate districts'})[unit];
 function showTileProgress() {
   const total = [...requestedTiles].filter(key => key.startsWith(`${unit}:`)).length;
   const pending = [...pendingTiles].filter(key => key.startsWith(`${unit}:`)).length;

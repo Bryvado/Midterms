@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: dashboard/.tile-cache
-          key: tiles-v2-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/congressional_districts.geojson', 'data/published/county_subdivisions.geojson', 'data/published/pumas.geojson', 'data/published/puma_projections.csv', 'data/published/puma_details.csv', 'data/published/cd_projections.csv', 'data/published/cousub_projections.csv', 'data/published/cd_details.csv', 'data/published/cousub_details.csv', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'data/published/precinct_details.csv', 'data/published/county_details.csv', 'scripts/build_tiles.R') }}
+          key: tiles-v2-${{ runner.os }}-${{ hashFiles('data/published/regions.geojson', 'data/published/counties.geojson', 'data/published/congressional_districts.geojson', 'data/published/county_subdivisions.geojson', 'data/published/pumas.geojson', 'data/published/state_house_districts.geojson', 'data/published/state_senate_districts.geojson', 'data/published/sh_projections.csv', 'data/published/sh_details.csv', 'data/published/ss_projections.csv', 'data/published/ss_details.csv', 'data/published/puma_projections.csv', 'data/published/puma_details.csv', 'data/published/cd_projections.csv', 'data/published/cousub_projections.csv', 'data/published/cd_details.csv', 'data/published/cousub_details.csv', 'data/published/regional_projections.csv', 'data/published/county_projections.csv', 'data/published/precinct_details.csv', 'data/published/county_details.csv', 'scripts/build_tiles.R') }}
       - uses: r-lib/actions/setup-r@v2
         if: steps.tile-cache.outputs.cache-hit != 'true'
         with:
@@ -93,6 +93,8 @@ jobs:
           if [ -f data/published/pumas.geojson ]; then
             build pumas pumas.geojson puma_projections.csv puma
           fi
+          if [ -f data/published/state_house_districts.geojson ]; then build statehouse state_house_districts.geojson sh_projections.csv sh; fi
+          if [ -f data/published/state_senate_districts.geojson ]; then build statesenate state_senate_districts.geojson ss_projections.csv ss; fi
       - name: Copy map tiles into site
         run: |
           cp dashboard/.tile-cache/*.pmtiles dashboard/dist/
@@ -115,7 +117,7 @@ jobs:
           python3 - <<'PY'
           import os
           from pmtiles.reader import MmapSource, all_tiles
-          for name in ("regions", "counties", "districts", "cousubs", "pumas"):
+          for name in ("regions", "counties", "districts", "cousubs", "pumas", "statehouse", "statesenate"):
               path = f"dashboard/dist/{name}.pmtiles"
               if not os.path.exists(path):
                   continue
