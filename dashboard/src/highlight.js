@@ -14,6 +14,8 @@ export function featureStates(key) {
   };
 }
 export const stateWidth = (key, width) => ['case', ['boolean', ['feature-state', key], false], width, 0];
+// Two feature-state keys on one outline layer: a hover/selection outline wins over a picked-set outline, which wins over nothing.
+export const stateWidth2 = (key1, w1, key2, w2) => ['case', ['boolean', ['feature-state', key1], false], w1, ['boolean', ['feature-state', key2], false], w2, 0];
 // Marks only the rows whose state changed, from a cache of id to row built when the table is drawn.
 export function rowMarker() {
   let rows = new Map(), marked = new Set();

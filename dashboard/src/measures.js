@@ -170,14 +170,14 @@ export function finiteCount(arr) { let k = 0; for (const v of arr) if (Number.is
 
 // ---- Picker: a button that opens a searchable, grouped list ----
 let pickerSeq = 0;
-export function createPicker(host, { label, onChange }) {
+export function createPicker(host, { label, onChange, first = [] }) {
   const id = `mp${++pickerSeq}`;
   host.classList.add('mpick');
   host.innerHTML = `<span class="mpick-label">${escapeHTML(label)}</span><button type="button" class="mpick-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="${id}-pop"><span class="mpick-value"></span><span aria-hidden="true">▾</span></button>
     <div class="mpick-pop" id="${id}-pop" hidden><input type="search" class="mpick-search" placeholder="Search measures" aria-label="Search ${escapeHTML(label)} measures" aria-controls="${id}-list"><ul class="mpick-list" id="${id}-list" role="listbox" aria-label="${escapeHTML(label)}"></ul></div>`;
   const button = host.querySelector('.mpick-button'), pop = host.querySelector('.mpick-pop'), search = host.querySelector('.mpick-search'), list = host.querySelector('.mpick-list');
   let entries = [], value = null, active = -1, visible = [];
-  const order = g => { const i = [...acsGroups, ...otherGroups].indexOf(g); return i < 0 ? 99 : i; };
+  const order = g => { const i = first.indexOf(g); if (i >= 0) return i - first.length; const j = [...acsGroups, ...otherGroups].indexOf(g); return j < 0 ? 99 : j; };
   function render() {
     const q = search.value.trim().toLowerCase();
     visible = entries.filter(e => !q || e.label.toLowerCase().includes(q) || e.group.toLowerCase().includes(q) || e.key.toLowerCase().includes(q));

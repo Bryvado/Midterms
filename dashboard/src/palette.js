@@ -76,8 +76,9 @@ export function partisanT(v, center, half) {
 }
 export const partisanCenter = () => state.partisan.center === '' ? 0 : +state.partisan.center / 100;
 export const partisanClamp = fallbackHalf => state.partisan.clamp !== '' && +state.partisan.clamp > 0 ? +state.partisan.clamp / 100 : fallbackHalf;
-// Quantities that are partisan: the model's forecast, past results, shifts and the primary-history mix of early voters.
-export const isPartisan = entry => !!entry && (entry.group === 'Politics' || entry.key === 'ev_d_share');
+// Quantities that are partisan: the model's forecast, past results, shifts, the primary-history mix of early voters, and
+// any entry explicitly flagged (the Results scatter's 2026 shares and shifts, not its vote counts or margins).
+export const isPartisan = entry => !!entry && (entry.group === 'Politics' || entry.key === 'ev_d_share' || !!entry.partisan);
 
 // ---- Controls ----
 const titles = { partisan:['Partisan shading', 'margin, share, shift, win probability'], sequential:['Other shading', 'turnout, counts, density, demographics'] };
