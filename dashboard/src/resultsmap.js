@@ -2,9 +2,10 @@ import maplibregl from 'maplibre-gl';
 import { base, csv, pct, count, signed, escapeHTML } from './data.js';
 import { mapBasics, compareGreyColors } from './map.js';
 import { shortLabel } from './labels.js';
-import { featureStates, stateWidth, rowMarker } from './highlight.js';
+import { featureStates, stateWidth, stateWidth2, rowMarker } from './highlight.js';
 import { stops as palStops, partisanCenter, partisanClamp, swatchButton } from './palette.js';
 import { ensureStore, storeIfLoaded, evaluate, metricArray, valueExpressions, mapExpressions, STATUS, raceNodes, raceOf, levelInfo, metrics as cmpMetrics, minOptions, tpOf, shareOf, indexOf, crossOffice, crossesSources, sourceCaveat, is2026Result, fallbackLevels, FALLBACK_OPACITY, precinctCounty, inCounties, countyPair, isPartial, partialNote, partialLegend } from './compare.js';
+import * as rc from './resultscharts.js';
 
 // The Results tab map. It has its own state (level, measure, pair, filters), kept apart from the Forecast tab's compare state,
 // and shades places from the published 2026 results and history files through compare.js. Nothing is estimated here.
@@ -17,11 +18,11 @@ const rs = { level:'county', measure:'res_share', from:'sen24', to:'sen26', min:
 const defaults = { ...rs };
 const urlKeys = { level:'rlv', measure:'rm', from:'rf', to:'rt', min:'rmin', county:'rc', range:'rr', bw:'rbw', fo:'rfo', bo:'rbo', ln:'rln', hw:'rhw', fb:'rfb' };
 let available = [], present = [], map = null, started = false, styleReady = false, decorated = false, active = false;
-let cur = null, token = 0, hover = null, selected = null, surnames = null;
-let tipId = null, tipSize = { w:0, h:0 }, frame = 0;
+let cur = null, token = 0, hover = null, selected = null, surnames = null, pickedIds = null;
+let tipId = null, tipSize = { w:0, h:0 }, frame = 0, searchTimer = null;
 const added = new Set();
-const sortState = { key:'votes', dir:-1 };
-const TABLE_CAP = 500;
+const PAGE_SIZE = 25;
+const tbl = { sort:'votes', dir:-1, page:0, query:'', rows:[], cols:[] };
 
 const num = v => v === '' || v == null || v === 'NA' ? NaN : +v;
 const sign = v => v > 0 ? '+' : v < 0 ? '−' : '';
@@ -198,7 +199,7 @@ function addLevel(level) {
   if (!map.getSource(name.src)) map.addSource(name.src, { type:'vector', url:b.tileURL(b.tiles[level]), promoteId:'region_id' });
   map.addLayer({ id:name.fill, type:'fill', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'fill-color':compareGreyColors().nodata, 'fill-opacity':.85, 'fill-outline-color':'rgba(0,0,0,0)' } }, below);
   map.addLayer({ id:name.line, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? 'rgba(220,230,235,.35)' : 'rgba(40,55,60,.3)', 'line-width':level === 'precinct' ? .25 : .5 } }, below);
-  map.addLayer({ id:name.hi, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth('on', 2.4) } }, below);
+  map.addLayer({ id:name.hi, type:'line', source:name.src, 'source-layer':'regions', layout:{ visibility:'none' }, paint:{ 'line-color':b.theme === 'dark' ? '#ffffff' : '#111a1f', 'line-width':stateWidth2('on', 2.4, 'set', 1.1) } }, below);
   if (!decorated) {
     decorated = true;
     b.highways(below, map);
@@ -210,7 +211,7 @@ function addLevel(level) {
 function showLevel(level) {
   for (const l of added) for (const part of ['fill', 'line', 'hi']) map.setLayoutProperty(ids(l)[part], 'visibility', l === level ? 'visible' : 'none');
 }
-const hi = featureStates('on'), nrHi = featureStates('nr'), rowsMark = rowMarker();
+const hi = featureStates('on'), nrHi = featureStates('nr'), setHi = featureStates('set'), rowsMark = rowMarker();
 let flatAdded = false;
 // Flat county layers sit just under the precinct fill; created once per style, filtered once to the counties without precinct returns.
 function paintFlat(c) {
@@ -237,9 +238,9 @@ function paintFlat(c) {
 const resolveFlat = id => cur?.nr && rs.level === 'precinct' ? (id.length === 3 ? id : cur.nr.set.has(id.slice(0, 3)) ? id.slice(0, 3) : null) : null;
 function setHighlight() {
   if (!map) return;
-  const picked = [selected, hover].filter(Boolean), flat = new Set(), own = [];
-  for (const id of picked) { const county = resolveFlat(id); if (county) flat.add(county); else own.push(id); }
-  for (const l of added) hi.set(map, ids(l).src, l === rs.level ? own : []);
+  const marked = [selected, hover].filter(Boolean), flat = new Set(), own = [];
+  for (const id of marked) { const county = resolveFlat(id); if (county) flat.add(county); else own.push(id); }
+  for (const l of added) { hi.set(map, ids(l).src, l === rs.level ? own : []); setHi.set(map, ids(l).src, l === rs.level && pickedIds ? [...pickedIds] : []); }
   nrHi.set(map, ids('county').src, [...flat]);
 }
 
@@ -273,6 +274,7 @@ async function paint({ keepScale = false } = {}) {
     setHighlight();
   }
   renderLegend(c, scale); renderNote(c); drawTable(c); syncControls(c); syncURL();
+  rc.paint(c, { county:rs.county }).catch(error => console.error('Results charts could not draw', error));
 }
 const swatchKind = c => isDiverging(c.scale) ? 'partisan' : 'sequential';
 const endNames = { share:['Paxton', 'Talarico'], shift:['Less Democratic', 'More Democratic'], logratio:['Fewer votes', 'More votes'], diff:['Net Paxton', 'Net Talarico'] };
@@ -328,13 +330,31 @@ function renderNote(c) {
 }
 
 // ---- Table ----
-const tableCols = c => [
-  { key:'name', label:rs.level === 'county' ? 'County' : levelNames[rs.level], text:true },
-  { key:'votes', label:`${raceOf(raceKey(c)).short} two-party votes` },
-  { key:'s26', label:`${raceOf(raceKey(c)).short} Talarico share` },
-  ...(c.pair ? [{ key:'sc', label:c.def.pair === 'forecast' ? 'Pre-election forecast' : `${raceOf(raceKey(c) === c.pair.to ? c.pair.from : c.pair.to).short} share` }] : []),
-  { key:'value', label:c.def.label },
-];
+// Short labels for the measure column; the full wording always stays available in the header's title attribute.
+const metricShort = { shift:'Shift', rshift:'Rel. shift', ratio:'Ratio', rratio:'Rel. ratio', net:'Net votes' };
+function shortMeasureLabel(def) {
+  if (def.key === 'res_margin') return 'Margin';
+  if (def.key === 'fc_shift') return 'Vs forecast';
+  if (def.key === 'fc_net') return 'Vs forecast (net)';
+  if (def.surname) return def.surname === 'hisp_surname_share' ? 'Hispanic surname (est.)' : 'Black surname (est.)';
+  if (def.early) return 'Early vote';
+  if (def.pair === 'chosen') return metricShort[def.metric] || def.label;
+  return def.label;
+}
+function tableCols(c) {
+  const key = raceKey(c), raceShort = raceOf(key).short, demLabel = key === 'sen26' ? 'Talarico' : `${raceShort} D`;
+  const cols = [
+    { key:'name', label:rs.level === 'county' ? 'County' : levelNames[rs.level], text:true, title:'Place name' },
+    { key:'votes', label:'Votes', title:`${raceShort} two-party votes` },
+    { key:'s26', label:demLabel, title:`${raceShort} Talarico share` },
+  ];
+  if (c.pair) {
+    const other = key === c.pair.to ? c.pair.from : c.pair.to;
+    cols.push({ key:'sc', label:c.def.pair === 'forecast' ? 'Forecast' : raceOf(other).short, title:c.def.pair === 'forecast' ? 'Pre-election forecast share' : `${raceOf(other).label} share` });
+  }
+  if (c.def.key !== 'res_share' && c.def.key !== 'res_votes') cols.push({ key:'value', label:shortMeasureLabel(c.def), title:c.def.label });
+  return cols;
+}
 function rowsOf(c) {
   const { store } = c, key = raceKey(c), tp = tpOf(store, key), sh = shareOf(store, key), other = c.pair ? (key === c.pair.to ? c.pair.from : c.pair.to) : null, cmp = other ? shareOf(store, other) : null;
   const out = [];
@@ -344,25 +364,67 @@ function rowsOf(c) {
   }
   return out;
 }
-function drawTable(c) {
-  const cols = tableCols(c);
-  if (!cols.some(k => k.key === sortState.key)) { sortState.key = 'votes'; sortState.dir = -1; }
-  const rows = rowsOf(c).sort((a, b) => {
-    const p = a[sortState.key], q = b[sortState.key];
-    if (sortState.key === 'name') return String(p).localeCompare(String(q)) * sortState.dir;
+function sortRows(rows) {
+  const key = tbl.sort, dir = tbl.dir;
+  rows.sort((a, b) => {
+    const p = a[key], q = b[key];
+    if (key === 'name') return String(p).localeCompare(String(q)) * dir;
     const fp = Number.isFinite(p), fq = Number.isFinite(q);
-    return fp && fq ? (p - q) * sortState.dir : fp ? -1 : fq ? 1 : 0;
+    return fp && fq ? (p - q) * dir : fp ? -1 : fq ? 1 : 0;
   });
-  const shown = rows.slice(0, TABLE_CAP), fmt = fmtOf[c.fmt];
+  return rows;
+}
+// Sorted once here, per paint or sort change; search, the picked-set filter and paging only slice this array.
+function drawTable(c) {
+  tbl.cols = tableCols(c);
+  if (!tbl.cols.some(k => k.key === tbl.sort)) { tbl.sort = 'votes'; tbl.dir = -1; }
+  tbl.fmt = fmtOf[c.fmt];
+  tbl.rows = sortRows(rowsOf(c));
   $('#rs-table-title').textContent = levelNames[rs.level];
-  const cell = (k, r) => k.key === 'name' ? escapeHTML(r.name) : k.key === 'votes' ? (r.votes > 0 ? count(r.votes) : '–') : k.key === 's26' || k.key === 'sc' ? share1(r[k.key]) : Number.isFinite(r.value) ? fmt(r.value) : '–';
-  $('#rs-table').innerHTML = `<div class="table-scroll evt-table"><table><thead><tr>${cols.map(k => `<th class="${k.text ? 'name' : ''}" aria-sort="${k.key === sortState.key ? (sortState.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${k.key}">${escapeHTML(k.label)}</button></th>`).join('')}</tr></thead>
-    <tbody>${shown.map(r => `<tr data-id="${escapeHTML(r.id)}" tabindex="0">${cols.map(k => `<td class="${k.text ? 'name' : ''}">${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <p class="note">${rows.length > TABLE_CAP ? `Showing the first ${count(TABLE_CAP)} of ${count(rows.length)} places in this order. ` : ''}Shares are Talarico’s share of the two-party vote. A dash means the place has no data for that column.</p>`;
+  renderTableBody();
+}
+function resortRows() { sortRows(tbl.rows); tbl.page = 0; renderTableBody(); }
+function visibleRows() {
+  let rows = tbl.rows;
+  if (pickedIds) rows = rows.filter(r => pickedIds.has(r.id));
+  const q = tbl.query.trim().toLowerCase();
+  if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
+  return rows;
+}
+const tableCell = (k, r) => k.key === 'name' ? escapeHTML(r.name) : k.key === 'votes' ? (r.votes > 0 ? count(r.votes) : '–') : k.key === 's26' || k.key === 'sc' ? share1(r[k.key]) : Number.isFinite(r.value) ? tbl.fmt(r.value) : '–';
+function renderTableBody() {
+  const cols = tbl.cols, rows = visibleRows();
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  tbl.page = Math.min(tbl.page, pages - 1);
+  const start = tbl.page * PAGE_SIZE, shown = rows.slice(start, start + PAGE_SIZE);
+  const sortCol = cols.find(k => k.key === tbl.sort);
+  $('#rs-table').innerHTML = `<div class="rc-table-scroll" role="region" aria-labelledby="rs-table-caption" tabindex="0">
+    <table class="rc-table">
+      <caption id="rs-table-caption" class="visually-hidden">${escapeHTML(levelNames[rs.level])} places table</caption>
+      <thead><tr>${cols.map(k => `<th class="rc-col-${k.key}${k.text ? ' name' : ''}" scope="col" title="${escapeHTML(k.title || k.label)}"${k.key === tbl.sort ? ` aria-sort="${tbl.dir > 0 ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${k.key}">${escapeHTML(k.label)}</button></th>`).join('')}</tr></thead>
+      <tbody>${shown.length ? shown.map(r => `<tr data-id="${escapeHTML(r.id)}" tabindex="0">${cols.map(k => `<td class="rc-col-${k.key}${k.text ? ' name' : ''}"${k.text ? ` title="${escapeHTML(r.name)}"` : ''}>${tableCell(k, r)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cols.length}" class="rc-table-empty">No places match.</td></tr>`}</tbody>
+    </table></div>
+    <p class="note rc-table-note">Shares are Talarico’s share of the two-party vote. A dash means the place has no data for that column.</p>`;
+  $('#rs-pager').innerHTML = rows.length ? `<button type="button" data-rc-page="-1" ${tbl.page === 0 ? 'disabled' : ''} aria-label="Previous page">‹</button>
+    <span>${count(rows.length ? start + 1 : 0)}–${count(Math.min(start + PAGE_SIZE, rows.length))} of ${count(rows.length)}</span>
+    <button type="button" data-rc-page="1" ${tbl.page >= pages - 1 ? 'disabled' : ''} aria-label="Next page">›</button>` : '';
+  const chip = $('#rs-picked-chip');
+  if (pickedIds) { chip.hidden = false; chip.innerHTML = `${count(pickedIds.size)} picked in the ${rc.getPickedFrom() === 'hist' ? 'distribution' : 'scatter'} <button type="button" id="rs-picked-clear" class="text-button">Clear</button>`; }
+  else chip.hidden = true;
+  $('#rs-table-status').textContent = sortCol ? `Sorted by ${sortCol.title || sortCol.label}, ${tbl.dir > 0 ? 'ascending' : 'descending'}.` : '';
   rowsMark.index($('#rs-table'));
   markTable();
 }
 function markTable() { rowsMark.mark([selected, hover]); }
+// A selection from the map, table or scatter jumps the table to the page holding that row.
+function jumpToRow(id) {
+  if (!id || !tbl.rows.length) return;
+  const rows = visibleRows(), at = rows.findIndex(r => r.id === id);
+  if (at < 0) return;
+  const page = Math.floor(at / PAGE_SIZE);
+  if (page !== tbl.page) { tbl.page = page; renderTableBody(); }
+}
+function handlePicked(ids) { pickedIds = ids && ids.size ? ids : null; tbl.page = 0; setHighlight(); renderTableBody(); }
 
 // ---- Tooltip ----
 function flatTooltipHTML(id) {
@@ -452,10 +514,11 @@ function readURL() {
   for (const key of ['fo', 'bo']) { const v = params.get(urlKeys[key]); if (v != null && /^\d{1,3}$/.test(v) && +v <= 100) rs[key] = v; }
   for (const key of ['ln', 'hw', 'fb']) { const v = params.get(urlKeys[key]); if (v === '0' || v === '1') rs[key] = v; }
 }
-function setHover(id) { if (hover === id) return; hover = id; setHighlight(); markTable(); }
+function setHover(id) { if (hover === id) return; hover = id; setHighlight(); markTable(); rc.setMark(hover, selected); }
 function setSelection(id) {
   selected = selected === id ? null : id; setHighlight(); markTable();
-  if (selected) document.querySelector(`#rs-table tr[data-id="${CSS.escape(selected)}"]`)?.scrollIntoView({ block:'nearest' });
+  if (selected) { jumpToRow(selected); document.querySelector(`#rs-table tr[data-id="${CSS.escape(selected)}"]`)?.scrollIntoView({ block:'nearest' }); }
+  rc.setMark(hover, selected);
 }
 
 // The flat county polygon wins over the (hidden) precincts beneath it.
@@ -469,7 +532,7 @@ function initMap() {
   map = new maplibregl.Map({ container:'rs-map', style:b.style, bounds:b.bounds, fitBoundsOptions:{ padding:24 }, attributionControl:false, cooperativeGestures:true });
   map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
-  map.on('style.load', () => { styleReady = true; decorated = false; flatAdded = false; added.clear(); hi.reset(); nrHi.reset(); paint(); });
+  map.on('style.load', () => { styleReady = true; decorated = false; flatAdded = false; added.clear(); hi.reset(); nrHi.reset(); setHi.reset(); paint(); });
   window.addEventListener('basemap-change', () => { if (!map) return; styleReady = false; map.setStyle(mapBasics().style); });
   const wrap = $('.rs-map-wrap');
   let fitted = false;
@@ -510,7 +573,7 @@ async function setupControls() {
   levels.replaceChildren(...levelOrder.filter(l => available.includes(l)).map(l => { const b = document.createElement('button'); b.type = 'button'; b.dataset.level = l; b.textContent = levelNames[l]; return b; }));
   levels.addEventListener('click', e => {
     const b = e.target.closest('[data-level]'); if (!b || b.dataset.level === rs.level) return;
-    rs.level = b.dataset.level; selected = hover = null; buildMeasureSelect(); paint();
+    rs.level = b.dataset.level; selected = hover = null; pickedIds = null; rc.resetPicked(); tbl.page = 0; buildMeasureSelect(); paint();
   });
   buildMeasureSelect();
   $('#rs-from').replaceChildren(...raceNodes(rs.from)); $('#rs-to').replaceChildren(...raceNodes(rs.to));
@@ -524,11 +587,25 @@ async function setupControls() {
   on('#rs-from', 'from'); on('#rs-to', 'to'); on('#rs-min', 'min', Number); on('#rs-county', 'county'); on('#rs-range', 'range');
   $('#rs-table').addEventListener('click', e => {
     const sort = e.target.closest('[data-sort]'), tr = e.target.closest('tr[data-id]');
-    if (sort) { const key = sort.dataset.sort; if (sortState.key === key) sortState.dir = -sortState.dir; else { sortState.key = key; sortState.dir = key === 'name' ? 1 : -1; } drawTable(cur); }
+    if (sort) { const key = sort.dataset.sort; if (tbl.sort === key) tbl.dir = -tbl.dir; else { tbl.sort = key; tbl.dir = key === 'name' ? 1 : -1; } resortRows(); }
     else if (tr) setSelection(tr.dataset.id);
+  });
+  $('#rs-table').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    e.preventDefault(); setSelection(tr.dataset.id);
   });
   $('#rs-table').addEventListener('pointerover', e => { const tr = e.target.closest('tr[data-id]'); setHover(tr ? tr.dataset.id : null); });
   $('#rs-table').addEventListener('pointerleave', () => setHover(null));
+  $('#rs-pager').addEventListener('click', e => { const b = e.target.closest('[data-rc-page]'); if (b) { tbl.page += +b.dataset.rcPage; renderTableBody(); } });
+  $('#rs-picked-chip').addEventListener('click', e => { if (e.target.closest('#rs-picked-clear')) rc.clearPicked(); });
+  $('#rs-search').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    const value = e.target.value;
+    searchTimer = setTimeout(() => { tbl.query = value; tbl.page = 0; renderTableBody(); }, 120);
+  });
+  rc.mount({ onHover:setHover, onPick:setSelection, onPicked:handlePicked });
   const county = await ensureStore('county');
   const names = county.ids.map((id, i) => [id, county.labels[i]]).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
   fillSelect($('#rs-county'), [new Option('All counties', ''), ...names.map(([id, label]) => new Option(label, id))], rs.county);

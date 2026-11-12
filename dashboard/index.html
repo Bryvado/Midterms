@@ -342,7 +342,53 @@
           </section>
         </div>
         <section class="evt-table-wrap eday-oldmap"><h3>Counties</h3><div id="eday-table"></div></section>
-        <section class="evt-table-wrap rs-block rs-table-wrap"><h3 id="rs-table-title">Counties</h3><div id="rs-table"></div></section>
+        <div id="rc-analysis" class="rs-block rc-analysis">
+          <div class="rc-col rc-col-main">
+            <section class="evt-chart xy-panel rc-card" id="rc-scatter-card" aria-label="Scatter: what tracks the result">
+              <header class="evt-chart-head">
+                <h3>What tracks the result</h3>
+                <div class="evt-seg evt-seg-sm" role="group" aria-label="Scatter view">
+                  <button type="button" data-rc-mode="binned" aria-pressed="true">Binned</button>
+                  <button type="button" data-rc-mode="points" aria-pressed="false">Points</button>
+                </div>
+                <label class="check xy-size"><input type="checkbox" id="rc-size" checked> Size by votes</label>
+              </header>
+              <div class="xy-pickers"><div id="rc-x"></div><div id="rc-y"></div><div id="rc-c"></div></div>
+              <div class="sh-presets" id="rc-presets" role="group" aria-label="Preset comparisons">
+                <span class="sh-presets-label">Presets</span>
+                <button type="button" class="text-button" data-rc-preset="hisp">Hispanic share × shift</button>
+                <button type="button" class="text-button" data-rc-preset="harris">2024 Harris × result</button>
+                <button type="button" class="text-button" data-rc-preset="income">Income × vs forecast</button>
+                <button type="button" class="text-button" data-rc-preset="college">College × shift</button>
+              </div>
+              <p class="note xy-method" id="rc-method"></p>
+              <div id="rc-plot"></div>
+              <div class="xy-foot"><span id="rc-stats"></span><span id="rc-legend" class="xy-legend"></span></div>
+            </section>
+            <section class="evt-table-wrap rc-card rc-table-card" id="rc-table-card" aria-label="Places table">
+              <header class="rc-table-head">
+                <h3 id="rs-table-title">Counties</h3>
+                <span class="rc-picked-chip" id="rs-picked-chip" hidden></span>
+                <label class="rc-search"><span class="visually-hidden">Find a place</span><input type="search" id="rs-search" placeholder="Find a place"></label>
+              </header>
+              <div id="rs-table"></div>
+              <div class="rc-pager" id="rs-pager"></div>
+              <div class="visually-hidden" role="status" id="rs-table-status"></div>
+            </section>
+          </div>
+          <div class="rc-col rc-col-side">
+            <section class="evt-chart rc-card" id="rc-dist-card" aria-label="Distribution of the current measure">
+              <header class="evt-chart-head"><h3>Distribution</h3></header>
+              <div id="rc-dist"></div>
+            </section>
+            <section class="evt-chart rc-card" id="rc-rank-card" aria-label="What tracks the chosen measure">
+              <div class="sh-rank-head"><h3 id="rc-rank-title">What tracks the result</h3></div>
+              <ul class="sh-rank-list" id="rc-rank-list"></ul>
+              <div class="sh-rank-foot"><button type="button" class="text-button" id="rc-rank-more" hidden></button></div>
+              <p class="note" id="rc-rank-note"></p>
+            </section>
+          </div>
+        </div>
         <p class="note evt-foot"><strong>Method.</strong> Counts are the Secretary of State's unofficial county returns for the U.S. Senate race. The estimate starts from the pre-election model's simulated county results and updates each county's Talarico two-party share as early and Election Day votes are counted, with a statewide gap between early and Election Day voters and statewide Election Day turnout against expectations learned from fully reported counties. Ranges are the 10th to 90th percentiles of the updated simulations. Shift is the updated county share minus the pre-results forecast's share<span class="eday-live-only">; on the map, counties are fainter the less of their expected vote has been counted</span>.<span class="eday-final-only"> Once every county has reported all its precincts the tab shows final unofficial returns: each county's result is its counted two-party share, and the statewide figures are the counted totals. The map and table read the published results files for 2026 and for the other statewide races from 2018 to 2024, at each geography; they compare any two races, or the result with the pre-election forecast. Surname shares are modeled estimates from voter-roster surnames, not counts.</span></p>
       </main>
             <footer class="site-footer"><span>Talarico share refers to D/(D+R); Brown is excluded from the two-party measure.</span><button id="footer-methods" type="button">How to read this model</button></footer>
